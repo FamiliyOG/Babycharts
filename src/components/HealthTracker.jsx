@@ -5,6 +5,7 @@ import {
   Pill,
   Clock,
   Plus,
+  Edit2,
   Trash2,
   HeartPulse,
   FileText,
@@ -38,13 +39,10 @@ const COMMON_SYMPTOMS = [
 
 export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
 
   // Health entry form states
-  const [dateTime, setDateTime] = useState(() => {
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  });
+  const [dateTime, setDateTime] = useState('');
   const [temperature, setTemperature] = useState('');
   const [medication, setMedication] = useState('');
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
@@ -53,6 +51,32 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
   if (!activeChild) return null;
 
   const healthLog = activeChild.healthLog || [];
+
+  const openCreateModal = () => {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const localNow = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    setEditingEntry(null);
+    setDateTime(localNow);
+    setTemperature('');
+    setMedication('');
+    setSelectedSymptoms([]);
+    setNotes('');
+    setIsEntryModalOpen(true);
+  };
+
+  const openEditModal = (entry) => {
+    setEditingEntry(entry);
+    setDateTime(entry.dateTime || '');
+    setTemperature(
+      entry.temperature !== null && entry.temperature !== undefined ? String(entry.temperature) : ''
+    );
+    setMedication(entry.medication || '');
+    setSelectedSymptoms(entry.symptoms ? [...entry.symptoms] : []);
+    setNotes(entry.notes || '');
+    setIsEntryModalOpen(true);
+  };
 
   // Sort logs chronologically (newest first for list, oldest first for chart)
   const sortedDesc = [...healthLog].sort(
@@ -74,17 +98,37 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
     e.preventDefault();
     if (!canEdit) return;
 
-    const newEntry = {
-      id: `h-${Date.now()}`,
-      dateTime,
-      temperature: temperature ? Number.parseFloat(temperature) : null,
-      medication: medication.trim() || null,
-      symptoms: selectedSymptoms,
-      notes: notes.trim() || null,
-      createdAt: new Date().toISOString(),
-    };
+    const parsedTemp = temperature ? Number.parseFloat(temperature) : null;
+    const trimmedMed = medication.trim() || null;
+    const trimmedNotes = notes.trim() || null;
 
-    const updated = [newEntry, ...healthLog];
+    let updated;
+    if (editingEntry) {
+      updated = healthLog.map((item) =>
+        item.id === editingEntry.id
+          ? {
+              ...item,
+              dateTime,
+              temperature: parsedTemp,
+              medication: trimmedMed,
+              symptoms: selectedSymptoms,
+              notes: trimmedNotes,
+              updatedAt: new Date().toISOString(),
+            }
+          : item
+      );
+    } else {
+      const newEntry = {
+        id: `h-${Date.now()}`,
+        dateTime,
+        temperature: parsedTemp,
+        medication: trimmedMed,
+        symptoms: selectedSymptoms,
+        notes: trimmedNotes,
+        createdAt: new Date().toISOString(),
+      };
+      updated = [newEntry, ...healthLog];
+    }
 
     onUpdateChild({
       ...activeChild,
@@ -92,10 +136,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
     });
 
     setIsEntryModalOpen(false);
-    setTemperature('');
-    setMedication('');
-    setSelectedSymptoms([]);
-    setNotes('');
+    setEditingEntry(null);
   };
 
   const handleDeleteEntry = (entryId) => {
@@ -220,14 +261,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
           {canEdit && (
             <button
               type="button"
-              onClick={() => {
-                const now = new Date();
-                const pad = (n) => String(n).padStart(2, '0');
-                setDateTime(
-                  `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
-                );
-                setIsEntryModalOpen(true);
-              }}
+              onClick={openCreateModal}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-950 transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -296,14 +330,26 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
                       </div>
 
                       {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteEntry(entry.id)}
-                          className="p-1 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
-                          title="Eintrag löschen"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(entry)}
+                            className="p-1 text-slate-400 hover:text-cyan-400 rounded-lg hover:bg-slate-800 transition-colors"
+                            title="Eintrag bearbeiten"
+                            aria-label="Eintrag bearbeiten"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEntry(entry.id)}
+                            className="p-1 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
+                            title="Eintrag löschen"
+                            aria-label="Eintrag löschen"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -360,10 +406,14 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-slate-100 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold mb-1 flex items-center gap-2">
               <Activity className="w-5 h-5 text-rose-400" />
-              <span>Gesundheitseintrag erstellen</span>
+              <span>
+                {editingEntry ? 'Gesundheitseintrag bearbeiten' : 'Gesundheitseintrag erstellen'}
+              </span>
             </h3>
             <p className="text-xs text-slate-400 mb-4">
-              Temperatur, Medikamente und beobachtete Symptome festhalten.
+              {editingEntry
+                ? 'Passen Sie Temperatur, Uhrzeit, Medikamente oder Notizen an.'
+                : 'Temperatur, Medikamente und beobachtete Symptome festhalten.'}
             </p>
 
             <form onSubmit={handleSaveEntry} className="space-y-4">
@@ -476,7 +526,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-950"
                 >
-                  Eintrag speichern
+                  {editingEntry ? 'Änderungen speichern' : 'Eintrag speichern'}
                 </button>
               </div>
             </form>

@@ -532,7 +532,7 @@ function MainApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-white pb-16 md:pb-0 transition-colors duration-200">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-white pb-16 md:pb-0 transition-colors duration-200 overflow-x-hidden w-full max-w-full">
       {/* Offline PWA Status Banner */}
       <OfflineBanner />
 

@@ -159,11 +159,28 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
             return (
               <g
                 key={tooth.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Zahn ${tooth.short} (${tooth.name})`}
                 transform={`translate(${tooth.x}, ${tooth.y}) rotate(${tooth.rot})`}
-                onClick={() => openToothModal(tooth)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openToothModal(tooth);
+                }}
+                onPointerUp={(e) => {
+                  e.stopPropagation();
+                  openToothModal(tooth);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openToothModal(tooth);
+                  }
+                }}
                 onMouseEnter={() => setHoveredTooth(tooth)}
                 onMouseLeave={() => setHoveredTooth(null)}
-                className="cursor-pointer transition-transform duration-150 active:scale-90"
+                className="cursor-pointer transition-transform duration-150 active:scale-90 focus:outline-none"
+                style={{ touchAction: 'manipulation' }}
               >
                 {/* Tooth Crown */}
                 {renderToothPath(tooth, isErupted)}

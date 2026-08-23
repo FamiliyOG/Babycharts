@@ -128,18 +128,18 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
         </div>
 
         <svg
-          viewBox="0 0 340 210"
-          className="w-full max-w-77.5 h-auto overflow-visible select-none drop-shadow-md"
+          viewBox="0 0 360 240"
+          className="w-full max-w-85 h-auto overflow-visible select-none drop-shadow-md"
         >
           {/* Anatomical Gum Arch Background */}
           {isUpper ? (
             <path
-              d="M 28 175 C 28 65, 110 20, 170 20 C 230 20, 312 65, 312 175 C 290 175, 275 105, 170 105 C 65 105, 50 175, 28 175 Z"
+              d="M 36 200 C 36 80, 120 25, 180 25 C 240 25, 324 80, 324 200 C 300 200, 280 120, 180 120 C 80 120, 60 200, 36 200 Z"
               className="fill-rose-950/20 stroke-rose-900/30 stroke-1 pointer-events-none select-none"
             />
           ) : (
             <path
-              d="M 28 35 C 28 145, 110 190, 170 190 C 230 190, 312 145, 312 35 C 290 35, 275 105, 170 105 C 65 105, 50 35, 28 35 Z"
+              d="M 36 40 C 36 160, 120 215, 180 215 C 240 215, 324 160, 324 40 C 300 40, 280 120, 180 120 C 80 120, 60 40, 36 40 Z"
               className="fill-rose-950/20 stroke-rose-900/30 stroke-1 pointer-events-none select-none"
             />
           )}

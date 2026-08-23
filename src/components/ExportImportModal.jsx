@@ -1,5 +1,16 @@
-import { useState } from 'react';
-import { X, Upload, FileText, Sparkles, Database as DbIcon, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  X,
+  Upload,
+  FileText,
+  Sparkles,
+  Database as DbIcon,
+  ShieldCheck,
+  Smartphone,
+  Download,
+  Share,
+  Check,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 
@@ -13,8 +24,58 @@ export default function ExportImportModal({
   const { isDev } = useAuth();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
   const [importStatus, setImportStatus] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(() =>
+    typeof window !== 'undefined' ? window.deferredPrompt : null
+  );
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+    );
+  });
+  const [installSuccess, setInstallSuccess] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleInstallable = () => {
+      setDeferredPrompt(window.deferredPrompt);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      setInstallSuccess(true);
+    };
+
+    window.addEventListener('pwa-installable', handleInstallable);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('pwa-installable', handleInstallable);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   if (!isOpen) return null;
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setInstallSuccess(true);
+          setIsInstalled(true);
+        }
+        window.deferredPrompt = null;
+        setDeferredPrompt(null);
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const handleExportJson = () => {
     const dataStr =
@@ -26,6 +87,30 @@ export default function ExportImportModal({
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+  };
+
+  const renderInstallAction = () => {
+    if (isInstalled) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60 shrink-0">
+          <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          Bereits installiert
+        </span>
+      );
+    }
+    if (deferredPrompt) {
+      return (
+        <button
+          type="button"
+          onClick={handleInstallPwa}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition-all active:scale-95 shrink-0"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>Jetzt installieren</span>
+        </button>
+      );
+    }
+    return null;
   };
 
   return (
@@ -44,8 +129,61 @@ export default function ExportImportModal({
         </button>
 
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <span>Einstellungen &amp; Datensicherung</span>
+          <span>Einstellungen &amp; App</span>
         </h2>
+
+        {/* PWA Home Screen Installation Card */}
+        <div className="mb-4 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 shadow-xs">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                  App auf Startbildschirm installieren
+                </div>
+                <div className="text-[11px] text-indigo-700 dark:text-indigo-400 font-medium">
+                  {isInstalled
+                    ? 'Als eigenständige PWA installiert'
+                    : 'BabyCharts als native App auf dem Smartphone nutzen'}
+                </div>
+              </div>
+            </div>
+
+            {renderInstallAction()}
+          </div>
+
+          {!isInstalled && (
+            <div className="mt-3 pt-3 border-t border-indigo-200/80 dark:border-indigo-900/50 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
+              <p className="font-semibold text-indigo-900 dark:text-indigo-300">
+                Anleitung für Ihr Smartphone:
+              </p>
+              <div className="flex items-start gap-1.5">
+                <span className="font-bold text-indigo-500">Android / Samsung:</span>
+                <span>
+                  Oben rechts auf das Menü (<strong>⋮</strong>) tippen &rarr;{' '}
+                  <strong>„App installieren“</strong> oder{' '}
+                  <strong>„Zum Startbildschirm hinzufügen“</strong>.
+                </span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="font-bold text-pink-500">iPhone (iOS Safari):</span>
+                <span>
+                  Unten auf <strong>Teilen</strong> (
+                  <Share className="w-3 h-3 inline text-blue-400" />) tippen &rarr;{' '}
+                  <strong>„Zum Home-Bildschirm“</strong>.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {installSuccess && (
+            <div className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+              ✓ App wurde erfolgreich zum Startbildschirm hinzugefügt!
+            </div>
+          )}
+        </div>
 
         {/* Live Database Engine Status Badge */}
         <div className="mb-4 p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/50 flex items-center justify-between shadow-xs">

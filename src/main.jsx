@@ -8,6 +8,13 @@ import { logClientError } from './utils/api.js';
 
 // Global Client Error Catchers & iOS PWA Pinch/Double-Tap Zoom Protection
 if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent default mini-infobar and save prompt event globally
+    e.preventDefault();
+    window.deferredPrompt = e;
+    window.dispatchEvent(new Event('pwa-installable'));
+  });
+
   window.addEventListener('error', (event) => {
     logClientError(event.message, event.error, {
       filename: event.filename,

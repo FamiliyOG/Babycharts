@@ -89,16 +89,16 @@ export function generateDoctorFeverReport(child) {
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text(
-    `Letzte gemessene Temperatur: ${latestWithTemp ? `${latestWithTemp.temperature} °C (${new Date(latestWithTemp.dateTime).toLocaleString('de-DE')})` : 'Keine Messung'}`,
-    15,
-    84
-  );
-  doc.text(
-    `Letztes Medikament: ${latestMed ? `${latestMed.medication} (${new Date(latestMed.dateTime).toLocaleString('de-DE')})` : 'Keines dokumentiert'}`,
-    15,
-    90
-  );
+
+  const lastTempStr = latestWithTemp
+    ? `${latestWithTemp.temperature} °C (${new Date(latestWithTemp.dateTime).toLocaleString('de-DE')})`
+    : 'Keine Messung';
+  doc.text(`Letzte gemessene Temperatur: ${lastTempStr}`, 15, 84);
+
+  const lastMedStr = latestMed
+    ? `${latestMed.medication} (${new Date(latestMed.dateTime).toLocaleString('de-DE')})`
+    : 'Keines dokumentiert';
+  doc.text(`Letztes Medikament: ${lastMedStr}`, 15, 90);
 
   // ── 72h Table Log ──────────────────────────────────────────────────────────
   doc.setFont('helvetica', 'bold');

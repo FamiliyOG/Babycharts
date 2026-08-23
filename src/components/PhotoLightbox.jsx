@@ -1,16 +1,16 @@
 import { X, Calendar } from 'lucide-react';
+import { useModalDismissal } from '../utils/useModalDismissal.js';
 
 export default function PhotoLightbox({ photo, title, date, notes, onClose }) {
+  const { dialogRef } = useModalDismissal(Boolean(photo), onClose);
+
   if (!photo) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl animate-fadeIn"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl animate-fadeIn">
       <div
+        ref={dialogRef}
         className="relative max-w-3xl w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-scaleUp"
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"

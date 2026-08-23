@@ -21,6 +21,7 @@
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
+    touch-action: pan-x pan-y;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     overflow-anchor: none;
     overscroll-behavior-y: none;

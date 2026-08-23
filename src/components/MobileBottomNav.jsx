@@ -14,10 +14,10 @@ export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) 
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 dark:border-slate-800/80 px-1 py-1 shadow-2xl safe-area-inset-bottom safe-area-inset-left safe-area-inset-right">
-      <div className="flex items-center justify-between max-w-md mx-auto relative px-0.5">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 dark:border-slate-800/80 px-2 py-1 shadow-2xl safe-area-inset-bottom safe-area-inset-left safe-area-inset-right">
+      <div className="flex items-center justify-between max-w-90 mx-auto relative">
         {/* Left 3 Tabs */}
-        <div className="flex items-center justify-around flex-1">
+        <div className="flex items-center justify-between flex-1 gap-1">
           {leftTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -61,7 +61,7 @@ export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) 
         </div>
 
         {/* Right 3 Tabs */}
-        <div className="flex items-center justify-around flex-1">
+        <div className="flex items-center justify-between flex-1 gap-1">
           {rightTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

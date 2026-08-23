@@ -63,6 +63,44 @@ function UserAvatar({ user, activeFamily }) {
   );
 }
 
+function ChildProfileAvatar({ child, isGirl }) {
+  if (child.avatar) {
+    return (
+      <img
+        src={child.avatar}
+        alt={child.name}
+        className="w-4 h-4 rounded-full object-cover border border-white/40"
+      />
+    );
+  }
+
+  if (isGirl) {
+    return (
+      <svg
+        className="w-3.5 h-3.5 text-pink-200 fill-none stroke-current stroke-2 shrink-0"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="8" r="5" />
+        <line x1="12" y1="13" x2="12" y2="21" />
+        <line x1="9" y1="17" x2="15" y2="17" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      className="w-3.5 h-3.5 text-cyan-200 fill-none stroke-current stroke-2 shrink-0"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle cx="10" cy="14" r="5" />
+      <line x1="14" y1="10" x2="21" y2="3" />
+      <polyline points="15 3 21 3 21 9" />
+    </svg>
+  );
+}
+
 function ProfilePillList({
   profiles,
   activeChild,
@@ -87,21 +125,8 @@ function ProfilePillList({
               onClick={() => onSelectChild(child.id)}
               className="flex items-center gap-1.5 text-xs font-semibold focus:outline-none"
             >
-              {child.avatar ? (
-                <img
-                  src={child.avatar}
-                  alt={child.name}
-                  className="w-4 h-4 rounded-full object-cover border border-white/40"
-                />
-              ) : (
-                <span
-                  className="inline-flex items-center justify-center text-xs font-bold leading-none -translate-y-px select-none opacity-90"
-                  aria-hidden="true"
-                >
-                  {childIsGirl ? '♀' : '♂'}
-                </span>
-              )}
-              <span className="leading-none">{child.name}</span>
+              <ChildProfileAvatar child={child} isGirl={childIsGirl} />
+              <span className="font-semibold">{child.name}</span>
             </button>
 
             {/* Integrated Action Buttons on Active Child */}

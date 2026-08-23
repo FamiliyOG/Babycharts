@@ -6,7 +6,7 @@ import ReportPrintPage from './components/ReportPrintPage.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { logClientError } from './utils/api.js';
 
-// Global Client Error Catchers (Forward unhandled frontend crashes to Unraid logs)
+// Global Client Error Catchers & iOS PWA Pinch/Double-Tap Zoom Protection
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
     logClientError(event.message, event.error, {
@@ -21,6 +21,25 @@ if (typeof window !== 'undefined') {
       type: 'unhandledrejection',
     });
   });
+
+  // Prevent iOS Safari gesture zoom (Pinch-to-zoom)
+  document.addEventListener('gesturestart', (e) => {
+    e.preventDefault();
+  });
+
+  // Prevent iOS double-tap to zoom
+  let lastTouchEnd = 0;
+  document.addEventListener(
+    'touchend',
+    (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    },
+    { passive: false }
+  );
 }
 
 // Select root component: Puppeteer report mode vs. full app

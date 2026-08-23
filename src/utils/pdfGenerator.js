@@ -38,14 +38,12 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
   const childColor = isGirl ? '#ec4899' : '#06b6d4';
   const whoData = (WHO_DATA[genderKey]?.[metric] || []).filter((d) => d.month <= 60);
 
-  const labels = whoData.map((d) => `${d.month}M`);
-
-  // Map child measurements to WHO month positions
+  // Map child measurements to exact decimal month positions
   const bDate = new Date(birthdate);
-  const monthToValue = new Map();
+  const childPoints = [];
   for (const m of measurements) {
     const diffMs = new Date(m.date) - bDate;
-    const months = Math.round(diffMs / (1000 * 60 * 60 * 24 * 30.44));
+    const monthsDecimal = +(diffMs / (1000 * 60 * 60 * 24 * 30.4375)).toFixed(2);
     let val = null;
     if (metric === 'weight') val = m.weight ? Math.round(m.weight * 1000) : null;
     else if (metric === 'length') val = m.length ?? null;
@@ -53,10 +51,11 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
     else if (metric === 'bmi' && m.weight && m.length) {
       val = Number.parseFloat((m.weight / (m.length / 100) ** 2).toFixed(1));
     }
-    if (val !== null) monthToValue.set(months, val);
+    if (val !== null && !Number.isNaN(val)) {
+      childPoints.push({ x: monthsDecimal, y: val });
+    }
   }
-
-  const childData = whoData.map((d) => monthToValue.get(d.month) ?? null);
+  childPoints.sort((a, b) => a.x - b.x);
 
   // Scale WHO reference lines to same unit as child data
   function scale(val) {
@@ -76,11 +75,10 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
   const chart = new Chart(canvas, {
     type: 'line',
     data: {
-      labels,
       datasets: [
         {
           label: '85%',
-          data: whoData.map((d) => scale(d.p85)),
+          data: whoData.map((d) => ({ x: d.month, y: scale(d.p85) })),
           borderColor: 'rgba(99,102,241,0.25)',
           backgroundColor: 'rgba(99,102,241,0.07)',
           borderWidth: 1,
@@ -91,7 +89,7 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
         },
         {
           label: '15%',
-          data: whoData.map((d) => scale(d.p15)),
+          data: whoData.map((d) => ({ x: d.month, y: scale(d.p15) })),
           borderColor: 'rgba(99,102,241,0.25)',
           backgroundColor: 'rgba(99,102,241,0.07)',
           borderWidth: 1,
@@ -102,7 +100,7 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
         },
         {
           label: '97%',
-          data: whoData.map((d) => scale(d.p97)),
+          data: whoData.map((d) => ({ x: d.month, y: scale(d.p97) })),
           borderColor: 'rgba(148,163,184,0.4)',
           borderWidth: 1,
           borderDash: [3, 3],
@@ -113,7 +111,7 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
         },
         {
           label: '50% (Median)',
-          data: whoData.map((d) => scale(d.p50)),
+          data: whoData.map((d) => ({ x: d.month, y: scale(d.p50) })),
           borderColor: 'rgba(100,116,139,0.7)',
           borderWidth: 1.5,
           borderDash: [5, 3],
@@ -124,7 +122,7 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
         },
         {
           label: '3%',
-          data: whoData.map((d) => scale(d.p3)),
+          data: whoData.map((d) => ({ x: d.month, y: scale(d.p3) })),
           borderColor: 'rgba(148,163,184,0.4)',
           borderWidth: 1,
           borderDash: [3, 3],
@@ -135,7 +133,7 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
         },
         {
           label: 'Kind',
-          data: childData,
+          data: childPoints,
           borderColor: childColor,
           backgroundColor: childColor,
           borderWidth: 2.5,
@@ -143,7 +141,7 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
           pointHoverRadius: 6,
           pointBackgroundColor: childColor,
           fill: false,
-          tension: 0.3,
+          tension: 0.25,
           spanGaps: true,
           order: 1,
         },
@@ -158,8 +156,16 @@ async function renderChartImage(birthdate, measurements, metric, genderKey) {
       },
       scales: {
         x: {
+          type: 'linear',
+          min: 0,
+          max: 60,
           grid: { color: 'rgba(200,210,220,0.4)' },
-          ticks: { color: '#475569', font: { size: 9 }, maxTicksLimit: 13 },
+          ticks: {
+            color: '#475569',
+            font: { size: 9 },
+            callback: (val) => `${val}M`,
+            stepSize: 6,
+          },
         },
         y: {
           grid: { color: 'rgba(200,210,220,0.4)' },

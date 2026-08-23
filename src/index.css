@@ -36,21 +36,21 @@
     color: #f8fafc;
   }
 
-  /* Safe Area Utility Classes for iPhone Dynamic Island & Home Bar */
+  /* Safe Area Utility Classes for iPhone Dynamic Island, Notch & Home Bar */
   .safe-area-inset-top {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: max(env(safe-area-inset-top, 0px), 0px);
   }
 
   .safe-area-inset-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
   }
 
   .safe-area-inset-left {
-    padding-left: env(safe-area-inset-left, 0px);
+    padding-left: max(env(safe-area-inset-left, 0px), 0.75rem);
   }
 
   .safe-area-inset-right {
-    padding-right: env(safe-area-inset-right, 0px);
+    padding-right: max(env(safe-area-inset-right, 0px), 0.75rem);
   }
 }
 

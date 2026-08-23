@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Chart as ChartJS,
-  CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
@@ -16,16 +15,7 @@ import { calculateAge, calculateBMI } from '../utils/percentileCalc.js';
 import { Scale, Ruler, Circle, Activity, Info } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+ChartJS.register(LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 const METRIC_UNITS = {
   weight: 'g',
@@ -49,8 +39,8 @@ function formatMetricDisplayValue(val, metric) {
   return `${val} ${METRIC_UNITS[metric]}`;
 }
 
-function computeChildDataMap(measurements, birthdate, metric) {
-  const childEntries = [];
+function computeChildDataPoints(measurements, birthdate, metric) {
+  const childPoints = [];
   measurements.forEach((m) => {
     const age = calculateAge(birthdate, m.date);
     let val = null;
@@ -60,52 +50,18 @@ function computeChildDataMap(measurements, birthdate, metric) {
     else if (metric === 'bmi') val = calculateBMI(m.weight, m.length);
 
     if (val !== null && val !== undefined && !Number.isNaN(val)) {
-      childEntries.push({
-        ageMonths: age.monthsDecimal,
-        val: +val,
+      childPoints.push({
+        x: age.monthsDecimal,
+        y: +val,
         date: m.date,
+        ageText: age.text,
         notes: m.notes,
         checkup: m.checkup,
       });
     }
   });
-  return childEntries;
-}
 
-function computeChildSeries(filteredWhoData, childEntries) {
-  // Sort child measurements chronologically by age
-  const sorted = [...childEntries].sort((a, b) => a.ageMonths - b.ageMonths);
-  const usedEntryIndices = new Set();
-
-  return filteredWhoData.map((d, idx) => {
-    const prevMonth = idx > 0 ? filteredWhoData[idx - 1].month : -0.5;
-    const nextMonth =
-      idx < filteredWhoData.length - 1 ? filteredWhoData[idx + 1].month : d.month + 6;
-
-    // Low and high boundaries for this WHO month bucket
-    const lowerBound = (prevMonth + d.month) / 2;
-    const upperBound = (d.month + nextMonth) / 2;
-
-    // Find all unused measurements falling in this range
-    const matches = sorted
-      .map((entry, originalIdx) => ({ entry, originalIdx }))
-      .filter(
-        ({ entry, originalIdx }) =>
-          !usedEntryIndices.has(originalIdx) &&
-          entry.ageMonths >= lowerBound &&
-          entry.ageMonths < upperBound
-      );
-
-    if (matches.length > 0) {
-      // Pick closest match to d.month
-      matches.sort(
-        (a, b) => Math.abs(a.entry.ageMonths - d.month) - Math.abs(b.entry.ageMonths - d.month)
-      );
-      usedEntryIndices.add(matches[0].originalIdx);
-      return matches[0].entry.val;
-    }
-    return null;
-  });
+  return childPoints.sort((a, b) => a.x - b.x);
 }
 
 function getOpacity(itemKey, hiddenDatasets, hoveredLegendKey) {
@@ -176,19 +132,18 @@ function createLegendItems(childName, childColor, isGirl) {
 function buildChartData({
   activeChild,
   filteredWhoData,
-  childSeries,
+  childPoints,
   hiddenDatasets,
   hoveredLegendKey,
   isGirl,
   childColor,
   isDark = true,
 }) {
-  const ageLabels = filteredWhoData.map((d) => `${d.month}M`);
-  const p3Values = filteredWhoData.map((d) => d.p3);
-  const p15Values = filteredWhoData.map((d) => d.p15);
-  const p50Values = filteredWhoData.map((d) => d.p50);
-  const p85Values = filteredWhoData.map((d) => d.p85);
-  const p97Values = filteredWhoData.map((d) => d.p97);
+  const p3Points = filteredWhoData.map((d) => ({ x: d.month, y: d.p3 }));
+  const p15Points = filteredWhoData.map((d) => ({ x: d.month, y: d.p15 }));
+  const p50Points = filteredWhoData.map((d) => ({ x: d.month, y: d.p50 }));
+  const p85Points = filteredWhoData.map((d) => ({ x: d.month, y: d.p85 }));
+  const p97Points = filteredWhoData.map((d) => ({ x: d.month, y: d.p97 }));
 
   const opacity = (key) => getOpacity(key, hiddenDatasets, hoveredLegendKey);
   const isHoveredNormalRange = hoveredLegendKey === 'p15_85';
@@ -198,11 +153,10 @@ function buildChartData({
   const boundaryLineColor = isDark ? 'rgba(148, 163, 184,' : 'rgba(100, 116, 139,';
 
   return {
-    labels: ageLabels,
     datasets: [
       {
         label: `${activeChild.name} (Messwerte)`,
-        data: hiddenDatasets.child ? [] : childSeries,
+        data: hiddenDatasets.child ? [] : childPoints,
         borderColor: childColor,
         backgroundColor: childColor,
         borderWidth: hoveredLegendKey === 'child' ? 5 : 3.5,
@@ -212,13 +166,13 @@ function buildChartData({
         pointBackgroundColor: '#ffffff',
         pointBorderColor: childColor,
         pointBorderWidth: 3,
-        tension: 0.3,
+        tension: 0.25,
         spanGaps: true,
         order: 1,
       },
       {
         label: '50 % (Exakter Durchschnitt)',
-        data: hiddenDatasets.p50 ? [] : p50Values,
+        data: hiddenDatasets.p50 ? [] : p50Points,
         borderColor: p50LineColor,
         borderWidth: hoveredLegendKey === 'p50' ? 3.5 : 2,
         borderDash: [5, 5],
@@ -228,7 +182,7 @@ function buildChartData({
       },
       {
         label: '85 % (Oberes Mittelfeld)',
-        data: hiddenDatasets.p85 ? [] : p85Values,
+        data: hiddenDatasets.p85 ? [] : p85Points,
         borderColor: `${boundaryLineColor} ${opacity('p85') * 0.6})`,
         borderWidth: hoveredLegendKey === 'p85' ? 2.5 : 1,
         pointRadius: 0,
@@ -237,7 +191,7 @@ function buildChartData({
       },
       {
         label: '15 % – 85 % (Normalbereich)',
-        data: hiddenDatasets.p15_85 ? [] : p15Values,
+        data: hiddenDatasets.p15_85 ? [] : p15Points,
         borderColor: `${boundaryLineColor} ${opacity('p15_85') * 0.5})`,
         borderWidth: 1,
         backgroundColor: getNormalRangeBgColor(isGirl, isHoveredNormalRange),
@@ -248,7 +202,7 @@ function buildChartData({
       },
       {
         label: '97 % (Oberer Rand)',
-        data: hiddenDatasets.p97 ? [] : p97Values,
+        data: hiddenDatasets.p97 ? [] : p97Points,
         borderColor: `rgba(239, 68, 68, ${opacity('p97') * 0.6})`,
         borderWidth: hoveredLegendKey === 'p97' ? 2.5 : 1,
         borderDash: [2, 2],
@@ -258,7 +212,7 @@ function buildChartData({
       },
       {
         label: '3 % (Unterer Rand)',
-        data: hiddenDatasets.p3 ? [] : p3Values,
+        data: hiddenDatasets.p3 ? [] : p3Points,
         borderColor: `rgba(239, 68, 68, ${opacity('p3') * 0.6})`,
         borderWidth: hoveredLegendKey === 'p3' ? 2.5 : 1,
         borderDash: [2, 2],
@@ -270,7 +224,7 @@ function buildChartData({
   };
 }
 
-function buildChartOptions(metric, isDark = true) {
+function buildChartOptions(metric, maxAgeMonths, isDark = true) {
   const gridColor = isDark ? 'rgba(51, 65, 85, 0.3)' : 'rgba(203, 213, 225, 0.6)';
   const tickColor = isDark ? '#94a3b8' : '#64748b';
   const titleColor = isDark ? '#64748b' : '#475569';
@@ -296,7 +250,14 @@ function buildChartOptions(metric, isDark = true) {
         boxPadding: 6,
         usePointStyle: true,
         callbacks: {
-          title: (items) => `Alter: ${items[0].label}`,
+          title: (items) => {
+            const rawItem = items[0]?.raw;
+            if (rawItem?.date) {
+              const ageStr = rawItem.ageText || `${rawItem.x} Monate`;
+              return `Datum: ${rawItem.date} (${ageStr})`;
+            }
+            return `Alter: ${items[0]?.parsed?.x} Monate`;
+          },
           label: (ctx) => {
             const label = ctx.dataset.label || '';
             const val = ctx.parsed.y;
@@ -308,8 +269,15 @@ function buildChartOptions(metric, isDark = true) {
     },
     scales: {
       x: {
+        type: 'linear',
+        min: 0,
+        max: maxAgeMonths,
         grid: { color: gridColor },
-        ticks: { color: tickColor, font: { size: 11 } },
+        ticks: {
+          color: tickColor,
+          font: { size: 11 },
+          callback: (val) => `${val}M`,
+        },
         title: {
           display: true,
           text: 'Alter in Monaten (0 - 5 Jahre)',
@@ -351,9 +319,8 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
   const rawWhoData = WHO_DATA[genderKey]?.[metric] || [];
   const filteredWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);
 
-  // Map recorded measurements to x-axis positions
-  const childDataMap = computeChildDataMap(measurements, activeChild.birthdate, metric);
-  const childSeries = computeChildSeries(filteredWhoData, childDataMap);
+  // Map recorded measurements to exact x-axis decimal month positions
+  const childPoints = computeChildDataPoints(measurements, activeChild.birthdate, metric);
 
   const childColor = isGirl ? '#ec4899' : '#06b6d4';
   const legendItems = createLegendItems(activeChild.name, childColor, isGirl);
@@ -365,14 +332,14 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
   const data = buildChartData({
     activeChild,
     filteredWhoData,
-    childSeries,
+    childPoints,
     hiddenDatasets,
     hoveredLegendKey,
     isGirl,
     childColor,
     isDark,
   });
-  const options = buildChartOptions(metric, isDark);
+  const options = buildChartOptions(metric, maxAgeMonths, isDark);
 
   const getMetricButtonClass = (targetMetric) => {
     const isSelected = metric === targetMetric;

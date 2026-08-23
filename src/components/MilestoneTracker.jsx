@@ -48,8 +48,8 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setPhotoError('Datei zu groß: Das Foto darf maximal 2 MB groß sein.');
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError('Datei zu groß: Das Foto darf maximal 10 MB groß sein.');
       return;
     }
 

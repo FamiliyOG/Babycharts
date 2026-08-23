@@ -146,6 +146,12 @@ export async function removeFamilyMember(familyId, userId) {
   });
 }
 
+export async function deleteFamily(familyId) {
+  return safeFetch(`${BASE}/families/${familyId}`, {
+    method: 'DELETE',
+  });
+}
+
 // ── Profiles ─────────────────────────────────────────────────────────────────
 
 export async function fetchProfiles(familyId = null) {

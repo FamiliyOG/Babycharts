@@ -8,6 +8,7 @@ import {
   createFamilyInvite,
   deleteFamilyInvite,
   removeFamilyMember,
+  deleteFamily,
 } from '../utils/api.js';
 
 export default function FamilyManagementModal({ isOpen, onClose }) {
@@ -58,8 +59,8 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setStatusMessage('Das Bild ist zu groß. Bitte max. 2 MB auswählen.');
+    if (file.size > 10 * 1024 * 1024) {
+      setStatusMessage('Das Bild ist zu groß. Bitte max. 10 MB auswählen.');
       return;
     }
 
@@ -141,6 +142,22 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     const res = await removeFamilyMember(activeFamily.id, userId);
     if (res.ok) {
       loadFamily();
+    }
+  };
+
+  const handleDeleteCurrentFamily = async () => {
+    if (!activeFamily?.id) return;
+    const confirmed = window.confirm(
+      `Sind Sie sicher, dass Sie die Familie "${activeFamily.name}" UNWIDERRUFLICH LÖSCHEN möchten?\n\nAlle zugeordneten Kinderprofile, Messwerte und Daten dieser Familie werden dabei gelöscht.`
+    );
+    if (!confirmed) return;
+
+    const res = await deleteFamily(activeFamily.id);
+    if (res.ok) {
+      await refreshUser();
+      onClose();
+    } else {
+      setStatusMessage(res.error || 'Fehler beim Löschen der Familie.');
     }
   };
 
@@ -516,7 +533,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
         )}
 
         {/* Join another family with code */}
-        <div className="pt-4 border-t border-slate-800/80">
+        <div className="pt-4 border-t border-slate-800/80 mb-6">
           <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <KeyRound className="w-4 h-4 text-slate-400" />
             <span>Weiterer Familie beitreten</span>
@@ -540,6 +557,29 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
             </button>
           </form>
         </div>
+
+        {/* Danger Zone: Delete Family (Owner or Admin only) */}
+        {(isAdmin || activeFamily?.isOwner) && (
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div>
+              <div className="text-xs font-bold text-rose-900 dark:text-rose-300 flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                <span>Familie löschen</span>
+              </div>
+              <div className="text-[11px] text-rose-700 dark:text-rose-400/90 font-medium mt-0.5">
+                Löscht diese Familie und alle zugehörigen Profile &amp; Daten unwiderruflich
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleDeleteCurrentFamily}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all active:scale-95 shrink-0"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Familie löschen</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

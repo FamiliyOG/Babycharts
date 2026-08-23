@@ -326,4 +326,51 @@ router.delete('/:familyId/members/:userId', requireAuth, (req, res) => {
   return res.json({ message: 'Mitglied erfolgreich entfernt.' });
 });
 
+/**
+ * DELETE /api/families/:familyId
+ * Deletes a family, all its child profiles and associated records (owner/admin only)
+ */
+router.delete('/:familyId', requireAuth, (req, res) => {
+  const { familyId } = req.params;
+  const db = readDb();
+  const familyIndex = db.families.findIndex((f) => f.id === familyId);
+
+  if (familyIndex === -1) {
+    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  }
+
+  const family = db.families[familyIndex];
+  const userRole = getUserFamilyRole(family, req.user.id);
+  const isOwner = family.ownerId === req.user.id;
+
+  if (!isOwner && userRole !== 'admin') {
+    return res
+      .status(403)
+      .json({ error: 'Nur der Inhaber oder ein Administrator darf die Familie löschen.' });
+  }
+
+  // Remove family
+  db.families.splice(familyIndex, 1);
+
+  // Remove child profiles belonging to this family
+  db.profiles = (db.profiles || []).filter((p) => p.familyId !== familyId);
+
+  // Remove invites for this family
+  db.invites = (db.invites || []).filter((inv) => inv.familyId !== familyId);
+  db.usedInvites = (db.usedInvites || []).filter((inv) => inv.familyId !== familyId);
+
+  // If the user's activeFamilyId was this family, switch to another family if available
+  const user = db.users.find((u) => u.id === req.user.id);
+  if (user && user.activeFamilyId === familyId) {
+    const nextFamily = db.families.find(
+      (f) => f.ownerId === req.user.id || (f.members || []).some((m) => m.userId === req.user.id)
+    );
+    user.activeFamilyId = nextFamily ? nextFamily.id : null;
+  }
+
+  writeDb(db);
+
+  return res.json({ message: 'Familie und alle zugehörigen Daten wurden erfolgreich gelöscht.' });
+});
+
 export default router;

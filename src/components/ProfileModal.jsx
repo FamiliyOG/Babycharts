@@ -66,8 +66,8 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setAvatarError('Datei zu groß: Das Bild darf maximal 2 MB groß sein.');
+    if (file.size > 10 * 1024 * 1024) {
+      setAvatarError('Das Bild ist zu groß. Bitte maximal 10 MB auswählen.');
       return;
     }
 

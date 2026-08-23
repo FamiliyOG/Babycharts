@@ -322,6 +322,7 @@ function UserMenuDropdown({
   onOpen2FaModal,
   onLogout,
   onUpdateProfile,
+  isMobile = false,
 }) {
   const { dialogRef } = useModalDismissal(isOpen, onToggle);
   const [avatarError, setAvatarError] = useState(null);
@@ -337,8 +338,8 @@ function UserMenuDropdown({
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setAvatarError('Foto zu groß (max. 2 MB).');
+    if (file.size > 10 * 1024 * 1024) {
+      setAvatarError('Bild darf maximal 10 MB groß sein.');
       return;
     }
 
@@ -356,18 +357,30 @@ function UserMenuDropdown({
   };
 
   return (
-    <div ref={dialogRef} className="relative hidden md:block">
-      <button
-        type="button"
-        onClick={onToggle}
-        title="Benutzerprofil & Einstellungen"
-        aria-label="Benutzerkonto öffnen"
-        className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-slate-400"
-      >
-        <UserAvatar user={user} activeFamily={activeFamily} />
-        <span className="text-xs font-semibold max-w-28 truncate">{user.name}</span>
-        <span className="text-[10px]">{getRoleEmoji(userRole)}</span>
-      </button>
+    <div ref={dialogRef} className={`relative ${isMobile ? 'block' : 'hidden md:block'}`}>
+      {isMobile ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          title={`${user.name} (${activeFamily?.name || 'Familie'})`}
+          aria-label="Benutzerkonto öffnen"
+          className="p-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 active:scale-95 flex items-center justify-center transition-colors"
+        >
+          <UserAvatar user={user} activeFamily={activeFamily} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Benutzerprofil & Einstellungen"
+          aria-label="Benutzerkonto öffnen"
+          className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-slate-400"
+        >
+          <UserAvatar user={user} activeFamily={activeFamily} />
+          <span className="text-xs font-semibold max-w-28 truncate">{user.name}</span>
+          <span className="text-[10px]">{getRoleEmoji(userRole)}</span>
+        </button>
+      )}
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 z-50 animate-fadeIn text-xs text-slate-800 dark:text-slate-100">
@@ -468,10 +481,16 @@ function UserMenuDropdown({
 function MobileHeaderControls({
   user,
   activeFamily,
+  userRole,
   isDark,
   setTheme,
+  isUserMenuOpen,
+  onToggleUserMenu,
   onOpenFamilyModal,
   onOpenAuthModal,
+  onOpen2FaModal,
+  onLogout,
+  onUpdateProfile,
   isPdfMenuOpen,
   onTogglePdfMenu,
   onManualPdfExport,
@@ -496,24 +515,20 @@ function MobileHeaderControls({
         )}
       </button>
 
-      {/* Family / User button mobile */}
+      {/* User / Profile button mobile */}
       {user ? (
-        <button
-          type="button"
-          onClick={onOpenFamilyModal}
-          title={`${user.name} (${activeFamily?.name || 'Familie'})`}
-          className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-800 active:scale-95 flex items-center justify-center"
-        >
-          {activeFamily?.avatar ? (
-            <img
-              src={activeFamily.avatar}
-              alt={activeFamily.name}
-              className="w-5 h-5 rounded-lg object-cover"
-            />
-          ) : (
-            <Users className="w-4 h-4" />
-          )}
-        </button>
+        <UserMenuDropdown
+          user={user}
+          activeFamily={activeFamily}
+          userRole={userRole}
+          isOpen={isUserMenuOpen}
+          onToggle={onToggleUserMenu}
+          onOpenFamilyModal={onOpenFamilyModal}
+          onOpen2FaModal={onOpen2FaModal}
+          onLogout={onLogout}
+          onUpdateProfile={onUpdateProfile}
+          isMobile={true}
+        />
       ) : (
         <button
           type="button"
@@ -625,10 +640,16 @@ export default function Header({
             <MobileHeaderControls
               user={user}
               activeFamily={activeFamily}
+              userRole={userRole}
               isDark={isDark}
               setTheme={setTheme}
+              isUserMenuOpen={isUserMenuOpen}
+              onToggleUserMenu={() => setIsUserMenuOpen(!isUserMenuOpen)}
               onOpenFamilyModal={() => setIsFamilyModalOpen(true)}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              onOpen2FaModal={() => setIs2FaModalOpen(true)}
+              onLogout={logout}
+              onUpdateProfile={updateProfile}
               isPdfMenuOpen={isPdfMenuOpen}
               onTogglePdfMenu={() => setIsPdfMenuOpen(!isPdfMenuOpen)}
               onManualPdfExport={onManualPdfExport}

@@ -652,7 +652,7 @@ export default function Header({
                 />
 
                 {/* Desktop Action Buttons */}
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <div className="hidden md:flex items-center gap-2 w-full sm:w-auto justify-end">
                   {activeChild && canEdit && (
                     <button
                       type="button"

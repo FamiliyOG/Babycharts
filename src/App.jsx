@@ -612,15 +612,21 @@ function MainApp() {
           isOpen={isQuickAddOpen}
           activeChild={activeChild}
           onClose={() => setIsQuickAddOpen(false)}
-          onAddMeasurement={handleOpenAddMeasurement}
-          onAddHealth={() => {
+          onOpenMeasurement={handleOpenAddMeasurement}
+          onOpenHealth={() => {
             setActiveTab('health');
           }}
-          onAddMilestone={() => {
+          onOpenVaccines={() => {
+            setActiveTab('vaccines');
+          }}
+          onOpenMilestones={() => {
             setActiveTab('milestones');
           }}
           onOpenTeeth={() => {
             setActiveTab('teeth');
+          }}
+          onOpenUCheckups={() => {
+            setActiveTab('ucheckups');
           }}
         />
       )}

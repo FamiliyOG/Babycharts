@@ -1,5 +1,22 @@
-import { X, Scale, HeartPulse, Sparkles, Syringe, Plus } from 'lucide-react';
+import { X, Scale, HeartPulse, Sparkles, Syringe, Plus, ClipboardList } from 'lucide-react';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
+
+function ToothIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M7 3C4.2 3 2 5.2 2 8c0 3.5 1.5 6 3 9.5C6.2 20.3 8 21 9.5 21c1.5 0 2.2-1.5 2.5-3 .3 1.5 1 3 2.5 3 1.5 0 3.3-.7 4.5-3.5C20.5 14 22 11.5 22 8c0-2.8-2.2-5-5-5-2 0-3.5 1-5 2.5C10.5 4 9 3 7 3Z" />
+    </svg>
+  );
+}
 
 export default function QuickAddModal({
   isOpen,
@@ -10,8 +27,9 @@ export default function QuickAddModal({
   onOpenVaccines,
   onOpenMilestones,
   onOpenTeeth,
+  onOpenUCheckups,
 }) {
-  const { dialogRef, handleBackdropClick } = useModalDismissal(isOpen, onClose);
+  const { dialogRef } = useModalDismissal(isOpen, onClose);
 
   if (!isOpen || !activeChild) return null;
 
@@ -25,7 +43,7 @@ export default function QuickAddModal({
       shadow: 'shadow-cyan-950',
       action: () => {
         onClose();
-        onOpenMeasurement();
+        if (onOpenMeasurement) onOpenMeasurement();
       },
     },
     {
@@ -37,7 +55,7 @@ export default function QuickAddModal({
       shadow: 'shadow-rose-950',
       action: () => {
         onClose();
-        onOpenHealth();
+        if (onOpenHealth) onOpenHealth();
       },
     },
     {
@@ -49,7 +67,7 @@ export default function QuickAddModal({
       shadow: 'shadow-emerald-950',
       action: () => {
         onClose();
-        onOpenVaccines();
+        if (onOpenVaccines) onOpenVaccines();
       },
     },
     {
@@ -61,29 +79,37 @@ export default function QuickAddModal({
       shadow: 'shadow-amber-950',
       action: () => {
         onClose();
-        onOpenMilestones();
+        if (onOpenMilestones) onOpenMilestones();
       },
     },
     {
       id: 'tooth',
       title: 'Milchzahn markieren',
       desc: 'Zahndurchbruch im Kieferschema',
-      icon: null,
-      emoji: '🦷',
-      gradient: 'from-indigo-500 to-purple-600',
-      shadow: 'shadow-indigo-950',
+      icon: ToothIcon,
+      gradient: 'from-sky-500 to-indigo-600',
+      shadow: 'shadow-sky-950',
       action: () => {
         onClose();
-        onOpenTeeth();
+        if (onOpenTeeth) onOpenTeeth();
+      },
+    },
+    {
+      id: 'ucheckup',
+      title: 'U-Untersuchung eintragen',
+      desc: 'U1 bis U9 Vorsorgeplan',
+      icon: ClipboardList,
+      gradient: 'from-blue-500 to-indigo-600',
+      shadow: 'shadow-blue-950',
+      action: () => {
+        onClose();
+        if (onOpenUCheckups) onOpenUCheckups();
       },
     },
   ];
 
   return (
-    <div
-      onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
-    >
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       <div
         ref={dialogRef}
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-slate-900 dark:text-slate-100 animate-slideUp"

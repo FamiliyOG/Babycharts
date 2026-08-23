@@ -306,13 +306,13 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
             <span className="block text-xs font-bold text-slate-200 mb-1">
               Geburtswerte (U1 Erstuntersuchung)
             </span>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
+            <div className="grid grid-cols-3 gap-2 items-start">
+              <div className="flex flex-col">
                 <label
                   htmlFor="birth-weight-input"
-                  className="block text-[11px] font-semibold text-slate-400 mb-1"
+                  className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
                 >
-                  Gewicht (in Gramm)
+                  Gewicht (in g)
                 </label>
                 <div className="relative">
                   <Scale className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
@@ -328,10 +328,10 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                 </div>
               </div>
 
-              <div>
+              <div className="flex flex-col">
                 <label
                   htmlFor="birth-length-input"
-                  className="block text-[11px] font-semibold text-slate-400 mb-1"
+                  className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
                 >
                   Größe (in cm)
                 </label>
@@ -349,12 +349,12 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                 </div>
               </div>
 
-              <div>
+              <div className="flex flex-col">
                 <label
                   htmlFor="birth-head-input"
-                  className="block text-[11px] font-semibold text-slate-400 mb-1"
+                  className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
                 >
-                  Kopfumfang (in cm)
+                  Kopf (in cm)
                 </label>
                 <div className="relative">
                   <Circle className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />

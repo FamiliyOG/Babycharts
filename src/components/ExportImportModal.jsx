@@ -132,8 +132,8 @@ export default function ExportImportModal({
           <span>Einstellungen &amp; App</span>
         </h2>
 
-        {/* PWA Home Screen Installation Card */}
-        <div className="mb-4 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 shadow-xs">
+        {/* PWA Home Screen Installation Card (Mobile only) */}
+        <div className="md:hidden mb-4 p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 shadow-xs">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
@@ -185,26 +185,28 @@ export default function ExportImportModal({
           )}
         </div>
 
-        {/* Live Database Engine Status Badge */}
-        <div className="mb-4 p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/50 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-cyan-100 dark:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300">
-              <DbIcon className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-bold text-cyan-950 dark:text-cyan-200">
-                Datenbank-Engine
+        {/* Live Database Engine Status Badge (Dev Account only) */}
+        {isDev && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/50 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-cyan-100 dark:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300">
+                <DbIcon className="w-4 h-4" />
               </div>
-              <div className="text-[11px] text-cyan-700 dark:text-cyan-400 font-medium">
-                SQLite (Write-Ahead Logging / WAL)
+              <div>
+                <div className="text-xs font-bold text-cyan-950 dark:text-cyan-200">
+                  Datenbank-Engine
+                </div>
+                <div className="text-[11px] text-cyan-700 dark:text-cyan-400 font-medium">
+                  SQLite (Write-Ahead Logging / WAL)
+                </div>
               </div>
             </div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60 shadow-xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              Aktiv &amp; Sicher
+            </span>
           </div>
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60 shadow-xs">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            Aktiv &amp; Sicher
-          </span>
-        </div>
+        )}
 
         <div className="space-y-4">
           {/* JSON Export */}

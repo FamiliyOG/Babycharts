@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Baby,
   Plus,
@@ -317,6 +317,7 @@ function UserMenuDropdown({
 }) {
   const { dialogRef } = useModalDismissal(isOpen, onToggle);
   const [avatarError, setAvatarError] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleUserAvatarUpload = (e) => {
     const file = e.target.files?.[0];
@@ -389,16 +390,21 @@ function UserMenuDropdown({
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <label
-                htmlFor="user-avatar-file-input"
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
                 title="Profilbild hochladen / ändern"
                 aria-label="Profilbild hochladen"
                 className="absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center"
               >
                 <Camera className="w-3 h-3" />
-              </label>
+              </button>
               <input
-                id="user-avatar-file-input"
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -634,15 +640,13 @@ export default function Header({
                     BabyCharts
                   </h1>
                   {activeFamily && (
-                    <button
-                      type="button"
-                      onClick={() => setIsFamilyModalOpen(true)}
-                      className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-900/90 text-cyan-700 dark:text-cyan-300 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 transition-colors whitespace-nowrap max-w-56 shrink-0 shadow-sm"
-                      title={`Familie: ${activeFamily.name} (Verwalten)`}
+                    <span
+                      className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200/80 dark:border-cyan-800/40 whitespace-nowrap max-w-52 shrink-0 select-none shadow-xs"
+                      title={`Aktive Familie: ${activeFamily.name}`}
                     >
-                      <Users className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+                      <Users className="w-3 h-3 text-cyan-600 dark:text-cyan-400 shrink-0" />
                       <span className="truncate">{activeFamily.name}</span>
-                    </button>
+                    </span>
                   )}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">

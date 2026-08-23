@@ -176,10 +176,10 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
                 }}
                 onMouseEnter={() => setHoveredTooth(tooth)}
                 onMouseLeave={() => setHoveredTooth(null)}
-                className="cursor-pointer transition-transform duration-150 hover:scale-105 active:scale-95 focus:outline-none select-none"
+                className="cursor-pointer focus:outline-none select-none"
                 style={{ touchAction: 'manipulation', pointerEvents: 'all' }}
               >
-                {/* 100% Guaranteed Mouse & Touch Hit Target */}
+                {/* 100% Guaranteed Stationary Mouse & Touch Hit Target */}
                 <rect
                   x="-18"
                   y="-18"

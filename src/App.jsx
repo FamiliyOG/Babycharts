@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
-import { TrendingUp, Syringe, Sparkles, HeartPulse } from 'lucide-react';
+import { TrendingUp, Syringe, Sparkles, HeartPulse, ClipboardList } from 'lucide-react';
 import Header from './components/Header.jsx';
 import PercentileCard from './components/PercentileCard.jsx';
 import GrowthChart from './components/GrowthChart.jsx';
@@ -380,7 +380,20 @@ function MainApp() {
               }`}
             >
               <TrendingUp className="w-4 h-4 text-cyan-300" />
-              <span>Wachstum &amp; U-Heft</span>
+              <span>Wachstumskurven</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('ucheckups')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 ${
+                activeTab === 'ucheckups'
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-950/80 ring-1 ring-blue-400/40'
+                  : 'bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4 text-blue-300" />
+              <span>U-Heft Vorsorge</span>
             </button>
 
             <button

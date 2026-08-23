@@ -164,10 +164,7 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
                 aria-label={`Zahn ${tooth.short} (${tooth.name})`}
                 transform={`translate(${tooth.x}, ${tooth.y}) rotate(${tooth.rot})`}
                 onClick={(e) => {
-                  e.stopPropagation();
-                  openToothModal(tooth);
-                }}
-                onPointerUp={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   openToothModal(tooth);
                 }}
@@ -179,17 +176,19 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
                 }}
                 onMouseEnter={() => setHoveredTooth(tooth)}
                 onMouseLeave={() => setHoveredTooth(null)}
-                className="cursor-pointer transition-transform duration-150 active:scale-90 focus:outline-none"
-                style={{ touchAction: 'manipulation' }}
+                className="cursor-pointer transition-transform duration-150 hover:scale-105 active:scale-95 focus:outline-none select-none"
+                style={{ touchAction: 'manipulation', pointerEvents: 'all' }}
               >
-                {/* Enlarged invisible hit-area box for easy tapping */}
+                {/* 100% Guaranteed Mouse & Touch Hit Target */}
                 <rect
                   x="-18"
                   y="-18"
                   width="36"
                   height="36"
-                  fill="transparent"
+                  fill="#ffffff"
+                  fillOpacity="0.001"
                   className="cursor-pointer"
+                  style={{ pointerEvents: 'all' }}
                 />
 
                 {/* Tooth Crown */}

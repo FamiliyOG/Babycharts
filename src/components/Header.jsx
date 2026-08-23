@@ -182,21 +182,40 @@ function ProfilePillList({
 
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 
-function PdfExportDropdown({ isOpen, onToggle, onManualPdfExport, onExportCalendar, onExportCsv }) {
+function PdfExportDropdown({
+  isOpen,
+  onToggle,
+  onManualPdfExport,
+  onExportCalendar,
+  onExportCsv,
+  isMobile = false,
+}) {
   const { dialogRef } = useModalDismissal(isOpen, onToggle);
 
   return (
-    <div ref={dialogRef} className="relative hidden md:block">
-      <button
-        type="button"
-        onClick={onToggle}
-        title="Berichte, Termine & Daten exportieren"
-        aria-label="Export Format auswählen"
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-slate-400"
-      >
-        <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-        <span>Exportieren</span>
-      </button>
+    <div ref={dialogRef} className={`relative ${isMobile ? 'block' : 'hidden md:block'}`}>
+      {isMobile ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Berichte, Termine & Daten exportieren"
+          aria-label="Export Format auswählen"
+          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-800 active:scale-95 flex items-center justify-center transition-colors"
+        >
+          <Download className="w-4 h-4" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Berichte, Termine & Daten exportieren"
+          aria-label="Export Format auswählen"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-slate-400"
+        >
+          <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>Exportieren</span>
+        </button>
+      )}
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 animate-fadeIn text-xs text-slate-800 dark:text-slate-100">
@@ -453,7 +472,11 @@ function MobileHeaderControls({
   setTheme,
   onOpenFamilyModal,
   onOpenAuthModal,
+  isPdfMenuOpen,
+  onTogglePdfMenu,
   onManualPdfExport,
+  onExportCalendar,
+  onExportCsv,
   onOpenExportModal,
 }) {
   return (
@@ -502,15 +525,16 @@ function MobileHeaderControls({
         </button>
       )}
 
-      <button
-        type="button"
-        onClick={onManualPdfExport}
-        title="PDF Bericht exportieren"
-        aria-label="PDF Bericht exportieren"
-        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-800 active:scale-95"
-      >
-        <Download className="w-4 h-4" />
-      </button>
+      {/* Mobile Export Dropdown Menu */}
+      <PdfExportDropdown
+        isOpen={isPdfMenuOpen}
+        onToggle={onTogglePdfMenu}
+        onManualPdfExport={onManualPdfExport}
+        onExportCalendar={onExportCalendar}
+        onExportCsv={onExportCsv}
+        isMobile={true}
+      />
+
       <button
         type="button"
         onClick={onOpenExportModal}
@@ -605,7 +629,11 @@ export default function Header({
               setTheme={setTheme}
               onOpenFamilyModal={() => setIsFamilyModalOpen(true)}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              isPdfMenuOpen={isPdfMenuOpen}
+              onTogglePdfMenu={() => setIsPdfMenuOpen(!isPdfMenuOpen)}
               onManualPdfExport={onManualPdfExport}
+              onExportCalendar={onExportCalendar}
+              onExportCsv={onExportCsv}
               onOpenExportModal={onOpenExportModal}
             />
           </div>

@@ -94,11 +94,14 @@ function ProfilePillList({
                   className="w-4 h-4 rounded-full object-cover border border-white/40"
                 />
               ) : (
-                <span className="inline-flex items-center justify-center text-sm leading-none select-none">
+                <span
+                  className="inline-flex items-center justify-center text-xs font-bold leading-none -translate-y-px select-none opacity-90"
+                  aria-hidden="true"
+                >
                   {childIsGirl ? '♀' : '♂'}
                 </span>
               )}
-              <span>{child.name}</span>
+              <span className="leading-none">{child.name}</span>
             </button>
 
             {/* Integrated Action Buttons on Active Child */}

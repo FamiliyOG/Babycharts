@@ -368,8 +368,8 @@ function MainApp() {
             ageInfo={ageInfo}
           />
 
-          {/* Module Navigation Tabs */}
-          <div className="flex items-center justify-start sm:justify-center gap-2.5 overflow-x-auto pb-1">
+          {/* Module Navigation Tabs (Desktop / Tablet only) */}
+          <div className="hidden md:flex items-center justify-center gap-2.5 overflow-x-auto pb-1">
             <button
               type="button"
               onClick={() => setActiveTab('growth')}
@@ -436,18 +436,11 @@ function MainApp() {
             </button>
           </div>
 
-          {/* Tab 1: Growth Chart & U-Checkup Roadmap */}
+          {/* Tab 1: Growth Chart & Measurement History */}
           {activeTab === 'growth' && (
             <>
               {/* Growth Chart Section */}
               <GrowthChart activeChild={activeChild} measurements={activeChildMeasurements} />
-
-              {/* U-Heft Roadmap Tracker */}
-              <UCheckupTracker
-                activeChild={activeChild}
-                measurements={activeChildMeasurements}
-                onAddCheckupClick={handleOpenAddMeasurement}
-              />
 
               {/* Measurement History Table */}
               <MeasurementTable
@@ -457,6 +450,15 @@ function MainApp() {
                 onDeleteMeasurement={handleDeleteMeasurement}
               />
             </>
+          )}
+
+          {/* Tab: U-Heft Vorsorge-Roadmap */}
+          {activeTab === 'ucheckups' && (
+            <UCheckupTracker
+              activeChild={activeChild}
+              measurements={activeChildMeasurements}
+              onAddCheckupClick={handleOpenAddMeasurement}
+            />
           )}
 
           {/* Tab 2: STIKO Vaccination Tracker */}

@@ -64,25 +64,46 @@ function MainApp() {
     return loaded[0]?.id || null;
   });
 
-  // Synchronize profiles for active family when user or family changes
+  // Synchronize profiles for active family when user or family changes, or when app regains focus/visibility (PWA)
   useEffect(() => {
     if (!user) return;
 
     let isMounted = true;
-    fetchProfiles(familyId)
-      .then((serverProfiles) => {
-        if (!isMounted) return;
-        if (Array.isArray(serverProfiles)) {
-          setProfiles(serverProfiles);
-          saveStoredProfiles(serverProfiles, familyId);
-          setActiveChildId((prev) =>
-            serverProfiles.some((p) => p.id === prev) ? prev : serverProfiles[0]?.id || null
-          );
-        }
-      })
-      .catch(() => {});
+
+    const applySyncedProfiles = (serverProfiles) => {
+      if (!isMounted || !Array.isArray(serverProfiles) || serverProfiles.length === 0) return;
+      setProfiles(serverProfiles);
+      saveStoredProfiles(serverProfiles, familyId);
+      setActiveChildId((prev) => {
+        const exists = serverProfiles.some((p) => p.id === prev);
+        return exists ? prev : serverProfiles[0]?.id || null;
+      });
+    };
+
+    const syncServerProfiles = async () => {
+      try {
+        const serverProfiles = await fetchProfiles(familyId);
+        applySyncedProfiles(serverProfiles);
+      } catch {
+        // Ignore network offline sync errors
+      }
+    };
+
+    syncServerProfiles();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncServerProfiles();
+      }
+    };
+
+    window.addEventListener('focus', syncServerProfiles);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('focus', syncServerProfiles);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user, familyId]);
 

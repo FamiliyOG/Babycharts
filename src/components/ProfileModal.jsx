@@ -53,22 +53,38 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
   const [birthLengthCm, setBirthLengthCm] = useState(() => initialBirthM?.length || '');
   const [birthHeadCm, setBirthHeadCm] = useState(() => initialBirthM?.headCircumference || '');
   const [notes, setNotes] = useState(() => initialData?.notes || '');
+  const [avatarError, setAvatarError] = useState(null);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 2 * 1024 * 1024) return;
+
+    setAvatarError(null);
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Ungültiges Format: Bitte wählen Sie ein Bild aus (PNG, JPG, WebP).');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError('Datei zu groß: Das Bild darf maximal 2 MB groß sein.');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = () => {
       setAvatar(reader.result);
+      setAvatarError(null);
+    };
+    reader.onerror = () => {
+      setAvatarError('Fehler beim Einlesen des Bildes. Bitte versuchen Sie es erneut.');
     };
     reader.readAsDataURL(file);
   };
 
   const handleRemoveAvatar = () => {
     setAvatar(null);
+    setAvatarError(null);
   };
 
   const handleSubmit = (e) => {
@@ -181,25 +197,25 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
               onChange={handleAvatarChange}
               className="hidden"
             />
-            {avatar && (
-              <button
-                type="button"
-                onClick={() => setAvatar(null)}
-                title="Foto entfernen"
-                aria-label="Foto entfernen"
-                className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md transition-all active:scale-95"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            )}
           </div>
           <div>
-            <h2 className="text-lg font-bold">
+            <h2 className="text-xl font-bold text-slate-100">
               {initialData ? 'Profil bearbeiten' : 'Neues Kind anlegen'}
             </h2>
-            <p className="text-xs text-slate-400">Erfassen Sie die Stammdaten Ihres Kindes</p>
+            <p className="text-xs text-slate-400">
+              {initialData
+                ? 'Passen Sie die Daten und das Profilfoto an'
+                : 'Erfassen Sie die Basis- und Geburtsdaten'}
+            </p>
           </div>
         </div>
+
+        {avatarError && (
+          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{avatarError}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}

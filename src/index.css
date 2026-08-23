@@ -19,8 +19,13 @@
       'Apple Color Emoji',
       'Segoe UI Emoji';
     -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     overflow-anchor: none;
+    overscroll-behavior-y: none;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
     transition:
       background-color 0.25s ease,
       color 0.25s ease;
@@ -30,6 +35,23 @@
   html.dark body {
     background-color: #020617;
     color: #f8fafc;
+  }
+
+  /* Safe Area Utility Classes for iPhone Dynamic Island & Home Bar */
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-area-inset-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+
+  .safe-area-inset-right {
+    padding-right: env(safe-area-inset-right, 0px);
   }
 }
 

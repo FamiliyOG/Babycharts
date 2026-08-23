@@ -573,12 +573,12 @@ function MainApp() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col safe-area-inset-left safe-area-inset-right pb-24 md:pb-8">
         {renderMainContent()}
       </main>
 
       {/* Footer (Desktop) */}
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-400 mb-12 md:mb-0">
+      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-400 mb-16 md:mb-0 safe-area-inset-bottom">
         <p>BabyCharts &copy; {new Date().getFullYear()} — WHO Child Growth Standards (0–5 Jahre)</p>
       </footer>
 

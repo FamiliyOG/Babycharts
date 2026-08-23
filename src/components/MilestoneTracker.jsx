@@ -18,6 +18,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
   const [customTitle, setCustomTitle] = useState('');
   const [customIcon, setCustomIcon] = useState('⭐');
   const [customDesc, setCustomDesc] = useState('');
+  const [photoError, setPhotoError] = useState(null);
 
   if (!activeChild) return null;
 
@@ -33,18 +34,34 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     setMilestoneDate(existing.date || new Date().toISOString().split('T')[0]);
     setMilestoneNotes(existing.notes || '');
     setMilestonePhoto(existing.photo || null);
+    setPhotoError(null);
   };
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
-    if (!file?.type?.startsWith('image/')) return;
-    if (file.size > 2 * 1024 * 1024) return;
+    if (!file) return;
+
+    setPhotoError(null);
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Ungültiges Dateiformat: Bitte wählen Sie ein Foto aus (PNG, JPG, WebP).');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError('Datei zu groß: Das Foto darf maximal 2 MB groß sein.');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (ev) => {
       if (ev.target?.result) {
         setMilestonePhoto(ev.target.result);
+        setPhotoError(null);
       }
+    };
+    reader.onerror = () => {
+      setPhotoError('Fehler beim Einlesen des Fotos. Bitte versuchen Sie es erneut.');
     };
     reader.readAsDataURL(file);
   };
@@ -360,6 +377,12 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                       className="hidden"
                     />
                   </label>
+                )}
+                {photoError && (
+                  <div className="mt-2 p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span>{photoError}</span>
+                  </div>
                 )}
               </div>
 

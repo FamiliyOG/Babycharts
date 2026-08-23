@@ -266,17 +266,47 @@ function PdfExportDropdown({ isOpen, onToggle, onManualPdfExport, onExportCalend
 }
 
 function UserMenuDropdown({
+  isOpen,
+  onToggle,
   user,
   activeFamily,
   userRole,
-  isOpen,
-  onToggle,
   onOpenFamilyModal,
   onOpen2FaModal,
   onLogout,
   onUpdateProfile,
 }) {
   const { dialogRef } = useModalDismissal(isOpen, onToggle);
+  const [avatarError, setAvatarError] = useState(null);
+
+  const handleUserAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarError(null);
+
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Nur Bilder (PNG, JPG, WebP) erlaubt.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError('Foto zu groß (max. 2 MB).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) {
+        onUpdateProfile({ avatar: ev.target.result });
+        setAvatarError(null);
+      }
+    };
+    reader.onerror = () => {
+      setAvatarError('Fehler beim Einlesen des Fotos.');
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div ref={dialogRef} className="relative hidden md:block">
@@ -319,18 +349,7 @@ function UserMenuDropdown({
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file?.type?.startsWith('image/')) return;
-                  if (file.size > 2 * 1024 * 1024) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                    if (ev.target?.result) {
-                      onUpdateProfile({ avatar: ev.target.result });
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                }}
+                onChange={handleUserAvatarUpload}
               />
             </div>
             <div className="min-w-0 flex-1">
@@ -339,6 +358,13 @@ function UserMenuDropdown({
               <div className="text-[10px] text-cyan-400 mt-0.5 truncate">{activeFamily?.name}</div>
             </div>
           </div>
+
+          {avatarError && (
+            <div className="mb-2 p-2 bg-rose-500/10 border border-rose-500/30 rounded-xl text-[11px] text-rose-300 flex items-center gap-1.5">
+              <span>⚠️</span>
+              <span>{avatarError}</span>
+            </div>
+          )}
 
           <button
             type="button"
@@ -501,7 +527,7 @@ export default function Header({
 
   return (
     <header
-      className={`sticky top-0 z-30 backdrop-blur-md border-b transition-colors duration-300 ${
+      className={`sticky top-0 z-30 backdrop-blur-md border-b safe-area-inset-top transition-colors duration-300 ${
         isGirl
           ? 'bg-rose-50/90 dark:bg-rose-950/85 border-rose-200 dark:border-rose-800/40 text-rose-950 dark:text-rose-100 shadow-xs'
           : 'bg-white/90 dark:bg-slate-950/85 border-slate-200 dark:border-slate-800/40 text-slate-900 dark:text-slate-100 shadow-xs'

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>Babycharts</Name>
+  <Repository>babycharts:latest</Repository>
+  <Registry/>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project>https://github.com/</Project>
+  <Overview>BabyCharts – Wachstumskurven (WHO Standards), Perzentilen-Tracker, deutsches U-Heft Vorsorge-Tracking, PDF-Server-Berichte und geteilte Familienverwaltung.</Overview>
+  <Category>Tools: Health: Status:Beta</Category>
+  <WebUI>http://[IP]:[PORT:3001]/</WebUI>
+  <TemplateURL/>
+  <Icon>http://192.168.178.34:3001/icon.png</Icon>
+  <ExtraParams>--cap-add=SYS_ADMIN</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI Port" Target="3001" Default="3001" Mode="tcp" Description="Port für die Web-Oberfläche" Type="Port" Display="always" Required="true" Mask="false">3001</Config>
+  <Config Name="Datenbank &amp; Profile" Target="/app/server/data" Default="/mnt/user/appdata/Babycharts/server/data" Mode="rw" Description="Speicherort für db.json, Backups und Konfiguration" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/Babycharts/server/data</Config>
+  <Config Name="Node Environment" Target="NODE_ENV" Default="production" Mode="" Description="Node Environment" Type="Variable" Display="advanced" Required="false" Mask="false">production</Config>
+  <Config Name="App URL" Target="APP_URL" Default="http://localhost:3001" Mode="" Description="Interne App-URL" Type="Variable" Display="advanced" Required="false" Mask="false">http://localhost:3001</Config>
+  <Config Name="Dev Account Email" Target="DEV_EMAIL" Default="" Mode="" Description="E-Mail-Adresse des Dev/Superadmin Accounts (schaltet Dev-Optionen wie Demo-Daten frei)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+</Container>

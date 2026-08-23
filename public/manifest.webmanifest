@@ -1,0 +1,24 @@
+{
+  "name": "BabyCharts – Wachstumskurven & Perzentilen",
+  "short_name": "BabyCharts",
+  "description": "WHO-Wachstumskurven, U-Heft, Impfkalender & Zahnungs-Tracker für Babys & Kleinkinder",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

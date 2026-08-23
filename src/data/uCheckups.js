@@ -1,0 +1,86 @@
+/**
+ * German U-Untersuchungen (U1 bis U9) Vorsorgeplan
+ */
+
+export const U_CHECKUPS = [
+  {
+    id: 'U1',
+    name: 'U1 (Neugeborenen-Erstuntersuchung)',
+    periodMonthsMin: 0,
+    periodMonthsMax: 0.1,
+    periodText: 'Direkt nach der Geburt',
+    description: 'Erste Lebenszeichen, Apgar-Test, Vitamin K',
+  },
+  {
+    id: 'U2',
+    name: 'U2 (Basisuntersuchung)',
+    periodMonthsMin: 0.1,
+    periodMonthsMax: 0.35,
+    periodText: '3. bis 10. Lebenstag',
+    description: 'Ganzkörper-Untersuchung, Hörtest, Blutprobe auf Stoffwechselkrankheiten',
+  },
+  {
+    id: 'U3',
+    name: 'U3 (4.-5. Woche)',
+    periodMonthsMin: 0.9,
+    periodMonthsMax: 1.25,
+    periodText: '4. bis 5. Lebenswoche',
+    description: 'Hüftsonographie, Kontrolle der Motorik und Gewichtszunahme',
+  },
+  {
+    id: 'U4',
+    name: 'U4 (3.-4. Monat)',
+    periodMonthsMin: 3.0,
+    periodMonthsMax: 4.0,
+    periodText: '3. bis 4. Lebensmonat',
+    description: 'Bewegungsfähigkeit, Seh- und Hörvermögen, Impfberatung',
+  },
+  {
+    id: 'U5',
+    name: 'U5 (6.-7. Monat)',
+    periodMonthsMin: 6.0,
+    periodMonthsMax: 7.0,
+    periodText: '6. bis 7. Lebensmonat',
+    description: 'Gezieltes Greifen, Drehen, Beweglichkeit',
+  },
+  {
+    id: 'U6',
+    name: 'U6 (1. Geburtstag)',
+    periodMonthsMin: 10.0,
+    periodMonthsMax: 12.0,
+    periodText: '10. bis 12. Lebensmonat',
+    description: 'Krabbeln, freies Sitzen, erste Worte, Sprachverständnis',
+  },
+  {
+    id: 'U7',
+    name: 'U7 (2. Geburtstag)',
+    periodMonthsMin: 21.0,
+    periodMonthsMax: 24.0,
+    periodText: '21. bis 24. Lebensmonat',
+    description: 'Zwei-Wort-Sätze, Laufen, Sprach- und Verhaltensentwicklung',
+  },
+  {
+    id: 'U7a',
+    name: 'U7a (3. Geburtstag)',
+    periodMonthsMin: 34.0,
+    periodMonthsMax: 36.0,
+    periodText: '34. bis 36. Lebensmonat',
+    description: 'Sehtest, Gebiss, 3-Wort-Sätze, Sozialverhalten',
+  },
+  {
+    id: 'U8',
+    name: 'U8 (4. Geburtstag)',
+    periodMonthsMin: 46.0,
+    periodMonthsMax: 48.0,
+    periodText: '46. bis 48. Lebensmonat',
+    description: 'Feinmotorik, Aussprache, Selbstständigkeit',
+  },
+  {
+    id: 'U9',
+    name: 'U9 (5. Geburtstag)',
+    periodMonthsMin: 60.0,
+    periodMonthsMax: 64.0,
+    periodText: '60. bis 64. Lebensmonat',
+    description: 'Vorschuluntersuchung, Vorbereitung auf den Schuleintritt',
+  },
+];

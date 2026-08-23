@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# BabyCharts server – generated files and secrets
+server/data/*.db
+server/data/*.db-wal
+server/data/*.db-shm
+server/data/*.sqlite
+server/data/*.sqlite-wal
+server/data/*.sqlite-shm
+server/data/db.json
+server/data/backups/
+server/data/uploads/
+.env
+.env.local
+.env.*.local
+*.log

@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+.gemini
+package-lock.json
+server/data/db.json
+server/data/backups

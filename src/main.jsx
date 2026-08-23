@@ -1,0 +1,58 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import App from './App.jsx';
+import ReportPrintPage from './components/ReportPrintPage.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
+import { logClientError } from './utils/api.js';
+
+// Global Client Error Catchers (Forward unhandled frontend crashes to Unraid logs)
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    logClientError(event.message, event.error, {
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    });
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    logClientError(event.reason?.message || 'Unhandled Promise Rejection', event.reason, {
+      type: 'unhandledrejection',
+    });
+  });
+}
+
+// Select root component: Puppeteer report mode vs. full app
+const puppeteerChildId = new URLSearchParams(window.location.search).get('puppeteerReport');
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <ThemeProvider>{puppeteerChildId ? <ReportPrintPage /> : <App />}</ThemeProvider>
+  </StrictMode>
+);
+
+// Unregister stale service worker to guarantee fresh assets
+if (typeof window !== 'undefined') {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if ('caches' in window) {
+    try {
+      const names = await caches.keys();
+      for (const name of names) {
+        await caches.delete(name);
+      }
+    } catch {
+      // ignore
+    }
+  }
+}

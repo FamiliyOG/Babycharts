@@ -1,0 +1,25 @@
+# BabyCharts – Wachstumskurven & Perzentilen-Tracker
+
+BabyCharts ist eine lokale Web-Anwendung zur Erfassung und Visualisierung von Wachstumsdaten für Kinder (0–5 Jahre) nach WHO Child Growth Standards.
+
+## Funktionen
+
+- [Wachstumskurven](src/components/GrowthChart.jsx): Gewicht, Körpergröße, Kopfumfang und BMI nach Alter, aufgeteilt nach Geschlecht (Junge / Mädchen)
+- [U-Untersuchungen](src/components/UCheckupTracker.jsx): Übersicht aller deutschen U-Heft-Vorsorgeuntersuchungen (U1–U9)
+- [Messwert-Eingabe](src/components/MeasurementForm.jsx): Gewicht in Gramm, Körpergröße in cm, Kopfumfang in cm
+- [PDF-Export](src/utils/pdfGenerator.js): Vollständiger Wachstumsbericht inkl. Diagrammen und Messtabelle
+- [Kindprofile](src/components/ProfileModal.jsx): Mehrere Kinder mit Geburtsdaten und Geburtsmaßen verwaltbar
+- [Datensicherung](src/components/ExportImportModal.jsx): JSON-Export und -Import aller gespeicherten Daten
+
+## Technologie
+
+- Vite + React (JSX)
+- Tailwind CSS v4
+- Chart.js / react-chartjs-2
+- jsPDF (Vektorgrafik-PDF-Erzeugung)
+- LocalStorage (offline, kein Server erforderlich)
+
+## WHO-Datenquellen
+
+- [WHO Child Growth Standards](https://www.who.int/tools/child-growth-standards): Gewicht (kg), Länge (cm), Kopfumfang (cm), BMI (kg/m²)
+- Perzentilen: P3, P15, P50 (Median), P85, P97 für Jungen und Mädchen separat

@@ -1,0 +1,30 @@
+services:
+  babycharts:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: Babycharts
+    restart: unless-stopped
+
+    # Unraid Integration & Dashboard Labels
+    labels:
+      net.unraid.docker.icon: 'http://192.168.178.34:3001/icon.png'
+      net.unraid.docker.webui: 'http://[IP]:[PORT:3001]/'
+      net.unraid.docker.managed: 'dockerman'
+
+    ports:
+      - '3001:3001' # Host:Container Port
+
+    volumes:
+      # Persistente JSON-Datenbank für Profile, Settings & automatische Backups
+      - ./server/data:/app/server/data
+
+    environment:
+      PORT: '3001'
+      APP_URL: 'http://localhost:3001'
+      NODE_ENV: production
+      DEV_EMAIL: 'admin@babycharts.local' # Beliebige Dev-Account E-Mail
+
+    # Erlaubt Chromium/Puppeteer Sandbox-Ausführung im Container
+    cap_add:
+      - SYS_ADMIN

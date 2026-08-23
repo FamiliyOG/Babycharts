@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "oxc", "unicorn", "import", "promise"],
+  "ignorePatterns": ["dist/**", "node_modules/**", "pdf_exports/**", "server/data/**"],
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-console": "off",
+    "no-debugger": "error",
+    "no-duplicate-imports": "error",
+    "no-self-compare": "error",
+    "no-unreachable": "error",
+    "react/rules-of-hooks": "error",
+    "react/jsx-key": "error",
+    "react/no-direct-mutation-state": "error",
+    "react/only-export-components": "off",
+    "unicorn/prefer-node-protocol": "warn"
+  }
+}

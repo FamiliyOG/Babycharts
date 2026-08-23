@@ -1,0 +1,10 @@
+{
+  "users": [],
+  "families": [],
+  "invites": [],
+  "profiles": [],
+  "settings": {
+    "pdfOutputDir": "./pdf_exports"
+  },
+  "exportLog": {}
+}

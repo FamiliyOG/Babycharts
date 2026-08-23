@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "oxc.oxc-vscode",
+    "dbaeumer.vscode-eslint",
+    "stylelint.vscode-stylelint",
+    "html-validate.vscode-html-validate",
+    "sonarsource.sonarlint-vscode",
+    "bradlc.vscode-tailwindcss"
+  ]
+}

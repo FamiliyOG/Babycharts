@@ -13,7 +13,7 @@
   <Category>Tools: Health: Status:Stable</Category>
   <WebUI>http://[IP]:[PORT:3001]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/FamiliyOG/Babycharts/main/unraid-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/baby.svg</Icon>
+  <Icon>https://raw.githubusercontent.com/FamiliyOG/Babycharts/main/public/icon.png</Icon>
   <ExtraParams>--cap-add=SYS_ADMIN</ExtraParams>
   <PostArgs/>
   <CPUset/>

@@ -135,12 +135,12 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
           {isUpper ? (
             <path
               d="M 28 175 C 28 65, 110 20, 170 20 C 230 20, 312 65, 312 175 C 290 175, 275 105, 170 105 C 65 105, 50 175, 28 175 Z"
-              className="fill-rose-950/20 stroke-rose-900/30 stroke-1"
+              className="fill-rose-950/20 stroke-rose-900/30 stroke-1 pointer-events-none select-none"
             />
           ) : (
             <path
               d="M 28 35 C 28 145, 110 190, 170 190 C 230 190, 312 145, 312 35 C 290 35, 275 105, 170 105 C 65 105, 50 35, 28 35 Z"
-              className="fill-rose-950/20 stroke-rose-900/30 stroke-1"
+              className="fill-rose-950/20 stroke-rose-900/30 stroke-1 pointer-events-none select-none"
             />
           )}
 
@@ -182,6 +182,16 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
                 className="cursor-pointer transition-transform duration-150 active:scale-90 focus:outline-none"
                 style={{ touchAction: 'manipulation' }}
               >
+                {/* Enlarged invisible hit-area box for easy tapping */}
+                <rect
+                  x="-18"
+                  y="-18"
+                  width="36"
+                  height="36"
+                  fill="transparent"
+                  className="cursor-pointer"
+                />
+
                 {/* Tooth Crown */}
                 {renderToothPath(tooth, isErupted)}
 
@@ -247,6 +257,37 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto py-2">
         {renderSvgArch(upperTeeth, 'Oberkiefer (Maxilla)', true)}
         {renderSvgArch(lowerTeeth, 'Unterkiefer (Mandibula)', false)}
+      </div>
+
+      {/* Quick Tooth Selection Grid (Mobile & Desktop accessible buttons) */}
+      <div className="mt-6 pt-5 border-t border-slate-800/80">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 text-center sm:text-left">
+          Schnellauswahl nach Zahnnummer
+        </h4>
+
+        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+          {MILK_TEETH.map((t) => {
+            const isErupted = Boolean(teethData[t.id]?.erupted);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => openToothModal(t)}
+                className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all active:scale-95 text-center ${
+                  isErupted
+                    ? 'bg-cyan-950/80 border-cyan-500/60 text-cyan-300 shadow-xs'
+                    : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
+                title={`${t.short} – ${t.name}`}
+              >
+                <span className="text-xs font-bold font-mono">{t.short}</span>
+                <span className="text-[10px] leading-tight text-slate-500 truncate max-w-full">
+                  {isErupted ? '✓ Da' : `${t.avgMonths}m`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Tooth Details Modal */}

@@ -255,9 +255,15 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                <span className="inline-flex items-center justify-center text-base leading-none">
-                  ♂
-                </span>
+                <svg
+                  className="w-4 h-4 text-cyan-400 fill-none stroke-current stroke-2 shrink-0"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="10" cy="14" r="5" />
+                  <line x1="14" y1="10" x2="21" y2="3" />
+                  <polyline points="15 3 21 3 21 9" />
+                </svg>
                 <span>Junge</span>
                 {gender === 'boy' && <Check className="w-3.5 h-3.5 ml-1 text-cyan-400" />}
               </button>
@@ -271,9 +277,15 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                <span className="inline-flex items-center justify-center text-base leading-none">
-                  ♀
-                </span>
+                <svg
+                  className="w-4 h-4 text-pink-400 fill-none stroke-current stroke-2 shrink-0"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="8" r="5" />
+                  <line x1="12" y1="13" x2="12" y2="21" />
+                  <line x1="9" y1="17" x2="15" y2="17" />
+                </svg>
                 <span>Mädchen</span>
                 {gender === 'girl' && <Check className="w-3.5 h-3.5 ml-1 text-pink-400" />}
               </button>

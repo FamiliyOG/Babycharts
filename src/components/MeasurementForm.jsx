@@ -112,10 +112,41 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             <h2 className="text-lg font-bold">
               {initialData ? 'Messwert bearbeiten' : 'Neuen Messwert eintragen'}
             </h2>
-            <p className="text-xs text-slate-400">
-              Kind: <span className="font-semibold text-slate-200">{activeChild.name}</span> (
-              {isGirl ? '♀ Mädchen' : '♂ Junge'})
-            </p>
+            <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+              <span>Kind:</span>
+              <span className="font-semibold text-slate-200">{activeChild.name}</span>
+              <span className="inline-flex items-center gap-1">
+                (
+                {isGirl ? (
+                  <>
+                    <svg
+                      className="w-3.5 h-3.5 text-pink-400 fill-none stroke-current stroke-2 shrink-0"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="8" r="5" />
+                      <line x1="12" y1="13" x2="12" y2="21" />
+                      <line x1="9" y1="17" x2="15" y2="17" />
+                    </svg>
+                    <span>Mädchen</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-3.5 h-3.5 text-cyan-400 fill-none stroke-current stroke-2 shrink-0"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle cx="10" cy="14" r="5" />
+                      <line x1="14" y1="10" x2="21" y2="3" />
+                      <polyline points="15 3 21 3 21 9" />
+                    </svg>
+                    <span>Junge</span>
+                  </>
+                )}
+                )
+              </span>
+            </div>
           </div>
         </div>
 
@@ -153,14 +184,14 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
           </div>
 
           {/* Messwerte: Gewicht in Gramm, Größe in cm, Kopfumfang in cm */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 items-start">
             {/* Gewicht in Gramm */}
-            <div>
+            <div className="flex flex-col">
               <label
                 htmlFor="measurement-weight-input"
-                className="block text-xs font-semibold text-slate-300 mb-1"
+                className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
               >
-                Gewicht (in Gramm, g)
+                Gewicht (in g)
               </label>
               <div className="relative">
                 <Scale className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -184,10 +215,10 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             </div>
 
             {/* Größe / Länge in cm */}
-            <div>
+            <div className="flex flex-col">
               <label
                 htmlFor="measurement-length-input"
-                className="block text-xs font-semibold text-slate-300 mb-1"
+                className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
               >
                 Größe / Länge (cm)
               </label>
@@ -213,10 +244,10 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             </div>
 
             {/* Kopfumfang in cm */}
-            <div>
+            <div className="flex flex-col">
               <label
                 htmlFor="measurement-head-input"
-                className="block text-xs font-semibold text-slate-300 mb-1"
+                className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
               >
                 Kopfumfang (cm)
               </label>

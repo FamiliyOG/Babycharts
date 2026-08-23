@@ -2,7 +2,7 @@
 <Container version="2">
   <Name>Babycharts</Name>
   <Repository>ghcr.io/familiyog/babycharts:latest</Repository>
-  <Registry>https://ghcr.io/v2/</Registry>
+  <Registry>https://ghcr.io/</Registry>
   <Network>bridge</Network>
   <MyIP/>
   <Shell>sh</Shell>

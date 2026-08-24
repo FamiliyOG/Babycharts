@@ -59,7 +59,8 @@ function ChildProfileAvatar({ child, isGirl }) {
     return (
       <img
         src={child.avatar}
-        alt={child.name}
+        alt=""
+        aria-hidden="true"
         className="w-4 h-4 rounded-full object-cover border border-white/40"
       />
     );
@@ -122,7 +123,7 @@ function ProfilePillList({
 
             {/* Integrated Action Buttons on Active Child */}
             {isActive && canEdit && (
-              <div className="flex items-center gap-0.5 ml-1.5 pl-1.5 border-l border-white/25">
+              <div className="flex items-center gap-1 ml-1.5 pl-1.5 border-l border-white/25">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -131,9 +132,9 @@ function ProfilePillList({
                   }}
                   title={`${child.name} bearbeiten`}
                   aria-label={`${child.name} bearbeiten`}
-                  className="p-1 rounded-lg hover:bg-white/20 text-white/90 hover:text-white transition-colors active:scale-95"
+                  className="p-2 min-w-7 min-h-7 flex items-center justify-center rounded-lg hover:bg-white/20 text-white/90 hover:text-white transition-colors active:scale-95 touch-manipulation"
                 >
-                  <Edit2 className="w-3 h-3" />
+                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
 
                 <button
@@ -146,9 +147,9 @@ function ProfilePillList({
                   }}
                   title={`${child.name} löschen`}
                   aria-label={`${child.name} löschen`}
-                  className="p-1 rounded-lg hover:bg-rose-950/80 text-rose-200 hover:text-rose-100 transition-colors active:scale-95"
+                  className="p-2 min-w-7 min-h-7 flex items-center justify-center rounded-lg hover:bg-rose-950/80 text-rose-200 hover:text-rose-100 transition-colors active:scale-95 touch-manipulation"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}

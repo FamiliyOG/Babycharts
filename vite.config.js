@@ -2,16 +2,31 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-// Custom Vite plugin to strip -webkit-text-size-adjust from Tailwind v4 CSS reset to prevent Firefox console warnings
-function stripWebkitTextSizeAdjustPlugin() {
+// Custom Vite plugin to strip non-standard CSS properties from Tailwind v4 CSS reset to prevent Firefox console warnings
+function stripNonStandardCssPlugin() {
   return {
-    name: 'strip-webkit-text-size-adjust',
+    name: 'strip-non-standard-css',
     transform(code, id) {
       if (id.includes('.css') || id.includes('tailwindcss') || id.includes('vite/deps')) {
         return {
-          code: code.replace(/-webkit-text-size-adjust:\s*100%;?/g, ''),
+          code: code
+            .replace(/-webkit-text-size-adjust:\s*100%;?/g, '')
+            .replace(/-moz-osx-font-smoothing:\s*grayscale;?/g, ''),
           map: null,
         };
+      }
+    },
+    generateBundle(_, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (
+          file.type === 'asset' &&
+          file.fileName.endsWith('.css') &&
+          typeof file.source === 'string'
+        ) {
+          file.source = file.source
+            .replace(/-webkit-text-size-adjust:\s*100%;?/g, '')
+            .replace(/-moz-osx-font-smoothing:\s*grayscale;?/g, '');
+        }
       }
     },
   };
@@ -19,7 +34,7 @@ function stripWebkitTextSizeAdjustPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [stripWebkitTextSizeAdjustPlugin(), react(), tailwindcss()],
+  plugins: [stripNonStandardCssPlugin(), react(), tailwindcss()],
   build: {
     rollupOptions: {
       // html2canvas is only needed for jsPDF's doc.html() method which we never use.

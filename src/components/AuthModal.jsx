@@ -186,6 +186,7 @@ export default function AuthModal({ isOpen, onClose }) {
                     id="auth-email-input"
                     type="email"
                     required
+                    autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@beispiel.de"
@@ -208,6 +209,7 @@ export default function AuthModal({ isOpen, onClose }) {
                     type="password"
                     required
                     minLength={6}
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mindestens 6 Zeichen"

@@ -234,7 +234,9 @@ function buildChartData({
   };
 }
 
-function buildChartOptions(metric, maxAgeMonths, isDark = true) {
+const DEFAULT_Y_BOUNDS = { min: 0, max: null };
+
+function buildChartOptions(metric, maxAgeMonths, isDark = true, yBounds = DEFAULT_Y_BOUNDS) {
   const gridColor = isDark ? 'rgba(51, 65, 85, 0.3)' : 'rgba(203, 213, 225, 0.6)';
   const tickColor = isDark ? '#94a3b8' : '#64748b';
   const titleColor = isDark ? '#64748b' : '#475569';
@@ -242,12 +244,6 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
   const tooltipTitleColor = isDark ? '#f8fafc' : '#0f172a';
   const tooltipBodyColor = isDark ? '#cbd5e1' : '#334155';
   const tooltipBorder = isDark ? 'rgba(51, 65, 85, 0.8)' : '#cbd5e1';
-  // Calculate sensible tick step size for X axis depending on range
-  const getXStepSize = (months) => {
-    if (months <= 12) return 1; // every month
-    if (months <= 24) return 2; // every 2 months
-    return 6; // every 6 months for 5 years
-  };
 
   return {
     responsive: true,
@@ -259,7 +255,7 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
       zoom: {
         pan: {
           enabled: true,
-          mode: 'xy',
+          mode: 'x',
           modifierKey: null,
         },
         zoom: {
@@ -270,11 +266,11 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
           pinch: {
             enabled: true,
           },
-          mode: 'xy',
+          mode: 'x',
         },
         limits: {
-          x: { min: 0, max: 60, minRange: 1 },
-          y: { min: 0 },
+          x: { min: 0, max: maxAgeMonths, minRange: 1 },
+          y: { min: yBounds.min ?? 0, max: yBounds.max ?? undefined },
         },
       },
       tooltip: {
@@ -326,8 +322,14 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
         ticks: {
           color: tickColor,
           font: { size: 11 },
-          stepSize: getXStepSize(maxAgeMonths),
-          callback: (val) => `${val}M`,
+          maxRotation: 0,
+          autoSkip: true,
+          callback: (val) => {
+            if (typeof val !== 'number') return val;
+            // Clean up floating point inaccuracies during zoom (e.g. 1.12034747516M -> 1.1M or 1M)
+            const rounded = Number(Number(val).toFixed(1));
+            return `${rounded}M`;
+          },
         },
         title: {
           display: true,
@@ -337,6 +339,8 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
         },
       },
       y: {
+        min: yBounds.min ?? 0,
+        max: yBounds.max ?? undefined,
         grid: {
           color: gridColor,
           drawBorder: true,
@@ -370,12 +374,38 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
   const isGirl = activeChild.gender === 'girl';
   const genderKey = isGirl ? 'girl' : 'boy';
 
-  // Fetch WHO reference percentile datasets for selected metric
+  // Fetch WHO reference percentile datasets for selected metric (keep data up to 60 for smooth panning/zooming)
   const rawWhoData = WHO_DATA[genderKey]?.[metric] || [];
-  const filteredWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);
+  const filteredWhoData = rawWhoData.filter((d) => d.month <= 60);
 
-  // Map recorded measurements to exact x-axis decimal month positions
+  // Compute maximum sensible Y range for current view range to keep Y axis beautifully proportioned
+  const currentRangeWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);
+  const maxP97 = Math.max(...currentRangeWhoData.map((d) => d.p97 || 0), 0);
   const childPoints = computeChildDataPoints(measurements, activeChild.birthdate, metric);
+  const maxChildVal = Math.max(
+    ...childPoints.filter((p) => p.x <= maxAgeMonths).map((p) => p.y || 0),
+    0
+  );
+  const highestVal = Math.max(maxP97, maxChildVal);
+
+  const getYBounds = (currentMetric, maxVal) => {
+    if (currentMetric === 'weight') {
+      const top = Math.ceil(maxVal * 1.12);
+      return { min: 0, max: top };
+    }
+    if (currentMetric === 'length') {
+      return { min: 40, max: Math.ceil(maxVal + 5) };
+    }
+    if (currentMetric === 'headCircumference') {
+      return { min: 30, max: Math.ceil(maxVal + 4) };
+    }
+    if (currentMetric === 'bmi') {
+      return { min: 10, max: Math.ceil(maxVal + 2) };
+    }
+    return { min: 0, max: null };
+  };
+
+  const yBounds = getYBounds(metric, highestVal);
 
   const childColor = isGirl ? '#ec4899' : '#06b6d4';
   const legendItems = createLegendItems(activeChild.name, childColor, isGirl);
@@ -412,7 +442,7 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
     childColor,
     isDark,
   });
-  const options = buildChartOptions(metric, maxAgeMonths, isDark);
+  const options = buildChartOptions(metric, maxAgeMonths, isDark, yBounds);
 
   const getMetricButtonClass = (targetMetric) => {
     const isSelected = metric === targetMetric;

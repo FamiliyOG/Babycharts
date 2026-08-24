@@ -20,12 +20,15 @@
     />
     <title>BabyCharts – Wachstumskurven &amp; Perzentilen-Tracker</title>
 
-    <!-- Critical CSS for Instant Paint & Clean Console -->
+    <!-- Critical CSS for Instant Paint & Zero CLS -->
     <style>
       html,
       body {
         margin: 0;
         padding: 0;
+        min-height: 100vh;
+        background-color: #020617;
+        color: #f8fafc;
         font-family:
           system-ui,
           -apple-system,
@@ -36,9 +39,14 @@
           Arial,
           sans-serif;
       }
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
     </style>
   </head>
-  <body class="min-h-screen">
+  <body class="min-h-screen bg-slate-950 text-slate-100">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx" defer></script>
   </body>

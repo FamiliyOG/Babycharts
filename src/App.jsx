@@ -392,11 +392,11 @@ function MainApp() {
               onClick={() => setActiveTab('growth')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 ${
                 activeTab === 'growth'
-                  ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-950/80 ring-1 ring-cyan-400/40'
-                  : 'bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  ? 'bg-cyan-700 hover:bg-cyan-600 text-white shadow-md shadow-cyan-950/80 ring-2 ring-cyan-400'
+                  : 'bg-slate-900/90 text-slate-300 hover:text-white border border-slate-800'
               }`}
             >
-              <TrendingUp className="w-4 h-4 text-cyan-300" />
+              <TrendingUp className="w-4 h-4 text-cyan-200" />
               <span>Wachstumskurven</span>
             </button>
 
@@ -405,11 +405,11 @@ function MainApp() {
               onClick={() => setActiveTab('ucheckups')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 ${
                 activeTab === 'ucheckups'
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-950/80 ring-1 ring-blue-400/40'
-                  : 'bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  ? 'bg-blue-700 hover:bg-blue-600 text-white shadow-md shadow-blue-950/80 ring-2 ring-blue-400'
+                  : 'bg-slate-900/90 text-slate-300 hover:text-white border border-slate-800'
               }`}
             >
-              <ClipboardList className="w-4 h-4 text-blue-300" />
+              <ClipboardList className="w-4 h-4 text-blue-200" />
               <span>U-Heft Vorsorge</span>
             </button>
 
@@ -418,11 +418,11 @@ function MainApp() {
               onClick={() => setActiveTab('vaccines')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 ${
                 activeTab === 'vaccines'
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-950/80 ring-1 ring-emerald-400/40'
-                  : 'bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  ? 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-md shadow-emerald-950/80 ring-2 ring-emerald-400'
+                  : 'bg-slate-900/90 text-slate-300 hover:text-white border border-slate-800'
               }`}
             >
-              <Syringe className="w-4 h-4 text-emerald-300" />
+              <Syringe className="w-4 h-4 text-emerald-200" />
               <span>Impfkalender</span>
             </button>
 
@@ -431,8 +431,8 @@ function MainApp() {
               onClick={() => setActiveTab('teeth')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 ${
                 activeTab === 'teeth'
-                  ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-950/80 ring-1 ring-sky-400/40'
-                  : 'bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  ? 'bg-pink-700 hover:bg-pink-600 text-white shadow-md shadow-pink-950/80 ring-2 ring-pink-400'
+                  : 'bg-slate-900/90 text-slate-300 hover:text-white border border-slate-800'
               }`}
             >
               <span className="text-base leading-none">🦷</span>
@@ -444,11 +444,11 @@ function MainApp() {
               onClick={() => setActiveTab('milestones')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 ${
                 activeTab === 'milestones'
-                  ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-950/80 ring-1 ring-amber-400/40'
-                  : 'bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  ? 'bg-amber-700 hover:bg-amber-600 text-white shadow-md shadow-amber-950/80 ring-2 ring-amber-400'
+                  : 'bg-slate-900/90 text-slate-300 hover:text-white border border-slate-800'
               }`}
             >
-              <Sparkles className="w-4 h-4 text-amber-300" />
+              <Sparkles className="w-4 h-4 text-amber-200" />
               <span>Meilensteine</span>
             </button>
 
@@ -457,12 +457,12 @@ function MainApp() {
               onClick={() => setActiveTab('health')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 ${
                 activeTab === 'health'
-                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-950/80 ring-1 ring-rose-400/40'
-                  : 'bg-slate-900/90 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  ? 'bg-rose-700 hover:bg-rose-600 text-white shadow-md shadow-rose-950/80 ring-2 ring-rose-400'
+                  : 'bg-slate-900/90 text-slate-300 hover:text-white border border-slate-800'
               }`}
             >
-              <HeartPulse className="w-4 h-4 text-rose-300" />
-              <span>Fieber &amp; Krankheit</span>
+              <HeartPulse className="w-4 h-4 text-rose-200" />
+              <span>Gesundheit</span>
             </button>
           </div>
 

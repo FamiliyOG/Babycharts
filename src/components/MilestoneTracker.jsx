@@ -16,21 +16,6 @@ function sanitizePhotoUrl(url) {
     return trimmed;
   }
 
-  // Allow only same-origin relative path URIs
-  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
-    return trimmed;
-  }
-
-  // Allow only valid absolute http/https URLs
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-      return parsed.toString();
-    }
-  } catch {
-    return null;
-  }
-
   return null;
 }
 

@@ -5,15 +5,32 @@ import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
 
 function sanitizePhotoUrl(url) {
-  if (
-    typeof url === 'string' &&
-    (url.startsWith('data:image/') ||
-      url.startsWith('http://') ||
-      url.startsWith('https://') ||
-      url.startsWith('/'))
-  ) {
-    return url;
+  if (typeof url !== 'string') return null;
+
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  // Allow only strict image data URIs (base64-encoded)
+  const imageRegexPattern = /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-zA-Z0-9+/=]+$/;
+  if (imageRegexPattern.test(trimmed)) {
+    return trimmed;
   }
+
+  // Allow only same-origin relative path URIs
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+    return trimmed;
+  }
+
+  // Allow only valid absolute http/https URLs
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.toString();
+    }
+  } catch {
+    return null;
+  }
+
   return null;
 }
 
@@ -247,12 +264,12 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                 {/* Achieved Card Content (Photo, Date, Notes) */}
                 {isDone && (
                   <div className="mb-3 space-y-2">
-                    {entry.photo && (
+                    {sanitizePhotoUrl(entry.photo) && (
                       <button
                         type="button"
                         onClick={() =>
                           setLightboxData({
-                            photo: entry.photo,
+                            photo: sanitizePhotoUrl(entry.photo),
                             title: m.title,
                             date: entry.date,
                             notes: entry.notes,
@@ -262,7 +279,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                         className="w-full rounded-2xl overflow-hidden border border-slate-700 max-h-48 bg-slate-950 block group cursor-pointer relative"
                       >
                         <img
-                          src={entry.photo}
+                          src={sanitizePhotoUrl(entry.photo)}
                           alt={m.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

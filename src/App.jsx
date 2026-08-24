@@ -33,6 +33,8 @@ import {
 import {
   getStoredProfiles,
   saveStoredProfiles,
+  getActiveChildId,
+  saveActiveChildId,
   getAppSettings,
   saveAppSettings,
 } from './utils/storage.js';
@@ -61,9 +63,19 @@ function MainApp() {
   const familyId = activeFamily?.id || null;
   const [profiles, setProfiles] = useState(() => (user ? getStoredProfiles(familyId) || [] : []));
   const [activeChildId, setActiveChildId] = useState(() => {
-    const loaded = user ? getStoredProfiles(familyId) || [] : [];
+    if (!user) return null;
+    const storedActive = getActiveChildId(familyId);
+    const loaded = getStoredProfiles(familyId) || [];
+    if (storedActive && loaded.some((p) => p.id === storedActive)) {
+      return storedActive;
+    }
     return loaded[0]?.id || null;
   });
+
+  const handleSelectChild = (childId) => {
+    setActiveChildId(childId);
+    saveActiveChildId(childId, familyId);
+  };
 
   // Synchronize profiles for active family when user or family changes, or when app regains focus/visibility (PWA)
   useEffect(() => {
@@ -77,7 +89,9 @@ function MainApp() {
       saveStoredProfiles(serverProfiles, familyId);
       setActiveChildId((prev) => {
         const exists = serverProfiles.some((p) => p.id === prev);
-        return exists ? prev : serverProfiles[0]?.id || null;
+        const nextId = exists ? prev : serverProfiles[0]?.id || null;
+        saveActiveChildId(nextId, familyId);
+        return nextId;
       });
     };
 
@@ -579,7 +593,7 @@ function MainApp() {
       <Header
         profiles={profiles}
         activeChild={activeChild}
-        onSelectChild={setActiveChildId}
+        onSelectChild={handleSelectChild}
         onOpenAddProfile={() => {
           if (!canEdit) {
             showToast('Besucher haben keine Berechtigung, Kinder anzulegen.');

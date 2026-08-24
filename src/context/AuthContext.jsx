@@ -10,12 +10,41 @@ import {
 
 const AuthContext = createContext(null);
 
+const CACHED_USER_KEY = 'babycharts_cached_user';
+const CACHED_FAMILY_KEY = 'babycharts_cached_family';
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [activeFamily, setActiveFamily] = useState(null);
+  const [user, setUser] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const token = localStorage.getItem('babycharts_token');
+    if (!token) return null;
+    try {
+      const cached = localStorage.getItem(CACHED_USER_KEY);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [activeFamily, setActiveFamily] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const token = localStorage.getItem('babycharts_token');
+    if (!token) return null;
+    try {
+      const cached = localStorage.getItem(CACHED_FAMILY_KEY);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [families, setFamilies] = useState([]);
   const [isLoading, setIsLoading] = useState(() => {
-    return typeof window !== 'undefined' && Boolean(localStorage.getItem('babycharts_token'));
+    if (typeof window === 'undefined') return false;
+    const token = localStorage.getItem('babycharts_token');
+    if (!token) return false;
+    // If cached user exists, we can render immediately with zero shift while revalidating in background
+    return !localStorage.getItem(CACHED_USER_KEY);
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
@@ -36,11 +65,19 @@ export function AuthProvider({ children }) {
       setUser(res.data.user);
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
+      try {
+        localStorage.setItem(CACHED_USER_KEY, JSON.stringify(res.data.user));
+        localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(res.data.family));
+      } catch {
+        // ignore quota errors
+      }
     } else {
       logoutUser();
       setUser(null);
       setActiveFamily(null);
       setFamilies([]);
+      localStorage.removeItem(CACHED_USER_KEY);
+      localStorage.removeItem(CACHED_FAMILY_KEY);
     }
     setIsLoading(false);
   }, []);
@@ -56,8 +93,16 @@ export function AuthProvider({ children }) {
         setUser(res.data.user);
         setActiveFamily(res.data.family);
         setFamilies(res.data.families || []);
+        try {
+          localStorage.setItem(CACHED_USER_KEY, JSON.stringify(res.data.user));
+          localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(res.data.family));
+        } catch {
+          // ignore quota errors
+        }
       } else {
         logoutUser();
+        localStorage.removeItem(CACHED_USER_KEY);
+        localStorage.removeItem(CACHED_FAMILY_KEY);
       }
       setIsLoading(false);
     });
@@ -76,6 +121,12 @@ export function AuthProvider({ children }) {
       setUser(res.data.user);
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
+      try {
+        localStorage.setItem(CACHED_USER_KEY, JSON.stringify(res.data.user));
+        localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(res.data.family));
+      } catch {
+        // ignore quota errors
+      }
       setIsAuthModalOpen(false);
       return { ok: true };
     }
@@ -88,6 +139,12 @@ export function AuthProvider({ children }) {
       setUser(res.data.user);
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
+      try {
+        localStorage.setItem(CACHED_USER_KEY, JSON.stringify(res.data.user));
+        localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(res.data.family));
+      } catch {
+        // ignore quota errors
+      }
       setIsAuthModalOpen(false);
       return { ok: true };
     }
@@ -99,6 +156,8 @@ export function AuthProvider({ children }) {
     setUser(null);
     setActiveFamily(null);
     setFamilies([]);
+    localStorage.removeItem(CACHED_USER_KEY);
+    localStorage.removeItem(CACHED_FAMILY_KEY);
   }, []);
 
   const switchFamily = useCallback(

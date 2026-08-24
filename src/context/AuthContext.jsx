@@ -11,62 +11,13 @@ import { clearFamilyStoredData } from '../utils/storage.js';
 
 const AuthContext = createContext(null);
 
-const CACHED_USER_KEY = 'babycharts_cached_user';
-const CACHED_FAMILY_KEY = 'babycharts_cached_family';
-
-const sanitizeStoredUser = (u) => {
-  if (!u || typeof u !== 'object') return null;
-  return {
-    id: String(u.id || ''),
-    email: String(u.email || ''),
-    name: String(u.name || ''),
-    role: String(u.role || 'user'),
-    isDev: Boolean(u.isDev),
-    avatar: u.avatar ? String(u.avatar) : null,
-  };
-};
-
-const sanitizeStoredFamily = (f) => {
-  if (!f || typeof f !== 'object') return null;
-  return {
-    id: String(f.id || ''),
-    name: String(f.name || ''),
-    role: String(f.role || 'admin'),
-  };
-};
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    if (typeof window === 'undefined') return null;
-    const token = localStorage.getItem('babycharts_token');
-    if (!token) return null;
-    try {
-      const cached = localStorage.getItem(CACHED_USER_KEY);
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const [activeFamily, setActiveFamily] = useState(() => {
-    if (typeof window === 'undefined') return null;
-    const token = localStorage.getItem('babycharts_token');
-    if (!token) return null;
-    try {
-      const cached = localStorage.getItem(CACHED_FAMILY_KEY);
-      return cached ? JSON.parse(cached) : null;
-    } catch {
-      return null;
-    }
-  });
-
+  const [user, setUser] = useState(null);
+  const [activeFamily, setActiveFamily] = useState(null);
   const [families, setFamilies] = useState([]);
   const [isLoading, setIsLoading] = useState(() => {
     if (typeof window === 'undefined') return false;
-    const token = localStorage.getItem('babycharts_token');
-    if (!token) return false;
-    // If cached user exists, we can render immediately with zero shift while revalidating in background
-    return !localStorage.getItem(CACHED_USER_KEY);
+    return Boolean(localStorage.getItem('babycharts_token'));
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
@@ -87,21 +38,11 @@ export function AuthProvider({ children }) {
       setUser(res.data.user);
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
-      try {
-        const safeUser = sanitizeStoredUser(res.data.user);
-        const safeFamily = sanitizeStoredFamily(res.data.family);
-        if (safeUser) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(safeUser));
-        if (safeFamily) localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(safeFamily));
-      } catch {
-        // ignore quota errors
-      }
     } else {
       logoutUser();
       setUser(null);
       setActiveFamily(null);
       setFamilies([]);
-      localStorage.removeItem(CACHED_USER_KEY);
-      localStorage.removeItem(CACHED_FAMILY_KEY);
     }
     setIsLoading(false);
   }, []);
@@ -117,18 +58,11 @@ export function AuthProvider({ children }) {
         setUser(res.data.user);
         setActiveFamily(res.data.family);
         setFamilies(res.data.families || []);
-        try {
-          const safeUser = sanitizeStoredUser(res.data.user);
-          const safeFamily = sanitizeStoredFamily(res.data.family);
-          if (safeUser) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(safeUser));
-          if (safeFamily) localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(safeFamily));
-        } catch {
-          // ignore quota errors
-        }
       } else {
         logoutUser();
-        localStorage.removeItem(CACHED_USER_KEY);
-        localStorage.removeItem(CACHED_FAMILY_KEY);
+        setUser(null);
+        setActiveFamily(null);
+        setFamilies([]);
       }
       setIsLoading(false);
     });
@@ -147,14 +81,6 @@ export function AuthProvider({ children }) {
       setUser(res.data.user);
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
-      try {
-        const safeUser = sanitizeStoredUser(res.data.user);
-        const safeFamily = sanitizeStoredFamily(res.data.family);
-        if (safeUser) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(safeUser));
-        if (safeFamily) localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(safeFamily));
-      } catch {
-        // ignore quota errors
-      }
       setIsAuthModalOpen(false);
       return { ok: true };
     }
@@ -167,14 +93,6 @@ export function AuthProvider({ children }) {
       setUser(res.data.user);
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
-      try {
-        const safeUser = sanitizeStoredUser(res.data.user);
-        const safeFamily = sanitizeStoredFamily(res.data.family);
-        if (safeUser) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(safeUser));
-        if (safeFamily) localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(safeFamily));
-      } catch {
-        // ignore quota errors
-      }
       setIsAuthModalOpen(false);
       return { ok: true };
     }
@@ -187,8 +105,6 @@ export function AuthProvider({ children }) {
     setUser(null);
     setActiveFamily(null);
     setFamilies([]);
-    localStorage.removeItem(CACHED_USER_KEY);
-    localStorage.removeItem(CACHED_FAMILY_KEY);
   }, []);
 
   const switchFamily = useCallback(

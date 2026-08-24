@@ -12,6 +12,11 @@ function getAuthHeader() {
 
 async function safeFetch(url, options = {}) {
   try {
+    // Validate request path to prevent URL forging / SSRF (jssecurity:S8476)
+    if (typeof url !== 'string' || !url.startsWith('/api')) {
+      throw new Error('Invalid internal API URL');
+    }
+
     const headers = {
       'Content-Type': 'application/json',
       ...getAuthHeader(),
@@ -46,8 +51,10 @@ export async function loginUser(email, password, totpCode = '') {
     method: 'POST',
     body: JSON.stringify({ email, password, totpCode }),
   });
-  if (res.ok && res.data?.token) {
-    localStorage.setItem('babycharts_token', res.data.token);
+  if (res.ok && res.data?.token && typeof res.data.token === 'string') {
+    // Sanitize JWT token to prevent storage poisoning (jssecurity:S8475)
+    const cleanToken = res.data.token.replace(/[^a-zA-Z0-9._-]/g, '');
+    localStorage.setItem('babycharts_token', cleanToken);
   }
   return res;
 }
@@ -77,8 +84,9 @@ export async function registerUser({ name, email, password, familyName, inviteCo
     method: 'POST',
     body: JSON.stringify({ name, email, password, familyName, inviteCode }),
   });
-  if (res.ok && res.data?.token) {
-    localStorage.setItem('babycharts_token', res.data.token);
+  if (res.ok && res.data?.token && typeof res.data.token === 'string') {
+    const cleanToken = res.data.token.replace(/[^a-zA-Z0-9._-]/g, '');
+    localStorage.setItem('babycharts_token', cleanToken);
   }
   return res;
 }

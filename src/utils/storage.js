@@ -19,8 +19,12 @@ export function getStoredProfiles(familyId = 'default') {
 
 export function saveStoredProfiles(profiles, familyId = 'default') {
   try {
-    const key = familyId ? `${STORAGE_KEY_PROFILES}_${familyId}` : STORAGE_KEY_PROFILES;
-    localStorage.setItem(key, JSON.stringify(profiles));
+    if (!Array.isArray(profiles)) return;
+    const cleanFamilyId = String(familyId || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
+    const key = cleanFamilyId ? `${STORAGE_KEY_PROFILES}_${cleanFamilyId}` : STORAGE_KEY_PROFILES;
+    // Strip non-printable and dangerous control characters
+    const cleanJson = JSON.stringify(profiles).replace(/[^\x20-\x7E\t\r\n\p{L}\p{N}]/gu, '');
+    localStorage.setItem(key, cleanJson);
   } catch (err) {
     console.error('Error saving profiles to localStorage:', err);
   }
@@ -28,7 +32,10 @@ export function saveStoredProfiles(profiles, familyId = 'default') {
 
 export function getActiveChildId(familyId = 'default') {
   try {
-    const key = familyId ? `${STORAGE_KEY_ACTIVE_CHILD}_${familyId}` : STORAGE_KEY_ACTIVE_CHILD;
+    const cleanFamilyId = String(familyId || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
+    const key = cleanFamilyId
+      ? `${STORAGE_KEY_ACTIVE_CHILD}_${cleanFamilyId}`
+      : STORAGE_KEY_ACTIVE_CHILD;
     return localStorage.getItem(key) || null;
   } catch {
     return null;
@@ -37,9 +44,13 @@ export function getActiveChildId(familyId = 'default') {
 
 export function saveActiveChildId(childId, familyId = 'default') {
   try {
-    const key = familyId ? `${STORAGE_KEY_ACTIVE_CHILD}_${familyId}` : STORAGE_KEY_ACTIVE_CHILD;
-    if (childId) {
-      localStorage.setItem(key, childId);
+    const cleanFamilyId = String(familyId || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
+    const key = cleanFamilyId
+      ? `${STORAGE_KEY_ACTIVE_CHILD}_${cleanFamilyId}`
+      : STORAGE_KEY_ACTIVE_CHILD;
+    if (childId && typeof childId === 'string') {
+      const cleanId = childId.replace(/[^a-zA-Z0-9_-]/g, '');
+      localStorage.setItem(key, cleanId);
     } else {
       localStorage.removeItem(key);
     }
@@ -81,7 +92,9 @@ export function getAppSettings() {
 
 export function saveAppSettings(settings) {
   try {
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+    if (!settings || typeof settings !== 'object') return;
+    const cleanJson = JSON.stringify(settings).replace(/[^\x20-\x7E\t\r\n\p{L}\p{N}]/gu, '');
+    localStorage.setItem(STORAGE_KEY_SETTINGS, cleanJson);
   } catch (err) {
     console.error('Error saving settings:', err);
   }

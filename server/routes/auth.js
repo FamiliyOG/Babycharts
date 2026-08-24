@@ -188,7 +188,8 @@ router.post('/login', async (req, res) => {
 
     // Check if user has 2FA enabled
     if (user.twoFactorSecret) {
-      const rawTotp = typeof req.body?.totpCode === 'string' ? req.body.totpCode.trim() : '';
+      const rawTotp =
+        typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
       if (!rawTotp) {
         return res.status(200).json({
           requires2FA: true,
@@ -200,10 +201,13 @@ router.post('/login', async (req, res) => {
         secret: user.twoFactorSecret,
         encoding: 'base32',
         token: rawTotp,
-        window: 1,
+        window: 2,
       });
 
       if (!verified) {
+        console.warn(
+          `\x1b[33m[2FA LOGIN ${new Date().toISOString()}]\x1b[0m 2FA login verification failed for user: ${user.email}`
+        );
         return res.status(400).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
       }
     }
@@ -351,12 +355,19 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
     user.tempTwoFactorSecret = secret.base32;
     writeDb(db);
 
+    console.log(
+      `\x1b[36m[2FA SETUP ${new Date().toISOString()}]\x1b[0m 2FA initialization started for user: ${user.email}`
+    );
+
     return res.json({
       secret: secret.base32,
       qrCode: qrCodeDataUrl,
     });
   } catch (err) {
-    console.error('[Auth] 2FA Setup error:', err);
+    console.error(
+      `\x1b[31m[2FA SETUP ERROR ${new Date().toISOString()}]\x1b[0m Error generating 2FA secret:`,
+      err
+    );
     return res.status(500).json({ error: 'Fehler beim Generieren des 2FA-Codes.' });
   }
 });
@@ -367,7 +378,8 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
  */
 router.post('/2fa/verify', requireAuth, (req, res) => {
   try {
-    const rawTotp = typeof req.body?.totpCode === 'string' ? req.body.totpCode.trim() : '';
+    const rawTotp =
+      typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
     if (!rawTotp) {
       return res.status(400).json({ error: 'Code ist erforderlich.' });
     }
@@ -375,17 +387,24 @@ router.post('/2fa/verify', requireAuth, (req, res) => {
     const db = readDb();
     const user = db.users.find((u) => u.id === req.user.id);
     if (!user?.tempTwoFactorSecret) {
+      console.warn(
+        `\x1b[33m[2FA VERIFY ${new Date().toISOString()}]\x1b[0m Verification attempt failed: No pending 2FA setup found for user ${req.user.email}`
+      );
       return res.status(400).json({ error: 'Keine 2FA-Einrichtung aktiv.' });
     }
 
+    // Verify token with a wider time drift window (window: 2 allows ±60s clock drift between phone and server)
     const verified = speakeasy.totp.verify({
       secret: user.tempTwoFactorSecret,
       encoding: 'base32',
       token: rawTotp,
-      window: 1,
+      window: 2,
     });
 
     if (!verified) {
+      console.warn(
+        `\x1b[33m[2FA VERIFY ${new Date().toISOString()}]\x1b[0m Invalid TOTP code entered for user ${user.email} (token length: ${rawTotp.length})`
+      );
       return res.status(400).json({ error: 'Ungültiger Code. Bitte prüfen Sie Ihre App.' });
     }
 
@@ -393,12 +412,19 @@ router.post('/2fa/verify', requireAuth, (req, res) => {
     delete user.tempTwoFactorSecret;
     writeDb(db);
 
+    console.log(
+      `\x1b[32m[2FA SUCCESS ${new Date().toISOString()}]\x1b[0m 2FA successfully activated for user: ${user.email}`
+    );
+
     return res.json({
       message: 'Zwei-Faktor-Authentifizierung erfolgreich aktiviert!',
       user: formatUserPayload(user),
     });
   } catch (err) {
-    console.error('[Auth] 2FA Verify error:', err);
+    console.error(
+      `\x1b[31m[2FA VERIFY ERROR ${new Date().toISOString()}]\x1b[0m Verification exception:`,
+      err
+    );
     return res.status(500).json({ error: 'Fehler bei der 2FA-Verifikation.' });
   }
 });

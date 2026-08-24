@@ -55,7 +55,10 @@ export function requireAuth(req, res, next) {
     req.user = { id: user.id, email: user.email, name: user.name };
     next();
   } catch (err) {
-    console.debug('[Auth] Token verification failed:', err.message);
+    const timestamp = new Date().toISOString();
+    console.warn(
+      `\x1b[33m[AUTH TOKEN ${timestamp}]\x1b[0m Token verification rejected: ${err.message} (Client needs to re-login)`
+    );
     return res.status(401).json({ error: 'Ungültiges oder abgelaufenes Anmelde-Token.' });
   }
 }

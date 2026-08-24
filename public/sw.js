@@ -1,4 +1,4 @@
-const CACHE_NAME = 'babycharts-v2';
+const CACHE_NAME = 'babycharts-v3';
 const STATIC_ASSETS = ['/', '/index.html', '/icon.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

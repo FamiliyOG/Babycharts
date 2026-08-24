@@ -55,9 +55,12 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
 
     const reader = new FileReader();
     reader.onload = (ev) => {
-      if (ev.target?.result) {
-        setMilestonePhoto(ev.target.result);
+      const result = ev.target?.result;
+      if (typeof result === 'string' && result.startsWith('data:image/')) {
+        setMilestonePhoto(result);
         setPhotoError(null);
+      } else {
+        setPhotoError('Ungültiges Bildformat.');
       }
     };
     reader.onerror = () => {

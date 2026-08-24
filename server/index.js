@@ -48,13 +48,29 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-// In production with same-origin serving, CORS is restricted to APP_URL / local development
-const allowedOrigins =
-  process.env.NODE_ENV === 'production' && process.env.APP_URL
-    ? [process.env.APP_URL, 'http://localhost:3001', 'http://127.0.0.1:3001']
-    : '*';
+// CORS configuration: In production, explicitly restrict to same-origin or configured origins
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : [
+      process.env.APP_URL,
+      'http://localhost:3001',
+      'http://127.0.0.1:3001',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ].filter(Boolean);
 
-app.use(cors(allowedOrigins === '*' ? undefined : { origin: allowedOrigins }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server or same-origin)
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS Not Allowed'));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '10mb' }));
 
 // ── Client Error Logging (Forward frontend errors to Unraid container log) ───

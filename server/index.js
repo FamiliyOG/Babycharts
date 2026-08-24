@@ -48,7 +48,7 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-// CORS configuration: In production, explicitly restrict to same-origin or configured origins
+// CORS configuration: Allow configured origins, same-origin, LAN/private IPs (e.g. Unraid/Docker), and local dev
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
   : [
@@ -62,11 +62,34 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server or same-origin)
-      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      // 1. Allow non-browser requests (no origin header), server-to-server, or same-origin
+      if (!origin) {
         return callback(null, true);
       }
-      return callback(new Error('CORS Not Allowed'));
+
+      // 2. Allow configured whitelist origins or wildcard
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+
+      // 3. Allow private/local LAN network IPs (192.168.x.x, 10.x.x.x, 172.x.x.x) and localhost for Docker/Unraid
+      try {
+        const { hostname } = new URL(origin);
+        if (
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1' ||
+          hostname.startsWith('192.168.') ||
+          hostname.startsWith('10.') ||
+          hostname.startsWith('172.')
+        ) {
+          return callback(null, true);
+        }
+      } catch {
+        // Invalid URL format
+      }
+
+      // Disallow external untrusted origins safely without throwing 500 error
+      return callback(null, false);
     },
     credentials: true,
   })

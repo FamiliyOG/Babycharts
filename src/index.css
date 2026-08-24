@@ -219,6 +219,7 @@ html.light .fixed.inset-0.bg-slate-950\/80,
 html.light .fixed.inset-0.bg-slate-950\/95,
 html.light .fixed.inset-0[class*='bg-slate-950'] {
   background-color: rgba(15, 23, 42, 0.6) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   backdrop-filter: blur(8px) !important;
 }
 

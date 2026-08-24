@@ -35,6 +35,15 @@ export function ThemeProvider({ children }) {
       }
     }
 
+    const themeColor = isDark ? '#020617' : '#f8fafc';
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaThemeColor);
+    }
+    metaThemeColor.setAttribute('content', themeColor);
+
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {

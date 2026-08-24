@@ -1,0 +1,57 @@
+name: 🐛 Bug Report
+description: Melde einen Fehler oder ein unerwartetes Verhalten in BabyCharts
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Vielen Dank für deinen Fehlerbericht! Bitte fülle die folgenden Felder so genau wie möglich aus.
+  - type: input
+    id: version
+    attributes:
+      label: BabyCharts Version / Deployment
+      description: Welche Version (Docker, PWA, Unraid) verwendest du?
+      placeholder: z. B. v1.2.0 / Unraid Docker / PWA
+    validations:
+      required: true
+  - type: input
+    id: browser_device
+    attributes:
+      label: Gerät / Browser / OS
+      description: Auf welchem Gerät tritt das Problem auf?
+      placeholder: z. B. Samsung Galaxy S24 Ultra / Chrome PWA / Windows 11 Firefox
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Was ist passiert?
+      description: Beschreibe den Fehler möglichst detailliert.
+      placeholder: Was hast du getan und was ist dabei schiefgelaufen?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+      description: Was hättest du stattdessen erwartet?
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Wie lässt sich der Fehler nachstellen?
+      placeholder: |
+        1. Zu '...' gehen
+        2. Auf '...' klicken
+        3. Fehler sehen
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevante Logs / Screenshots
+      description: Kopiere Konsolenfehler oder füge Screenshots ein.
+      render: shell

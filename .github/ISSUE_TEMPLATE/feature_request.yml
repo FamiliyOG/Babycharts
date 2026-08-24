@@ -1,0 +1,37 @@
+name: 💡 Feature Request / Vorschlag
+description: Schlage eine neue Funktion, Modul oder Verbesserung für BabyCharts vor
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Vielen Dank für deine Idee! Wir freuen uns über Vorschläge zur Verbesserung von BabyCharts.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Gibt es ein bestehendes Problem oder einen Anwendungsfall?
+      description: Eine klare und prägnante Beschreibung des Problems oder Bedarfs.
+      placeholder: Mir fehlt die Möglichkeit, ...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Dein Lösungsvorschlag
+      description: Wie stellst du dir die neue Funktion vor?
+      placeholder: Ich fände es toll, wenn ...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Ansätze
+      description: Hast du alternative Lösungen oder Workarounds in Betracht gezogen?
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Zusätzlicher Kontext
+      description: Screenshots, Mockups, Links zu WHO-Tabellen etc.

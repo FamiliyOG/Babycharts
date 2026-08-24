@@ -91,13 +91,28 @@ app.post('/api/exports/trigger/:childId', async (req, res) => {
   }
 });
 
-// ── Serve static Vite build ──────────────────────────────────────────────────
+// ── Serve static Vite build with long-term caching for hashed assets ────────
 app.use(
   express.static(DIST_DIR, {
     index: false,
+    maxAge: '1y',
+    immutable: true,
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+      // Never cache index.html, service worker, or manifest so updates are instant
+      if (
+        filePath.endsWith('.html') ||
+        filePath.endsWith('sw.js') ||
+        filePath.endsWith('.webmanifest') ||
+        filePath.endsWith('robots.txt') ||
+        filePath.endsWith('llms.txt')
+      ) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else if (filePath.includes('/assets/') || filePath.includes('\\assets\\')) {
+        // Hashed assets (e.g. index-xyz.js, index-abc.css) are immutable
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else {
+        // Other static icons/images
+        res.setHeader('Cache-Control', 'public, max-age=86400');
       }
     },
   })

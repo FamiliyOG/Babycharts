@@ -20,8 +20,6 @@ import {
   Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { generateDoctorFeverReport } from '../utils/doctorPdfGenerator.js';
-
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 const COMMON_SYMPTOMS = [
@@ -250,7 +248,10 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
         <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 flex-wrap">
           <button
             type="button"
-            onClick={() => generateDoctorFeverReport(activeChild)}
+            onClick={async () => {
+              const { generateDoctorFeverReport } = await import('../utils/doctorPdfGenerator.js');
+              generateDoctorFeverReport(activeChild);
+            }}
             title="Kinderarzt 72h-Bericht als PDF herunterladen"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 transition-all active:scale-95"
           >

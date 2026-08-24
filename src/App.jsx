@@ -49,6 +49,7 @@ function MainApp() {
     canEdit,
     isDev,
     userRole,
+    isLoading,
     isAuthModalOpen,
     setIsAuthModalOpen,
     isFamilyModalOpen,
@@ -375,6 +376,14 @@ function MainApp() {
 
   // Main Content Renderer (Welcome screen if unauthenticated, active dashboard, or empty onboarding state)
   const renderMainContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+          <div className="w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
+        </div>
+      );
+    }
+
     if (!user) {
       return <WelcomeHomeScreen />;
     }

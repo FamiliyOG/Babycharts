@@ -45,6 +45,7 @@ function initSchema() {
       isDev INTEGER DEFAULT 0,
       role TEXT DEFAULT 'user',
       twoFactorSecret TEXT,
+      tempTwoFactorSecret TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT
     );
@@ -141,12 +142,22 @@ function initSchema() {
       error TEXT
     );
   `);
+
+  // Auto-migrate users table if tempTwoFactorSecret column is missing
+  try {
+    const columns = sqlite.prepare('PRAGMA table_info(users)').all();
+    if (!columns.some((c) => c.name === 'tempTwoFactorSecret')) {
+      sqlite.exec('ALTER TABLE users ADD COLUMN tempTwoFactorSecret TEXT');
+    }
+  } catch (err) {
+    console.warn('[DB] Migration tempTwoFactorSecret notice:', err.message);
+  }
 }
 
 function insertUsers(users = []) {
   const insertUser = sqlite.prepare(`
-    INSERT OR REPLACE INTO users (id, email, password, name, avatar, isDev, role, twoFactorSecret, createdAt, updatedAt)
-    VALUES (@id, @email, @password, @name, @avatar, @isDev, @role, @twoFactorSecret, @createdAt, @updatedAt)
+    INSERT OR REPLACE INTO users (id, email, password, name, avatar, isDev, role, twoFactorSecret, tempTwoFactorSecret, createdAt, updatedAt)
+    VALUES (@id, @email, @password, @name, @avatar, @isDev, @role, @twoFactorSecret, @tempTwoFactorSecret, @createdAt, @updatedAt)
   `);
   for (const u of users) {
     insertUser.run({
@@ -158,6 +169,7 @@ function insertUsers(users = []) {
       isDev: u.isDev ? 1 : 0,
       role: u.role || 'user',
       twoFactorSecret: u.twoFactorSecret || null,
+      tempTwoFactorSecret: u.tempTwoFactorSecret || null,
       createdAt: u.createdAt || new Date().toISOString(),
       updatedAt: u.updatedAt || null,
     });

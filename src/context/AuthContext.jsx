@@ -14,6 +14,27 @@ const AuthContext = createContext(null);
 const CACHED_USER_KEY = 'babycharts_cached_user';
 const CACHED_FAMILY_KEY = 'babycharts_cached_family';
 
+const sanitizeStoredUser = (u) => {
+  if (!u || typeof u !== 'object') return null;
+  return {
+    id: String(u.id || ''),
+    email: String(u.email || ''),
+    name: String(u.name || ''),
+    role: String(u.role || 'user'),
+    isDev: Boolean(u.isDev),
+    avatar: u.avatar ? String(u.avatar) : null,
+  };
+};
+
+const sanitizeStoredFamily = (f) => {
+  if (!f || typeof f !== 'object') return null;
+  return {
+    id: String(f.id || ''),
+    name: String(f.name || ''),
+    role: String(f.role || 'admin'),
+  };
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     if (typeof window === 'undefined') return null;
@@ -67,8 +88,10 @@ export function AuthProvider({ children }) {
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
       try {
-        localStorage.setItem(CACHED_USER_KEY, JSON.stringify(res.data.user));
-        localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(res.data.family));
+        const safeUser = sanitizeStoredUser(res.data.user);
+        const safeFamily = sanitizeStoredFamily(res.data.family);
+        if (safeUser) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(safeUser));
+        if (safeFamily) localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(safeFamily));
       } catch {
         // ignore quota errors
       }
@@ -95,8 +118,10 @@ export function AuthProvider({ children }) {
         setActiveFamily(res.data.family);
         setFamilies(res.data.families || []);
         try {
-          localStorage.setItem(CACHED_USER_KEY, JSON.stringify(res.data.user));
-          localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(res.data.family));
+          const safeUser = sanitizeStoredUser(res.data.user);
+          const safeFamily = sanitizeStoredFamily(res.data.family);
+          if (safeUser) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(safeUser));
+          if (safeFamily) localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(safeFamily));
         } catch {
           // ignore quota errors
         }
@@ -123,8 +148,10 @@ export function AuthProvider({ children }) {
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
       try {
-        localStorage.setItem(CACHED_USER_KEY, JSON.stringify(res.data.user));
-        localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(res.data.family));
+        const safeUser = sanitizeStoredUser(res.data.user);
+        const safeFamily = sanitizeStoredFamily(res.data.family);
+        if (safeUser) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(safeUser));
+        if (safeFamily) localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(safeFamily));
       } catch {
         // ignore quota errors
       }
@@ -141,8 +168,10 @@ export function AuthProvider({ children }) {
       setActiveFamily(res.data.family);
       setFamilies(res.data.families || []);
       try {
-        localStorage.setItem(CACHED_USER_KEY, JSON.stringify(res.data.user));
-        localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(res.data.family));
+        const safeUser = sanitizeStoredUser(res.data.user);
+        const safeFamily = sanitizeStoredFamily(res.data.family);
+        if (safeUser) localStorage.setItem(CACHED_USER_KEY, JSON.stringify(safeUser));
+        if (safeFamily) localStorage.setItem(CACHED_FAMILY_KEY, JSON.stringify(safeFamily));
       } catch {
         // ignore quota errors
       }

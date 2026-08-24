@@ -19,16 +19,22 @@ export default function ReportPrintPage() {
   const [child, setChild] = useState(null);
   const [error, setError] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('puppeteerReport') ? null : 'No childId provided';
+    const rawChildId = params.get('puppeteerReport');
+    if (!rawChildId) return 'No childId provided';
+    const validIdPattern = /^[a-zA-Z0-9_-]+$/;
+    if (!validIdPattern.test(rawChildId)) return 'Ungültige Profil-ID im URL-Parameter.';
+    return null;
   });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const childId = params.get('puppeteerReport');
-    if (!childId) return;
+    const rawChildId = params.get('puppeteerReport');
+    const validIdPattern = /^[a-zA-Z0-9_-]+$/;
+    if (!rawChildId || !validIdPattern.test(rawChildId)) return;
 
+    const safeChildId = rawChildId.trim();
     let isMounted = true;
-    fetch(`/api/profiles/${encodeURIComponent(childId)}`)
+    fetch(`/api/profiles/${encodeURIComponent(safeChildId)}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();

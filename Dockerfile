@@ -49,7 +49,7 @@ WORKDIR /app
 # ─── Install dependencies ────────────────────────────────────────────────────
 FROM base AS deps
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts && npm rebuild better-sqlite3
 
 # ─── Build frontend ──────────────────────────────────────────────────────────
 FROM deps AS builder

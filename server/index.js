@@ -99,15 +99,28 @@ app.use(express.json({ limit: '10mb' }));
 // ── Client Error Logging (Forward frontend errors to Unraid container log) ───
 app.post('/api/client-logs', (req, res) => {
   const { message, stack, context, timestamp } = req.body || {};
-  const time = timestamp || new Date().toISOString();
-  console.error(`\x1b[31m[CLIENT ERROR ${time}]\x1b[0m ${message}`);
-  if (context) {
-    console.error(`  \x1b[33mContext:\x1b[0m`, JSON.stringify(context));
+  // Sanitize user inputs to prevent log injection (strip linebreaks and non-printable chars)
+  const safeTime =
+    typeof timestamp === 'string'
+      ? timestamp.replace(/[^\x20-\x7E\t]|\r|\n/g, '').slice(0, 40)
+      : new Date().toISOString();
+  const safeMessage =
+    typeof message === 'string'
+      ? message.replace(/[^\x20-\x7E\t]|\r|\n/g, ' ').slice(0, 500)
+      : 'Unknown client error';
+
+  console.error(`\x1b[31m[CLIENT ERROR ${safeTime}]\x1b[0m ${safeMessage}`);
+  if (context && typeof context === 'object') {
+    const safeContext = JSON.stringify(context)
+      .replace(/[^\x20-\x7E\t]|\r|\n/g, ' ')
+      .slice(0, 1000);
+    console.error(`  \x1b[33mContext:\x1b[0m ${safeContext}`);
   }
-  if (stack) {
-    console.error(`  \x1b[90mStack:\x1b[0m`, stack);
+  if (stack && typeof stack === 'string') {
+    const safeStack = stack.replace(/[^\x20-\x7E\t]|\r|\n/g, ' ').slice(0, 1000);
+    console.error(`  \x1b[90mStack:\x1b[0m ${safeStack}`);
   }
-  res.json({ ok: true });
+  return res.json({ ok: true });
 });
 
 // ── API routes ───────────────────────────────────────────────────────────────

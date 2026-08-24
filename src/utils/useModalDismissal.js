@@ -15,6 +15,11 @@ export function useModalDismissal(isOpen, onClose) {
   useEffect(() => {
     if (!isOpen || typeof window === 'undefined') return;
 
+    let isReady = false;
+    const timer = setTimeout(() => {
+      isReady = true;
+    }, 50);
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
@@ -23,6 +28,7 @@ export function useModalDismissal(isOpen, onClose) {
     };
 
     const handleClickOutside = (e) => {
+      if (!isReady) return;
       // Only dismiss if the click happened directly on the backdrop container outside dialogRef
       if (dialogRef.current && !dialogRef.current.contains(e.target)) {
         onClose();
@@ -30,10 +36,10 @@ export function useModalDismissal(isOpen, onClose) {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    // Use standard 'click' event instead of global capture pointerdown to prevent unwanted dismissals during app-switch/blur
     document.addEventListener('click', handleClickOutside);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('click', handleClickOutside);
     };

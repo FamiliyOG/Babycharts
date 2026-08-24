@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Chart as ChartJS,
   LinearScale,
@@ -9,13 +9,23 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
+import zoomPlugin from 'chartjs-plugin-zoom';
 import { Line } from 'react-chartjs-2';
 import { WHO_DATA } from '../data/whoPercentiles.js';
 import { calculateAge, calculateBMI } from '../utils/percentileCalc.js';
-import { Scale, Ruler, Circle, Activity, Info } from 'lucide-react';
+import { Scale, Ruler, Circle, Activity, Info, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 
-ChartJS.register(LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  zoomPlugin
+);
 
 const METRIC_UNITS = {
   weight: 'g',
@@ -232,6 +242,12 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
   const tooltipTitleColor = isDark ? '#f8fafc' : '#0f172a';
   const tooltipBodyColor = isDark ? '#cbd5e1' : '#334155';
   const tooltipBorder = isDark ? 'rgba(51, 65, 85, 0.8)' : '#cbd5e1';
+  // Calculate sensible tick step size for X axis depending on range
+  const getXStepSize = (months) => {
+    if (months <= 12) return 1; // every month
+    if (months <= 24) return 2; // every 2 months
+    return 6; // every 6 months for 5 years
+  };
 
   return {
     responsive: true,
@@ -239,6 +255,27 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
     plugins: {
       legend: {
         display: false,
+      },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'xy',
+          modifierKey: null,
+        },
+        zoom: {
+          wheel: {
+            enabled: true,
+            speed: 0.08,
+          },
+          pinch: {
+            enabled: true,
+          },
+          mode: 'xy',
+        },
+        limits: {
+          x: { min: 0, max: 60, minRange: 1 },
+          y: { min: 0 },
+        },
       },
       tooltip: {
         backgroundColor: tooltipBg,
@@ -254,7 +291,17 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
             const rawItem = items[0]?.raw;
             if (rawItem?.date) {
               const ageStr = rawItem.ageText || `${rawItem.x} Monate`;
-              return `Datum: ${rawItem.date} (${ageStr})`;
+              let formattedDate = rawItem.date;
+              try {
+                formattedDate = new Date(rawItem.date).toLocaleDateString('de-DE', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                });
+              } catch {
+                formattedDate = rawItem.date;
+              }
+              return `Datum: ${formattedDate} (${ageStr})`;
             }
             return `Alter: ${items[0]?.parsed?.x} Monate`;
           },
@@ -272,21 +319,28 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
         type: 'linear',
         min: 0,
         max: maxAgeMonths,
-        grid: { color: gridColor },
+        grid: {
+          color: gridColor,
+          drawBorder: true,
+        },
         ticks: {
           color: tickColor,
           font: { size: 11 },
+          stepSize: getXStepSize(maxAgeMonths),
           callback: (val) => `${val}M`,
         },
         title: {
           display: true,
           text: 'Alter in Monaten (0 - 5 Jahre)',
           color: titleColor,
-          font: { size: 11 },
+          font: { size: 11, weight: '600' },
         },
       },
       y: {
-        grid: { color: gridColor },
+        grid: {
+          color: gridColor,
+          drawBorder: true,
+        },
         ticks: {
           color: tickColor,
           font: { size: 11 },
@@ -296,7 +350,7 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
           display: true,
           text: `${METRIC_TITLES[metric]} (${METRIC_UNITS[metric]})`,
           color: titleColor,
-          font: { size: 11 },
+          font: { size: 11, weight: '600' },
         },
       },
     },
@@ -305,6 +359,7 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true) {
 
 export default function GrowthChart({ activeChild, measurements = [] }) {
   const { isDark } = useTheme();
+  const chartRef = useRef(null);
   const [metric, setMetric] = useState('weight');
   const [maxAgeMonths, setMaxAgeMonths] = useState(24);
   const [hoveredLegendKey, setHoveredLegendKey] = useState(null);
@@ -327,6 +382,24 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
 
   const toggleDatasetHidden = (itemKey) => {
     setHiddenDatasets((prev) => ({ ...prev, [itemKey]: !prev[itemKey] }));
+  };
+
+  const handleZoomIn = () => {
+    if (chartRef.current) {
+      chartRef.current.zoom(1.25);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (chartRef.current) {
+      chartRef.current.zoom(0.8);
+    }
+  };
+
+  const handleResetZoom = () => {
+    if (chartRef.current) {
+      chartRef.current.resetZoom();
+    }
   };
 
   const data = buildChartData({
@@ -392,23 +465,61 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
           </button>
         </div>
 
-        {/* Age Range Filter */}
-        <div className="flex items-center justify-between sm:justify-start gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs shrink-0">
-          <span className="px-2 text-slate-400 text-[11px] font-medium">Zeitraum:</span>
-          {[12, 24, 60].map((months) => (
+        {/* Right side: Age Range Filter & Zoom Controls */}
+        <div className="flex items-center justify-between sm:justify-start gap-2 flex-wrap sm:flex-nowrap">
+          {/* Zoom Buttons */}
+          <div className="flex items-center gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
             <button
-              key={months}
               type="button"
-              onClick={() => setMaxAgeMonths(months)}
-              className={`flex-1 sm:flex-none px-2.5 py-1 rounded-lg font-medium transition-all text-center ${
-                maxAgeMonths === months
-                  ? 'bg-slate-800 text-white font-semibold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+              onClick={handleZoomIn}
+              title="Reinzoomen (oder Mausrad / Pinch)"
+              aria-label="Reinzoomen"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             >
-              {months === 60 ? '0-5 J.' : `0-${months} M.`}
+              <ZoomIn className="w-3.5 h-3.5" />
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={handleZoomOut}
+              title="Rauszoomen"
+              aria-label="Rauszoomen"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleResetZoom}
+              title="Zoom zurücksetzen"
+              aria-label="Zoom zurücksetzen"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span className="hidden sm:inline">Reset</span>
+            </button>
+          </div>
+
+          {/* Age Range Filter */}
+          <div className="flex items-center justify-between sm:justify-start gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs shrink-0">
+            <span className="px-2 text-slate-400 text-[11px] font-medium">Zeitraum:</span>
+            {[12, 24, 60].map((months) => (
+              <button
+                key={months}
+                type="button"
+                onClick={() => {
+                  setMaxAgeMonths(months);
+                  handleResetZoom();
+                }}
+                className={`flex-1 sm:flex-none px-2.5 py-1 rounded-lg font-medium transition-all text-center ${
+                  maxAgeMonths === months
+                    ? 'bg-slate-800 text-white font-semibold shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {months === 60 ? '0-5 J.' : `0-${months} M.`}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -486,8 +597,9 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
       </div>
 
       {/* Chart Canvas Container */}
-      <div className="h-90 w-full relative">
+      <div className="h-96 w-full relative">
         <Line
+          ref={chartRef}
           data={data}
           options={options}
           aria-label={`Wachstumskurve: ${METRIC_TITLES[metric]} für ${activeChild.name} (${isGirl ? 'Mädchen' : 'Junge'})`}
@@ -499,7 +611,9 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
         <span>Quelle: WHO Child Growth Standards ({isGirl ? 'Mädchen ♀' : 'Jungen ♂'})</span>
         <span className="flex items-center gap-1 text-cyan-300">
           <Info className="w-3 h-3 text-cyan-400" />
-          <span>Tipp: Fahren Sie mit der Maus über die Legende für Erklärungen</span>
+          <span>
+            Tipp: Mit Mausrad/Pinch zoomen &amp; ziehen (Pan) oder die Zoom-Buttons nutzen
+          </span>
         </span>
       </div>
     </div>

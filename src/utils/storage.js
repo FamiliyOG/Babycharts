@@ -48,6 +48,28 @@ export function saveActiveChildId(childId, familyId = 'default') {
   }
 }
 
+export function clearFamilyStoredData() {
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (
+        k &&
+        (k.startsWith(STORAGE_KEY_PROFILES) ||
+          k.startsWith(STORAGE_KEY_ACTIVE_CHILD) ||
+          k.startsWith('babycharts_cached_'))
+      ) {
+        keysToRemove.push(k);
+      }
+    }
+    for (const k of keysToRemove) {
+      localStorage.removeItem(k);
+    }
+  } catch (err) {
+    console.error('Error clearing stored family data:', err);
+  }
+}
+
 export function getAppSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);

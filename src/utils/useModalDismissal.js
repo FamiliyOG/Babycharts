@@ -22,19 +22,20 @@ export function useModalDismissal(isOpen, onClose) {
       }
     };
 
-    const handlePointerDown = (e) => {
+    const handleClickOutside = (e) => {
+      // Only dismiss if the click happened directly on the backdrop container outside dialogRef
       if (dialogRef.current && !dialogRef.current.contains(e.target)) {
         onClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    // Use capture phase on pointerdown for immediate outside-click dismissal
-    document.addEventListener('pointerdown', handlePointerDown);
+    // Use standard 'click' event instead of global capture pointerdown to prevent unwanted dismissals during app-switch/blur
+    document.addEventListener('click', handleClickOutside);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, [isOpen, onClose]);
 

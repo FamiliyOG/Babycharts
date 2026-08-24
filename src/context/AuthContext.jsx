@@ -7,6 +7,7 @@ import {
   logoutUser,
   joinFamilyWithCode,
 } from '../utils/api.js';
+import { clearFamilyStoredData } from '../utils/storage.js';
 
 const AuthContext = createContext(null);
 
@@ -153,6 +154,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     logoutUser();
+    clearFamilyStoredData();
     setUser(null);
     setActiveFamily(null);
     setFamilies([]);

@@ -155,8 +155,10 @@ function MainApp() {
     };
   }, [isAnyModalOpen]);
 
-  // Active child and measurements
-  const activeChild = profiles.find((p) => p.id === activeChildId) || profiles[0] || null;
+  // Active child and measurements (strictly scoped to authenticated user)
+  const effectiveProfiles = user ? profiles : [];
+  const activeChild =
+    effectiveProfiles.find((p) => p.id === activeChildId) || effectiveProfiles[0] || null;
   const activeChildMeasurements = useMemo(
     () => activeChild?.measurements || [],
     [activeChild?.measurements]
@@ -591,7 +593,7 @@ function MainApp() {
 
       {/* Header with Child Selector, Family Name & Actions */}
       <Header
-        profiles={profiles}
+        profiles={effectiveProfiles}
         activeChild={activeChild}
         onSelectChild={handleSelectChild}
         onOpenAddProfile={() => {

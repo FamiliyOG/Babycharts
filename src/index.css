@@ -57,6 +57,15 @@
     padding-left: max(env(safe-area-inset-left, 0px), 1rem);
     padding-right: max(env(safe-area-inset-right, 0px), 1rem);
   }
+
+  /* Prevent mobile browsers (iOS & Android) from auto-zooming into input fields on focus */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* Custom Scrollbar */

@@ -555,31 +555,35 @@ function MobileHeaderControls({
           type="button"
           onClick={onOpenAuthModal}
           title="Anmelden"
-          className="p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white active:scale-95"
+          className="p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white active:scale-95 cursor-pointer"
         >
           <LogIn className="w-4 h-4" />
         </button>
       )}
 
-      {/* Mobile Export Dropdown Menu */}
-      <PdfExportDropdown
-        isOpen={isPdfMenuOpen}
-        onToggle={onTogglePdfMenu}
-        onManualPdfExport={onManualPdfExport}
-        onExportCalendar={onExportCalendar}
-        onExportCsv={onExportCsv}
-        isMobile={true}
-      />
+      {/* Mobile Export Dropdown & Settings Menu (Only for authenticated users) */}
+      {user && (
+        <>
+          <PdfExportDropdown
+            isOpen={isPdfMenuOpen}
+            onToggle={onTogglePdfMenu}
+            onManualPdfExport={onManualPdfExport}
+            onExportCalendar={onExportCalendar}
+            onExportCsv={onExportCsv}
+            isMobile={true}
+          />
 
-      <button
-        type="button"
-        onClick={onOpenExportModal}
-        title="Einstellungen & Datensicherung"
-        aria-label="Einstellungen und Datensicherung öffnen"
-        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 active:scale-95"
-      >
-        <Settings className="w-4 h-4" />
-      </button>
+          <button
+            type="button"
+            onClick={onOpenExportModal}
+            title="Einstellungen & Datensicherung"
+            aria-label="Einstellungen und Datensicherung öffnen"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 active:scale-95 cursor-pointer"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -758,8 +762,8 @@ export default function Header({
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-2">
-                {/* Theme Switcher (Always visible on Landing Page) */}
+              <div className="hidden md:flex items-center gap-2">
+                {/* Theme Switcher (Desktop) */}
                 <button
                   type="button"
                   onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -777,7 +781,7 @@ export default function Header({
                 <button
                   type="button"
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-linear-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg shadow-cyan-950/60 transition-all active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-linear-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg shadow-cyan-950/60 transition-all active:scale-95 cursor-pointer"
                 >
                   <LogIn className="w-4 h-4" />
                   <span>Anmelden / Registrieren</span>

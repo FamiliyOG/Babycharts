@@ -1,0 +1,56 @@
+# DeepCode / Snyk Ignore File (.dcignore)
+# Optimized specifically for BabyCharts (Node.js, Express, React, SQLite)
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build Outputs & Generated Assets
+dist/
+build/
+*.tsbuildinfo
+
+# SQLite Database & Backups (Runtime / Data)
+server/data/
+server/data/*.db*
+server/data/*.sqlite*
+server/data/backups/
+*.db
+*.sqlite
+*.sqlite3
+*.db-wal
+*.db-shm
+
+# Server Generated PDF Reports & Temp Files
+server/pdf/
+server/pdf/*.pdf
+*.pdf
+
+# Environment & Secrets (Never scan sensitive local configs)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
+
+# Logs & Debugging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+
+# IDE, OS & System Metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.gemini/
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+.scannerwork/

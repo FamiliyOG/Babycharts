@@ -37,7 +37,7 @@ function formatUserPayload(user) {
 }
 
 function handleInviteJoin(db, inviteCode, userId) {
-  if (!inviteCode) return null;
+  if (typeof inviteCode !== 'string' || !inviteCode.trim()) return null;
   const normalizedCode = inviteCode.trim().toUpperCase();
   const invite = db.invites.find((inv) => inv.code === normalizedCode);
   if (!invite) return null;
@@ -68,11 +68,15 @@ function handleInviteJoin(db, inviteCode, userId) {
 
 function createInitialFamily(db, userId, userName, requestedFamilyName) {
   const newFamilyId = `fam-${Date.now()}`;
-  const defaultFamilyName = requestedFamilyName?.trim() || `Familie ${userName.trim()}`;
+  const cleanUserName = typeof userName === 'string' ? userName.trim() : 'Familie';
+  const cleanFamilyName =
+    typeof requestedFamilyName === 'string' && requestedFamilyName.trim()
+      ? requestedFamilyName.trim()
+      : `Familie ${cleanUserName}`;
 
   const newFamily = {
     id: newFamilyId,
-    name: defaultFamilyName,
+    name: cleanFamilyName,
     ownerId: userId,
     members: [{ userId, role: 'admin', joinedAt: new Date().toISOString() }],
     createdAt: new Date().toISOString(),
@@ -96,20 +100,23 @@ function createInitialFamily(db, userId, userName, requestedFamilyName) {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name, familyName, inviteCode } = req.body;
+    const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
+    const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const { familyName, inviteCode } = req.body || {};
 
-    if (!email || !password || !name) {
+    if (!rawEmail || !rawPassword || !rawName) {
       return res.status(400).json({ error: 'Name, E-Mail und Passwort sind erforderlich.' });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = rawEmail.toLowerCase();
     const db = readDb();
 
     if (db.users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
       return res.status(400).json({ error: 'Diese E-Mail-Adresse ist bereits registriert.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
     const userId = `user-${Date.now()}`;
 
     const isFirstUser = db.users.length === 0;
@@ -119,7 +126,7 @@ router.post('/register', async (req, res) => {
 
     const newUser = {
       id: userId,
-      name: name.trim(),
+      name: rawName,
       email: normalizedEmail,
       password: hashedPassword,
       isDev: isDev,
@@ -130,7 +137,8 @@ router.post('/register', async (req, res) => {
     db.users.push(newUser);
 
     const activeFamily =
-      handleInviteJoin(db, inviteCode, userId) || createInitialFamily(db, userId, name, familyName);
+      handleInviteJoin(db, inviteCode, userId) ||
+      createInitialFamily(db, userId, rawName, familyName);
 
     writeDb(db);
 
@@ -159,12 +167,13 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (!rawEmail || !rawPassword) {
       return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = rawEmail.toLowerCase();
     const db = readDb();
     const user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
 
@@ -172,15 +181,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(rawPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
     }
 
     // Check if user has 2FA enabled
     if (user.twoFactorSecret) {
-      const { totpCode } = req.body;
-      if (!totpCode) {
+      const rawTotp = typeof req.body?.totpCode === 'string' ? req.body.totpCode.trim() : '';
+      if (!rawTotp) {
         return res.status(200).json({
           requires2FA: true,
           message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code ein.',
@@ -190,7 +199,7 @@ router.post('/login', async (req, res) => {
       const verified = speakeasy.totp.verify({
         secret: user.twoFactorSecret,
         encoding: 'base32',
-        token: totpCode.trim(),
+        token: rawTotp,
         window: 1,
       });
 
@@ -291,18 +300,19 @@ router.get('/me', requireAuth, (req, res) => {
  * Updates current user profile (name, avatar)
  */
 router.put('/me', requireAuth, (req, res) => {
-  const { name, avatar } = req.body;
+  const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : null;
+  const { avatar } = req.body || {};
   const db = readDb();
   const user = db.users.find((u) => u.id === req.user.id);
   if (!user) {
     return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
   }
 
-  if (name !== undefined) {
-    if (!name?.trim()) {
+  if (req.body?.name !== undefined) {
+    if (!rawName) {
       return res.status(400).json({ error: 'Name darf nicht leer sein.' });
     }
-    user.name = name.trim();
+    user.name = rawName;
   }
 
   if (avatar !== undefined) {
@@ -357,8 +367,8 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
  */
 router.post('/2fa/verify', requireAuth, (req, res) => {
   try {
-    const { totpCode } = req.body;
-    if (!totpCode) {
+    const rawTotp = typeof req.body?.totpCode === 'string' ? req.body.totpCode.trim() : '';
+    if (!rawTotp) {
       return res.status(400).json({ error: 'Code ist erforderlich.' });
     }
 
@@ -371,7 +381,7 @@ router.post('/2fa/verify', requireAuth, (req, res) => {
     const verified = speakeasy.totp.verify({
       secret: user.tempTwoFactorSecret,
       encoding: 'base32',
-      token: totpCode.trim(),
+      token: rawTotp,
       window: 1,
     });
 

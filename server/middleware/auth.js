@@ -1,12 +1,36 @@
-/**
- * server/middleware/auth.js
- * Authentication & Authorization middleware using JWT
- */
-
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import { readDb } from '../utils/db.js';
+import { readDb, sqlite } from '../utils/db.js';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'babycharts-secure-jwt-secret-key-2026';
+/**
+ * Resolve or dynamically generate a secure JWT Secret
+ * Checks:
+ * 1. process.env.JWT_SECRET (Environment override)
+ * 2. SQLite settings table ('jwt_secret')
+ * 3. Dynamically generated 64-byte random hex string persisted in SQLite
+ */
+function getOrCreateJwtSecret() {
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.trim().length > 0) {
+    return process.env.JWT_SECRET.trim();
+  }
+
+  try {
+    const row = sqlite.prepare('SELECT value FROM settings WHERE key = ?').get('jwt_secret');
+    if (row?.value) {
+      return row.value;
+    }
+
+    const generated = crypto.randomBytes(64).toString('hex');
+    sqlite
+      .prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
+      .run('jwt_secret', generated);
+    return generated;
+  } catch {
+    return crypto.randomBytes(64).toString('hex');
+  }
+}
+
+export const JWT_SECRET = getOrCreateJwtSecret();
 
 /**
  * Middleware: Requires a valid JWT bearer token.

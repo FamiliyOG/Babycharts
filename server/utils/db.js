@@ -496,33 +496,44 @@ export function writeDb(data) {
   saveTransaction();
 }
 
+let isBackupInProgress = false;
+
 /**
  * Create a timestamped backup of SQLite database in server/data/backups/
+ * Non-blocking, asynchronous execution with throttling/concurrency guard.
  */
-export function createDbBackup() {
+export async function createDbBackup() {
+  if (isBackupInProgress) {
+    console.warn('[Backup] Backup is already in progress, skipping duplicate invocation.');
+    return null;
+  }
+
+  isBackupInProgress = true;
   try {
     const backupDir = path.join(DATA_DIR, 'backups');
-    fs.mkdirSync(backupDir, { recursive: true });
+    await fs.promises.mkdir(backupDir, { recursive: true });
 
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const backupFileName = `babycharts-backup-${dateStr}.sqlite`;
     const backupPath = path.join(backupDir, backupFileName);
 
-    sqlite.backup(backupPath);
+    // better-sqlite3 backup returns a Promise if no callback is supplied or when called asynchronously
+    await sqlite.backup(backupPath);
 
     // Prune backups older than 7 days
-    const files = fs
-      .readdirSync(backupDir)
-      .filter((f) => f.startsWith('babycharts-backup-') && f.endsWith('.sqlite'));
+    const dirEntries = await fs.promises.readdir(backupDir);
+    const files = dirEntries.filter(
+      (f) => f.startsWith('babycharts-backup-') && f.endsWith('.sqlite')
+    );
     if (files.length > 7) {
       files.sort();
       const toDelete = files.slice(0, -7);
       for (const file of toDelete) {
         try {
-          fs.unlinkSync(path.join(backupDir, file));
+          await fs.promises.unlink(path.join(backupDir, file));
         } catch {
-          // ignore
+          // ignore individual deletion errors
         }
       }
     }
@@ -531,6 +542,8 @@ export function createDbBackup() {
   } catch (err) {
     console.error('[Backup] SQLite backup failed:', err.message);
     return null;
+  } finally {
+    isBackupInProgress = false;
   }
 }
 

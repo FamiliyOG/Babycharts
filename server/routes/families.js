@@ -42,9 +42,10 @@ function generateInviteCode(existingInvites = [], usedInvites = []) {
  */
 router.put('/:familyId', requireAuth, (req, res) => {
   const { familyId } = req.params;
-  const { name, avatar } = req.body;
+  const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : null;
+  const { avatar } = req.body || {};
 
-  if (name !== undefined && !name?.trim()) {
+  if (req.body?.name !== undefined && !rawName) {
     return res.status(400).json({ error: 'Familienname darf nicht leer sein.' });
   }
 
@@ -62,8 +63,8 @@ router.put('/:familyId', requireAuth, (req, res) => {
       .json({ error: 'Nur Administratoren dürfen die Familiendetails ändern.' });
   }
 
-  if (name !== undefined) {
-    family.name = name.trim();
+  if (rawName !== null) {
+    family.name = rawName;
   }
   if (avatar !== undefined) {
     family.avatar = avatar; // base64 data URI or image URL or null
@@ -134,8 +135,8 @@ router.get('/:familyId', requireAuth, (req, res) => {
  * Creates a new family
  */
 router.post('/', requireAuth, (req, res) => {
-  const { name } = req.body;
-  if (!name?.trim()) {
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (!name) {
     return res.status(400).json({ error: 'Familienname ist erforderlich.' });
   }
 
@@ -143,7 +144,7 @@ router.post('/', requireAuth, (req, res) => {
   const newFamilyId = `fam-${Date.now()}`;
   const newFamily = {
     id: newFamilyId,
-    name: name.trim(),
+    name,
     ownerId: req.user.id,
     members: [{ userId: req.user.id, role: 'admin', joinedAt: new Date().toISOString() }],
     createdAt: new Date().toISOString(),
@@ -158,6 +159,7 @@ router.post('/', requireAuth, (req, res) => {
       name: newFamily.name,
       role: 'admin',
       isOwner: true,
+      memberCount: 1,
     },
   });
 });
@@ -235,12 +237,12 @@ router.delete('/:familyId/invites/:code', requireAuth, (req, res) => {
  * Joins a family using an invite code
  */
 router.post('/join', requireAuth, (req, res) => {
-  const { code } = req.body;
+  const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
   if (!code) {
     return res.status(400).json({ error: 'Einladungscode ist erforderlich.' });
   }
 
-  const normalizedCode = code.trim().toUpperCase();
+  const normalizedCode = code.toUpperCase();
   const db = readDb();
   const invite = db.invites.find((inv) => inv.code === normalizedCode);
 

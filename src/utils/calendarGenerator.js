@@ -89,16 +89,14 @@ export function generateChildICalendar(child) {
     'END:VCALENDAR',
   ].join('\r\n');
 
-  // Trigger browser download
+  // Trigger browser download without attaching to DOM
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const cleanName = child.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const cleanName = (child.name || 'Kind').replace(/[^a-zA-Z0-9_-]/g, '_');
   link.href = url;
-  link.setAttribute('download', `BabyCharts_Kalender_${cleanName}.ics`);
-  document.body.appendChild(link);
+  link.download = `BabyCharts_Kalender_${cleanName}.ics`;
   link.click();
-  link.remove();
   URL.revokeObjectURL(url);
 
   return true;

@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url';
 import { readDb, writeDb, createDbBackup } from './utils/db.js';
 import { rescheduleAll, setAppUrl } from './scheduler.js';
 
+import rateLimit from 'express-rate-limit';
+
 import profilesRouter from './routes/profiles.js';
 import settingsRouter from './routes/settings.js';
 import exportsRouter from './routes/exports.js';
@@ -35,6 +37,16 @@ const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 // ── Express setup ────────────────────────────────────────────────────────────
 const app = express();
 app.disable('x-powered-by');
+
+// Global Rate Limiter to prevent brute-force / resource allocation exhaustion (1000 reqs / 15 min per IP)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.' },
+});
+app.use(globalLimiter);
 
 // In production with same-origin serving, CORS is restricted to APP_URL / local development
 const allowedOrigins =
@@ -126,13 +138,19 @@ app.get('/favicon.svg', (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'favicon.svg'));
 });
 
-// SPA fallback – all non-API routes serve index.html
+const INDEX_HTML_PATH = path.join(DIST_DIR, 'index.html');
+
+// SPA fallback – all non-API routes serve index.html asynchronously
 app.get('{*path}', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.sendFile(path.join(DIST_DIR, 'index.html'));
+  res.sendFile(INDEX_HTML_PATH, (err) => {
+    if (err) {
+      res.status(404).send('Not Found');
+    }
+  });
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
@@ -148,10 +166,10 @@ app.listen(PORT, '0.0.0.0', () => {
   rescheduleAll();
 
   // Automated rolling DB backup (on startup and every 24 hours)
-  createDbBackup();
+  createDbBackup().catch((err) => console.error('[Backup] Startup backup error:', err));
   setInterval(
     () => {
-      createDbBackup();
+      createDbBackup().catch((err) => console.error('[Backup] Scheduled backup error:', err));
     },
     24 * 60 * 60 * 1000
   );

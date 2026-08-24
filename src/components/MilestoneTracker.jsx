@@ -4,6 +4,19 @@ import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-r
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
 
+function sanitizePhotoUrl(url) {
+  if (
+    typeof url === 'string' &&
+    (url.startsWith('data:image/') ||
+      url.startsWith('http://') ||
+      url.startsWith('https://') ||
+      url.startsWith('/'))
+  ) {
+    return url;
+  }
+  return null;
+}
+
 export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }) {
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
@@ -33,7 +46,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     setSelectedMilestone(milestone);
     setMilestoneDate(existing.date || new Date().toISOString().split('T')[0]);
     setMilestoneNotes(existing.notes || '');
-    setMilestonePhoto(existing.photo || null);
+    setMilestonePhoto(sanitizePhotoUrl(existing.photo) || null);
     setPhotoError(null);
   };
 

@@ -152,7 +152,15 @@ export default function PdfReport({ activeChild, measurements = [] }) {
               paddingBottom: '4px',
             }}
           >
-            Letzte Messung ({latest.date})
+            Letzte Messung (
+            {latest?.date
+              ? new Date(latest.date).toLocaleDateString('de-DE', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })
+              : '—'}
+            )
           </h2>
           <div
             style={{
@@ -314,7 +322,15 @@ export default function PdfReport({ activeChild, measurements = [] }) {
           <tbody>
             {sortedMeasurements.map((m) => (
               <tr key={m.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '8px', fontWeight: 500 }}>{m.date}</td>
+                <td style={{ padding: '8px', fontWeight: 500 }}>
+                  {m.date
+                    ? new Date(m.date).toLocaleDateString('de-DE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })
+                    : '—'}
+                </td>
                 <td style={{ padding: '8px', fontWeight: 'bold', color: '#0e7490' }}>
                   {m.checkup || '—'}
                 </td>

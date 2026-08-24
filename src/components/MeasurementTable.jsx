@@ -35,6 +35,20 @@ export default function MeasurementTable({
     return `${grams.toLocaleString('de-DE')} g`;
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-6">
       <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
@@ -69,7 +83,7 @@ export default function MeasurementTable({
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-bold text-xs text-slate-100">{m.date}</span>
+                  <span className="font-bold text-xs text-slate-100">{formatDate(m.date)}</span>
                   <span className="text-[11px] text-cyan-400">({age.text})</span>
                 </div>
 
@@ -197,7 +211,7 @@ export default function MeasurementTable({
                     <div className="flex items-center gap-2">
                       <Calendar className="w-3.5 h-3.5 text-slate-500" />
                       <div>
-                        <div className="text-slate-100 font-semibold">{m.date}</div>
+                        <div className="text-slate-100 font-semibold">{formatDate(m.date)}</div>
                         <div className="text-[11px] text-cyan-400">{age.text}</div>
                       </div>
                     </div>

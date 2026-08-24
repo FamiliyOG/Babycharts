@@ -1,8 +1,10 @@
 import { Scale, Ruler, Circle, Activity, TrendingUp } from 'lucide-react';
-import { estimatePercentile, calculateBMI } from '../utils/percentileCalc.js';
+import { estimatePercentile, calculateBMI, calculateAge } from '../utils/percentileCalc.js';
 
-export default function PercentileCard({ activeChild, latestMeasurement, ageInfo }) {
-  if (!latestMeasurement || !activeChild) {
+export default function PercentileCard({ activeChild, ageInfo }) {
+  const measurements = activeChild?.measurements || [];
+
+  if (measurements.length === 0 || !activeChild) {
     return (
       <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 text-center text-slate-400">
         Noch keine Messwerte vorhanden. Klicken Sie oben auf "+ Messwert eintragen".
@@ -10,28 +12,88 @@ export default function PercentileCard({ activeChild, latestMeasurement, ageInfo
     );
   }
 
+  // Sort measurements descending by date (newest first)
+  const sortedMeasurements = [...measurements].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  const newestDate = sortedMeasurements[0]?.date || null;
+  const sameDayEntries = sortedMeasurements.filter((m) => m.date === newestDate);
+
+  // Helper: compute average if entries exist on latest date, otherwise fallback to most recent recorded value
+  const computeMetricValueAndDate = (key) => {
+    // 1. Check if we have values on the newest date
+    const dayValues = sameDayEntries
+      .map((m) => m[key])
+      .filter((v) => v !== null && v !== undefined && !Number.isNaN(+v));
+
+    if (dayValues.length > 0) {
+      const sum = dayValues.reduce((acc, curr) => acc + +curr, 0);
+      const avg = +(sum / dayValues.length).toFixed(2);
+      return {
+        value: avg,
+        isAverage: dayValues.length > 1,
+        count: dayValues.length,
+        date: newestDate,
+      };
+    }
+
+    // 2. Fallback: find the latest measurement that has this metric recorded
+    const fallbackEntry = sortedMeasurements.find(
+      (m) => m[key] !== null && m[key] !== undefined && !Number.isNaN(+m[key])
+    );
+
+    if (fallbackEntry) {
+      return {
+        value: +fallbackEntry[key],
+        isAverage: false,
+        count: 1,
+        date: fallbackEntry.date,
+      };
+    }
+
+    return {
+      value: null,
+      isAverage: false,
+      count: 0,
+      date: null,
+    };
+  };
+
+  const weightStat = computeMetricValueAndDate('weight');
+  const lengthStat = computeMetricValueAndDate('length');
+  const headStat = computeMetricValueAndDate('headCircumference');
+
   const gender = activeChild.gender;
-  const ageMonths = ageInfo.monthsDecimal;
+  const currentAgeMonths = ageInfo.monthsDecimal;
 
-  const weightPct = latestMeasurement.weight
-    ? estimatePercentile(latestMeasurement.weight, gender, 'weight', ageMonths)
+  // Calculate age for percentile calculation corresponding to the metric's date
+  const getMetricAgeMonths = (statDate) => {
+    if (!statDate) return currentAgeMonths;
+    const age = calculateAge(activeChild.birthdate, statDate);
+    return age.monthsDecimal;
+  };
+
+  const weightPct = weightStat.value
+    ? estimatePercentile(weightStat.value, gender, 'weight', getMetricAgeMonths(weightStat.date))
     : null;
 
-  const lengthPct = latestMeasurement.length
-    ? estimatePercentile(latestMeasurement.length, gender, 'length', ageMonths)
+  const lengthPct = lengthStat.value
+    ? estimatePercentile(lengthStat.value, gender, 'length', getMetricAgeMonths(lengthStat.date))
     : null;
 
-  const headPct = latestMeasurement.headCircumference
+  const headPct = headStat.value
     ? estimatePercentile(
-        latestMeasurement.headCircumference,
+        headStat.value,
         gender,
         'headCircumference',
-        ageMonths
+        getMetricAgeMonths(headStat.date)
       )
     : null;
 
-  const bmiVal = calculateBMI(latestMeasurement.weight, latestMeasurement.length);
-  const bmiPct = bmiVal ? estimatePercentile(bmiVal, gender, 'bmi', ageMonths) : null;
+  const bmiVal = calculateBMI(weightStat.value, lengthStat.value);
+  const bmiAgeMonths = getMetricAgeMonths(weightStat.date || lengthStat.date);
+  const bmiPct = bmiVal ? estimatePercentile(bmiVal, gender, 'bmi', bmiAgeMonths) : null;
 
   // Format weight in grams (e.g., 3515 g)
   const formatWeight = (kg) => {
@@ -40,26 +102,46 @@ export default function PercentileCard({ activeChild, latestMeasurement, ageInfo
     return `${grams.toLocaleString('de-DE')} g (${kg.toFixed(2).replace('.', ',')} kg)`;
   };
 
+  const formatDateLabel = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+
   const cards = [
     {
       title: 'Gewicht',
-      value: formatWeight(latestMeasurement.weight),
+      value: formatWeight(weightStat.value),
+      isAverage: weightStat.isAverage,
+      count: weightStat.count,
+      date: weightStat.date,
+      isDifferentDay: Boolean(weightStat.date && weightStat.date !== newestDate),
       icon: Scale,
       pctData: weightPct,
       color: 'cyan',
     },
     {
       title: 'Körpergröße / Länge',
-      value: latestMeasurement.length ? `${latestMeasurement.length} cm` : '—',
+      value: lengthStat.value ? `${lengthStat.value} cm` : '—',
+      isAverage: lengthStat.isAverage,
+      count: lengthStat.count,
+      date: lengthStat.date,
+      isDifferentDay: Boolean(lengthStat.date && lengthStat.date !== newestDate),
       icon: Ruler,
       pctData: lengthPct,
       color: 'emerald',
     },
     {
       title: 'Kopfumfang',
-      value: latestMeasurement.headCircumference
-        ? `${latestMeasurement.headCircumference} cm`
-        : '—',
+      value: headStat.value ? `${headStat.value} cm` : '—',
+      isAverage: headStat.isAverage,
+      count: headStat.count,
+      date: headStat.date,
+      isDifferentDay: Boolean(headStat.date && headStat.date !== newestDate),
       icon: Circle,
       pctData: headPct,
       color: 'amber',
@@ -67,6 +149,13 @@ export default function PercentileCard({ activeChild, latestMeasurement, ageInfo
     {
       title: 'BMI (Körpermasse)',
       value: bmiVal ? `${bmiVal} kg/m²` : '—',
+      isAverage: weightStat.isAverage || lengthStat.isAverage,
+      count: 0,
+      date: weightStat.date || lengthStat.date,
+      isDifferentDay: Boolean(
+        (weightStat.date && weightStat.date !== newestDate) ||
+        (lengthStat.date && lengthStat.date !== newestDate)
+      ),
       icon: Activity,
       pctData: bmiPct,
       color: 'purple',
@@ -101,10 +190,26 @@ export default function PercentileCard({ activeChild, latestMeasurement, ageInfo
               </div>
             </div>
 
-            <div className="flex items-baseline gap-2 mb-2">
+            <div className="flex items-baseline justify-between gap-2 mb-1.5">
               <span className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {card.value}
               </span>
+              {card.isAverage && (
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 shadow-xs"
+                  title={`Tagesdurchschnitt aus ${card.count} Messungen`}
+                >
+                  Ø {card.count}x / Tag
+                </span>
+              )}
+              {card.isDifferentDay && (
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-950/60 text-amber-300 border border-amber-800/50 shadow-xs"
+                  title={`Zuletzt gemessen am ${formatDateLabel(card.date)}`}
+                >
+                  vom {formatDateLabel(card.date)}
+                </span>
+              )}
             </div>
 
             {pct && pct.percentile !== null ? (

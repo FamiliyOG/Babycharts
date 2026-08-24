@@ -383,11 +383,7 @@ function MainApp() {
       return (
         <div className="space-y-6">
           {/* Top Stat Cards Grid */}
-          <PercentileCard
-            activeChild={activeChild}
-            latestMeasurement={latestMeasurementByDate}
-            ageInfo={ageInfo}
-          />
+          <PercentileCard activeChild={activeChild} ageInfo={ageInfo} />
 
           {/* Module Navigation Tabs (Desktop / Tablet only) */}
           <div className="hidden md:flex items-center justify-center gap-2.5 overflow-x-auto pb-1">

@@ -72,9 +72,16 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
           if (isDone) {
             cardStyle =
               'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800/60 text-emerald-950 dark:text-emerald-200 shadow-xs';
+            const formattedDate = entry.date
+              ? new Date(entry.date).toLocaleDateString('de-DE', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })
+              : '';
             statusBadge = (
               <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                ✓ Am {entry.date} erfasst
+                ✓ Am {formattedDate} erfasst
               </span>
             );
             icon = <CheckCircle2 className="w-4 h-4 text-emerald-500" />;

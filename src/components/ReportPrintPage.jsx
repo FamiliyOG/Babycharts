@@ -225,7 +225,15 @@ function ReportContent({ child }) {
               marginBottom: 12,
             }}
           >
-            Letzte Messung ({latest.date})
+            Letzte Messung (
+            {latest?.date
+              ? new Date(latest.date).toLocaleDateString('de-DE', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })
+              : '—'}
+            )
           </h2>
           <div
             style={{
@@ -316,7 +324,15 @@ function ReportContent({ child }) {
                     background: i % 2 === 0 ? '#fff' : '#f8fafc',
                   }}
                 >
-                  <td style={{ padding: '7px 10px', fontWeight: 600 }}>{m.date}</td>
+                  <td style={{ padding: '7px 10px', fontWeight: 600 }}>
+                    {m.date
+                      ? new Date(m.date).toLocaleDateString('de-DE', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })
+                      : '—'}
+                  </td>
                   <td style={{ padding: '7px 10px', color: accentColor, fontWeight: 700 }}>
                     {m.checkup || '—'}
                   </td>

@@ -253,10 +253,14 @@ function drawLatestMeasurementCards(
 ) {
   if (!latest) return y;
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Letzte Messung (${latest.date})`, marginLeft, y);
+  const formattedLatestDate = latest.date
+    ? new Date(latest.date).toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+    : '';
+  doc.text(`Letzte Messung (${formattedLatestDate})`, marginLeft, y);
   y += 4;
 
   const cardWidth = (contentWidth - 9) / 4;
@@ -398,7 +402,14 @@ function drawMeasurementTable(
     doc.rect(marginLeft, y, contentWidth, 6, 'FD');
 
     doc.setTextColor(15, 23, 42);
-    doc.text(m.date || '-', marginLeft + 3, y + 4);
+    const formattedRowDate = m.date
+      ? new Date(m.date).toLocaleDateString('de-DE', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        })
+      : '-';
+    doc.text(formattedRowDate, marginLeft + 3, y + 4);
     doc.setTextColor(8, 145, 178);
     doc.text(m.checkup || '-', marginLeft + 28, y + 4);
     doc.setTextColor(15, 23, 42);

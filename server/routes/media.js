@@ -174,15 +174,20 @@ router.get('/:id', requireMediaAuth, (req, res) => {
     const db = readDb();
 
     // Check authorization:
-    // 1. If familyId is assigned: User MUST belong to that family
-    // 2. If no familyId (personal user avatar): User MUST be the creator OR share a family with the creator
+    // 1. If familyId is assigned: User MUST belong to that family (owner or member)
+    // 2. If no familyId (personal user avatar / profile photo): User MUST be the creator OR share a family with the creator
     let hasAccess = false;
 
     if (meta.familyId) {
       const family = db.families.find((f) => f.id === meta.familyId);
       if (family) {
-        const role = getUserFamilyRole(family, req.user.id);
-        if (role) hasAccess = true;
+        // Owner or member of the family
+        if (
+          family.ownerId === req.user.id ||
+          family.members?.some((m) => m.userId === req.user.id)
+        ) {
+          hasAccess = true;
+        }
       }
     } else {
       if (meta.userId === req.user.id) {

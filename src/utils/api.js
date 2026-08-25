@@ -37,7 +37,13 @@ async function safeFetch(url, options = {}) {
       return { ok: false, status: res.status, error: errorData?.error || 'Request failed' };
     }
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data = null;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = null;
+    }
     return { ok: true, data };
   } catch (err) {
     return { ok: false, error: err.message };

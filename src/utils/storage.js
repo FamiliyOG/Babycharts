@@ -62,12 +62,16 @@ export function saveActiveChildId(childId, familyId = 'default') {
     const key = cleanFamilyId
       ? `${STORAGE_KEY_ACTIVE_CHILD}_${cleanFamilyId}`
       : STORAGE_KEY_ACTIVE_CHILD;
-    if (childId && typeof childId === 'string') {
+
+    if (typeof childId === 'string') {
       const cleanId = childId.replace(/[^a-zA-Z0-9_-]/g, '');
-      localStorage.setItem(key, cleanId);
-    } else {
-      localStorage.removeItem(key);
+      const isValidId = /^[a-zA-Z0-9_-]{1,128}$/.test(cleanId);
+      if (isValidId) {
+        localStorage.setItem(key, cleanId);
+        return;
+      }
     }
+    localStorage.removeItem(key);
   } catch (err) {
     console.error('Error setting active child:', err);
   }

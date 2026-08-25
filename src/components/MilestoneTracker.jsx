@@ -11,8 +11,18 @@ function sanitizePhotoUrl(url) {
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  // Allow safe image data URIs (PNG, JPEG, JPG, WebP, GIF, SVG) or relative/absolute URLs
-  if (trimmed.startsWith('data:image/') || trimmed.startsWith('/') || trimmed.startsWith('http')) {
+  // Allow only https absolute URLs
+  if (/^https:\/\/[^\s]+$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Allow only root-relative URLs
+  if (/^\/(?!\/)[^\s]*$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Allow only safe raster image data URLs (base64), explicitly excluding SVG
+  if (/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(trimmed)) {
     return trimmed;
   }
 
@@ -77,11 +87,23 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
         try {
           // Upload to encrypted media storage scoped to this family
           const serverUrl = await uploadEncryptedMedia(result, activeChild.familyId, file.name);
-          setMilestonePhoto(serverUrl || result);
-          setPhotoError(null);
+          const safePhoto = sanitizePhotoUrl(serverUrl) || sanitizePhotoUrl(result);
+          if (!safePhoto) {
+            setPhotoError('Ungültige Foto-URL.');
+            setMilestonePhoto(null);
+          } else {
+            setMilestonePhoto(safePhoto);
+            setPhotoError(null);
+          }
         } catch {
           // Fallback to Data URL if offline
-          setMilestonePhoto(result);
+          const safeFallback = sanitizePhotoUrl(result);
+          if (!safeFallback) {
+            setPhotoError('Ungültiges Bildformat.');
+            setMilestonePhoto(null);
+          } else {
+            setMilestonePhoto(safeFallback);
+          }
         } finally {
           setIsUploadingPhoto(false);
         }

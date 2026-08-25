@@ -30,14 +30,7 @@ import {
   logClientError,
 } from './utils/api.js';
 
-import {
-  getStoredProfiles,
-  saveStoredProfiles,
-  getActiveChildId,
-  saveActiveChildId,
-  getAppSettings,
-  saveAppSettings,
-} from './utils/storage.js';
+import { getAppSettings, saveAppSettings } from './utils/storage.js';
 
 import { DEMO_PROFILES } from './data/demoProfiles.js';
 import { calculateAge } from './utils/percentileCalc.js';
@@ -61,20 +54,11 @@ function MainApp() {
   } = useAuth();
 
   const familyId = activeFamily?.id || null;
-  const [profiles, setProfiles] = useState(() => (user ? getStoredProfiles(familyId) || [] : []));
-  const [activeChildId, setActiveChildId] = useState(() => {
-    if (!user) return null;
-    const storedActive = getActiveChildId(familyId);
-    const loaded = getStoredProfiles(familyId) || [];
-    if (storedActive && loaded.some((p) => p.id === storedActive)) {
-      return storedActive;
-    }
-    return loaded[0]?.id || null;
-  });
+  const [profiles, setProfiles] = useState([]);
+  const [activeChildId, setActiveChildId] = useState(null);
 
   const handleSelectChild = (childId) => {
     setActiveChildId(childId);
-    saveActiveChildId(childId, familyId);
   };
 
   // Synchronize profiles for active family when user or family changes, or when app regains focus/visibility (PWA)
@@ -84,14 +68,11 @@ function MainApp() {
     let isMounted = true;
 
     const applySyncedProfiles = (serverProfiles) => {
-      if (!isMounted || !Array.isArray(serverProfiles) || serverProfiles.length === 0) return;
+      if (!isMounted || !Array.isArray(serverProfiles)) return;
       setProfiles(serverProfiles);
-      saveStoredProfiles(serverProfiles, familyId);
       setActiveChildId((prev) => {
         const exists = serverProfiles.some((p) => p.id === prev);
-        const nextId = exists ? prev : serverProfiles[0]?.id || null;
-        saveActiveChildId(nextId, familyId);
-        return nextId;
+        return exists ? prev : serverProfiles[0]?.id || null;
       });
     };
 
@@ -189,7 +170,6 @@ function MainApp() {
     if (!isDev) return;
     setProfiles(DEMO_PROFILES);
     setActiveChildId(DEMO_PROFILES[0].id);
-    saveStoredProfiles(DEMO_PROFILES);
     importProfiles(DEMO_PROFILES, activeFamily?.id).catch(() => {});
     showToast('Demo-Daten für Noah (♂) und Mia (♀) erfolgreich geladen!');
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
@@ -223,7 +203,6 @@ function MainApp() {
     }
 
     setProfiles(updatedProfiles);
-    saveStoredProfiles(updatedProfiles, familyId);
     setIsProfileModalOpen(false);
     setEditingProfile(null);
   };
@@ -236,7 +215,6 @@ function MainApp() {
 
     const updatedProfiles = profiles.filter((p) => p.id !== profileId);
     setProfiles(updatedProfiles);
-    saveStoredProfiles(updatedProfiles, familyId);
     deleteProfile(profileId).catch(() => {});
 
     if (activeChildId === profileId) {
@@ -279,7 +257,6 @@ function MainApp() {
     const updatedProfiles = profiles.map((p) => (p.id === activeChild.id ? updatedChild : p));
 
     setProfiles(updatedProfiles);
-    saveStoredProfiles(updatedProfiles, familyId);
     updateProfile(updatedChild.id, updatedChild).catch(() => {});
 
     setIsMeasurementFormOpen(false);
@@ -301,7 +278,6 @@ function MainApp() {
     const updatedProfiles = profiles.map((p) => (p.id === activeChild.id ? updatedChild : p));
 
     setProfiles(updatedProfiles);
-    saveStoredProfiles(updatedProfiles, familyId);
     updateProfile(updatedChild.id, updatedChild).catch(() => {});
     showToast('Messwert gelöscht.');
   };

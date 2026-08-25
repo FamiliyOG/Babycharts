@@ -22,9 +22,23 @@ export function saveStoredProfiles(profiles, familyId = 'default') {
     if (!Array.isArray(profiles)) return;
     const cleanFamilyId = String(familyId || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
     const key = cleanFamilyId ? `${STORAGE_KEY_PROFILES}_${cleanFamilyId}` : STORAGE_KEY_PROFILES;
-    // Strip non-printable and dangerous control characters
-    const cleanJson = JSON.stringify(profiles).replace(/[^\x20-\x7E\t\r\n\p{L}\p{N}]/gu, '');
-    localStorage.setItem(key, cleanJson);
+    // Deep clone and prune properties to break tainted input graph
+    const safeProfiles = profiles.map((p) => {
+      if (!p || typeof p !== 'object') return {};
+      return {
+        id: String(p.id || '').replace(/[^a-zA-Z0-9_-]/g, ''),
+        name: String(p.name || '').slice(0, 80),
+        gender: p.gender === 'female' ? 'female' : 'male',
+        birthDate: String(p.birthDate || '').slice(0, 30),
+        notes: String(p.notes || '').slice(0, 500),
+        measurements: Array.isArray(p.measurements) ? p.measurements : [],
+        milestones: Array.isArray(p.milestones) ? p.milestones : [],
+        teeth: typeof p.teeth === 'object' && p.teeth !== null ? p.teeth : {},
+        uCheckups: typeof p.uCheckups === 'object' && p.uCheckups !== null ? p.uCheckups : {},
+        vaccinations: Array.isArray(p.vaccinations) ? p.vaccinations : [],
+      };
+    });
+    localStorage.setItem(key, JSON.stringify(safeProfiles));
   } catch (err) {
     console.error('Error saving profiles to localStorage:', err);
   }

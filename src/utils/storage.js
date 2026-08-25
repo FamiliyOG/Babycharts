@@ -1,82 +1,8 @@
-const STORAGE_KEY_PROFILES = 'babycharts_profiles_v1';
-const STORAGE_KEY_ACTIVE_CHILD = 'babycharts_active_child_id_v1';
 const STORAGE_KEY_SETTINGS = 'babycharts_settings_v1';
 
 /**
  * Loads all child profiles from localStorage scoped by familyId
  */
-export function getStoredProfiles(familyId = 'default') {
-  try {
-    const key = familyId ? `${STORAGE_KEY_PROFILES}_${familyId}` : STORAGE_KEY_PROFILES;
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('Error loading profiles from localStorage:', err);
-    return null;
-  }
-}
-
-export function saveStoredProfiles(profiles, familyId = 'default') {
-  try {
-    if (!Array.isArray(profiles)) return;
-    const cleanFamilyId = String(familyId || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
-    const key = cleanFamilyId ? `${STORAGE_KEY_PROFILES}_${cleanFamilyId}` : STORAGE_KEY_PROFILES;
-    // Deep clone and prune properties to break tainted input graph
-    const safeProfiles = profiles.map((p) => {
-      if (!p || typeof p !== 'object') return {};
-      return {
-        id: String(p.id || '').replace(/[^a-zA-Z0-9_-]/g, ''),
-        name: String(p.name || '').slice(0, 80),
-        gender: p.gender === 'female' ? 'female' : 'male',
-        birthDate: String(p.birthDate || '').slice(0, 30),
-        notes: String(p.notes || '').slice(0, 500),
-        measurements: Array.isArray(p.measurements) ? p.measurements : [],
-        milestones: Array.isArray(p.milestones) ? p.milestones : [],
-        teeth: typeof p.teeth === 'object' && p.teeth !== null ? p.teeth : {},
-        uCheckups: typeof p.uCheckups === 'object' && p.uCheckups !== null ? p.uCheckups : {},
-        vaccinations: Array.isArray(p.vaccinations) ? p.vaccinations : [],
-      };
-    });
-    localStorage.setItem(key, JSON.stringify(safeProfiles));
-  } catch (err) {
-    console.error('Error saving profiles to localStorage:', err);
-  }
-}
-
-export function getActiveChildId(familyId = 'default') {
-  try {
-    const cleanFamilyId = String(familyId || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
-    const key = cleanFamilyId
-      ? `${STORAGE_KEY_ACTIVE_CHILD}_${cleanFamilyId}`
-      : STORAGE_KEY_ACTIVE_CHILD;
-    return localStorage.getItem(key) || null;
-  } catch {
-    return null;
-  }
-}
-
-export function saveActiveChildId(childId, familyId = 'default') {
-  try {
-    const cleanFamilyId = String(familyId || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
-    const key = cleanFamilyId
-      ? `${STORAGE_KEY_ACTIVE_CHILD}_${cleanFamilyId}`
-      : STORAGE_KEY_ACTIVE_CHILD;
-
-    if (typeof childId === 'string') {
-      const cleanId = childId.replace(/[^a-zA-Z0-9_-]/g, '');
-      const isValidId = /^[a-zA-Z0-9_-]{1,128}$/.test(cleanId);
-      if (isValidId) {
-        localStorage.setItem(key, cleanId);
-        return;
-      }
-    }
-    localStorage.removeItem(key);
-  } catch (err) {
-    console.error('Error setting active child:', err);
-  }
-}
-
 export function clearFamilyStoredData() {
   try {
     const keysToRemove = [];
@@ -84,8 +10,8 @@ export function clearFamilyStoredData() {
       const k = localStorage.key(i);
       if (
         k &&
-        (k.startsWith(STORAGE_KEY_PROFILES) ||
-          k.startsWith(STORAGE_KEY_ACTIVE_CHILD) ||
+        (k.startsWith('babycharts_profiles_v1') ||
+          k.startsWith('babycharts_active_child_id_v1') ||
           k.startsWith('babycharts_cached_'))
       ) {
         keysToRemove.push(k);

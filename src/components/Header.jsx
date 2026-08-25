@@ -391,26 +391,36 @@ function UserMenuDropdown({
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <button
-                type="button"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
+              <label
+                htmlFor="user-avatar-upload-input"
                 title="Profilbild hochladen / ändern"
                 aria-label="Profilbild hochladen"
                 className="absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center"
               >
                 <Camera className="w-3 h-3" />
-              </button>
+              </label>
               <input
+                id="user-avatar-upload-input"
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"
                 onChange={handleUserAvatarUpload}
               />
+              {user.avatar && (
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await onUpdateProfile({ avatar: null });
+                  }}
+                  title="Profilbild entfernen"
+                  aria-label="Profilbild entfernen"
+                  className="absolute -top-1 -right-1 p-0.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center"
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                </button>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-bold text-slate-900 dark:text-slate-100 truncate">

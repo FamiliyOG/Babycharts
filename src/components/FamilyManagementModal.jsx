@@ -12,8 +12,17 @@ import {
 } from '../utils/api.js';
 
 export default function FamilyManagementModal({ isOpen, onClose }) {
-  const { user, activeFamily, families, switchFamily, joinFamily, userRole, isAdmin, refreshUser } =
-    useAuth();
+  const {
+    user,
+    activeFamily,
+    families,
+    switchFamily,
+    joinFamily,
+    userRole,
+    isAdmin,
+    canEdit,
+    refreshUser,
+  } = useAuth();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
 
   const [familyData, setFamilyData] = useState(null);
@@ -225,7 +234,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
               </div>
             )}
 
-            {isAdmin && (
+            {canEdit && (
               <>
                 <label
                   htmlFor="family-avatar-upload"
@@ -248,7 +257,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     onClick={handleRemoveAvatar}
                     title="Icon entfernen und Standard wiederherstellen"
                     aria-label="Icon entfernen"
-                    className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md transition-all active:scale-95"
+                    className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md z-10 transition-transform active:scale-95 flex items-center justify-center"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>

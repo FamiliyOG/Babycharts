@@ -364,20 +364,36 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                   Erinnerungsfoto (optional)
                 </span>
                 {milestonePhoto ? (
-                  <div className="relative group rounded-2xl overflow-hidden border border-slate-700 max-h-48 bg-slate-950">
-                    <img
-                      src={milestonePhoto}
-                      alt="Vorschau"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setMilestonePhoto(null)}
-                      className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md"
-                      title="Foto entfernen"
+                  <div className="space-y-2">
+                    <div className="relative group rounded-2xl overflow-hidden border border-slate-700 max-h-48 bg-slate-950">
+                      <img
+                        src={milestonePhoto}
+                        alt="Vorschau"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMilestonePhoto(null)}
+                        className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md z-10"
+                        title="Foto entfernen"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <label
+                      htmlFor="milestone-photo-input"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition-colors"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      <Camera className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Anderes Foto wählen</span>
+                      <input
+                        id="milestone-photo-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                 ) : (
                   <label
@@ -385,7 +401,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     className="flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-2xl cursor-pointer hover:border-amber-500 hover:bg-slate-950/60 transition-all text-slate-400 hover:text-slate-200"
                   >
                     <Camera className="w-6 h-6 mb-1 text-amber-400" />
-                    <span className="text-xs font-medium">Foto hochladen (max. 2 MB)</span>
+                    <span className="text-xs font-medium">Foto hochladen (max. 10 MB)</span>
                     <input
                       id="milestone-photo-input"
                       type="file"

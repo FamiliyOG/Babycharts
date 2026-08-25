@@ -57,10 +57,10 @@ router.put('/:familyId', requireAuth, (req, res) => {
   }
 
   const role = getUserFamilyRole(family, req.user.id);
-  if (role !== 'admin') {
+  if (role !== 'admin' && role !== 'editor') {
     return res
       .status(403)
-      .json({ error: 'Nur Administratoren dürfen die Familiendetails ändern.' });
+      .json({ error: 'Nur Administratoren oder Eltern (Editoren) dürfen Familiendetails ändern.' });
   }
 
   if (rawName !== null) {

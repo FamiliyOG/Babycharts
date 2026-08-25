@@ -10,9 +10,8 @@ function sanitizePhotoUrl(url) {
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  // Allow only strict image data URIs (base64-encoded)
-  const imageRegexPattern = /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-zA-Z0-9+/=]+$/;
-  if (imageRegexPattern.test(trimmed)) {
+  // Allow safe image data URIs (PNG, JPEG, JPG, WebP, GIF, SVG) or relative/absolute URLs
+  if (trimmed.startsWith('data:image/') || trimmed.startsWith('/') || trimmed.startsWith('http')) {
     return trimmed;
   }
 

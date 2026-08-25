@@ -182,11 +182,21 @@ function MainApp() {
       return;
     }
 
-    const isNew = !profiles.some((p) => p.id === profileData.id);
+    const isNew = !profileData.id || !profiles.some((p) => p.id === profileData.id);
     let updatedProfiles;
 
+    const profileId =
+      profileData.id ||
+      (typeof crypto !== 'undefined' && crypto.randomUUID
+        ? `child-${crypto.randomUUID()}`
+        : `child-${Date.now()}`);
+
+    const existingProfile = profiles.find((p) => p.id === profileId) || {};
+
     const fullProfile = {
+      ...existingProfile,
       ...profileData,
+      id: profileId,
       familyId: activeFamily?.id || null,
     };
 

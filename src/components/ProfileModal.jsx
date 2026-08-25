@@ -13,6 +13,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
+import { getAuthorizedMediaUrl } from '../utils/api.js';
 
 export default function ProfileModal({
   isOpen,
@@ -157,7 +158,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
           <div className="relative group shrink-0">
             {avatar ? (
               <img
-                src={avatar}
+                src={getAuthorizedMediaUrl(avatar)}
                 alt={name || 'Kind'}
                 className="w-13 h-13 rounded-2xl object-cover border border-slate-700 shadow-md"
               />

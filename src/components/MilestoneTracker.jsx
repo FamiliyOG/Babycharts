@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-react';
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
-import { uploadEncryptedMedia } from '../utils/api.js';
+import { uploadEncryptedMedia, getAuthorizedMediaUrl } from '../utils/api.js';
 
 function sanitizePhotoUrl(url) {
   if (typeof url !== 'string') return null;
@@ -84,26 +84,22 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     reader.onload = async (ev) => {
       const result = ev.target?.result;
       if (typeof result === 'string' && result.startsWith('data:image/')) {
+        // Show immediate local preview to the user
+        const localPreview = sanitizePhotoUrl(result);
+        if (localPreview) {
+          setMilestonePhoto(localPreview);
+          setPhotoError(null);
+        }
+
         try {
           // Upload to encrypted media storage scoped to this family
           const serverUrl = await uploadEncryptedMedia(result, activeChild.familyId, file.name);
-          const safePhoto = sanitizePhotoUrl(serverUrl) || sanitizePhotoUrl(result);
-          if (!safePhoto) {
-            setPhotoError('Ungültige Foto-URL.');
-            setMilestonePhoto(null);
-          } else {
+          const safePhoto = sanitizePhotoUrl(serverUrl);
+          if (safePhoto) {
             setMilestonePhoto(safePhoto);
-            setPhotoError(null);
           }
-        } catch {
-          // Fallback to Data URL if offline
-          const safeFallback = sanitizePhotoUrl(result);
-          if (!safeFallback) {
-            setPhotoError('Ungültiges Bildformat.');
-            setMilestonePhoto(null);
-          } else {
-            setMilestonePhoto(safeFallback);
-          }
+        } catch (err) {
+          console.warn('[MEDIA] Encrypted upload failed, using local offline Data URL:', err);
         } finally {
           setIsUploadingPhoto(false);
         }
@@ -297,10 +293,10 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                           })
                         }
                         title="Foto vergrößern"
-                        className="w-full rounded-2xl overflow-hidden border border-slate-700 max-h-48 bg-slate-950 block group cursor-pointer relative"
+                        className="w-full rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950 block group cursor-pointer relative"
                       >
                         <img
-                          src={sanitizePhotoUrl(entry.photo)}
+                          src={getAuthorizedMediaUrl(sanitizePhotoUrl(entry.photo))}
                           alt={m.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -402,9 +398,9 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                 </span>
                 {milestonePhoto ? (
                   <div className="space-y-2">
-                    <div className="relative group rounded-2xl overflow-hidden border border-slate-700 max-h-48 bg-slate-950">
+                    <div className="relative group rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950">
                       <img
-                        src={milestonePhoto}
+                        src={getAuthorizedMediaUrl(milestonePhoto)}
                         alt="Vorschau"
                         className="w-full h-full object-cover"
                       />

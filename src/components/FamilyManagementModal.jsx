@@ -9,6 +9,7 @@ import {
   deleteFamilyInvite,
   removeFamilyMember,
   deleteFamily,
+  getAuthorizedMediaUrl,
 } from '../utils/api.js';
 
 export default function FamilyManagementModal({ isOpen, onClose }) {
@@ -224,7 +225,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
           <div className="relative group shrink-0">
             {activeFamily?.avatar ? (
               <img
-                src={activeFamily.avatar}
+                src={getAuthorizedMediaUrl(activeFamily.avatar)}
                 alt={activeFamily?.name || 'Familie'}
                 className="w-12 h-12 rounded-2xl object-cover border border-cyan-500/40 shadow-lg shadow-cyan-950/60"
               />
@@ -389,7 +390,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     <div className="flex items-center gap-3">
                       {member.avatar ? (
                         <img
-                          src={member.avatar}
+                          src={getAuthorizedMediaUrl(member.avatar)}
                           alt={member.name}
                           className="w-8 h-8 rounded-full object-cover border border-cyan-500/40"
                         />

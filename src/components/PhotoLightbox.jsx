@@ -1,5 +1,6 @@
 import { X, Calendar } from 'lucide-react';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
+import { getAuthorizedMediaUrl } from '../utils/api.js';
 
 export default function PhotoLightbox({ photo, title, date, notes, onClose }) {
   const { dialogRef } = useModalDismissal(Boolean(photo), onClose);
@@ -21,9 +22,9 @@ export default function PhotoLightbox({ photo, title, date, notes, onClose }) {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="bg-black/40 flex items-center justify-center max-h-[70vh] overflow-hidden">
+        <div className="bg-black/60 flex items-center justify-center min-h-75 max-h-[70vh] overflow-hidden">
           <img
-            src={photo}
+            src={getAuthorizedMediaUrl(photo)}
             alt={title}
             className="w-full h-auto max-h-[70vh] object-contain select-none"
           />

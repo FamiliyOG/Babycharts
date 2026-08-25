@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { getAuthorizedMediaUrl } from '../utils/api.js';
 
 const getRoleEmoji = (role) => {
   if (role === 'admin') return '👑';
@@ -41,7 +42,7 @@ function UserAvatar({ user }) {
   if (user?.avatar) {
     return (
       <img
-        src={user.avatar}
+        src={getAuthorizedMediaUrl(user.avatar)}
         alt={user.name}
         className="w-5 h-5 rounded-full object-cover border border-cyan-400/50"
       />
@@ -58,7 +59,7 @@ function ChildProfileAvatar({ child, isGirl }) {
   if (child.avatar) {
     return (
       <img
-        src={child.avatar}
+        src={getAuthorizedMediaUrl(child.avatar)}
         alt=""
         aria-hidden="true"
         className="w-4 h-4 rounded-full object-cover border border-white/40"
@@ -395,7 +396,7 @@ function UserMenuDropdown({
             <div className="relative group shrink-0">
               {user.avatar ? (
                 <img
-                  src={user.avatar}
+                  src={getAuthorizedMediaUrl(user.avatar)}
                   alt={user.name}
                   className="w-11 h-11 rounded-2xl object-cover border border-cyan-500/40 shadow-xs"
                 />

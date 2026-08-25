@@ -239,14 +239,24 @@ export async function deleteExportFile(filename) {
   return res.ok;
 }
 
-// ── Encrypted Media Endpoints ───────────────────────────────────────────────
-
 export async function uploadEncryptedMedia(dataUrl, familyId = null, filename = '') {
   const res = await safeFetch(`${BASE}/media/upload`, {
     method: 'POST',
     body: JSON.stringify({ dataUrl, familyId, filename }),
   });
   return res.ok && res.data?.url ? res.data.url : null;
+}
+
+export function getAuthorizedMediaUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  if (url.startsWith('data:')) return url;
+  if (!url.startsWith('/api/media/')) return url;
+
+  const token = localStorage.getItem('babycharts_token');
+  if (!token) return url;
+
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}token=${encodeURIComponent(token)}`;
 }
 
 // ── Forward Frontend Errors to Server Console ────────────────────────────────

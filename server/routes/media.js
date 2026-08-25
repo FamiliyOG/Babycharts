@@ -10,9 +10,10 @@ import { Router } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'node:url';
 import { readDb, sqlite } from '../utils/db.js';
-import { requireAuth, getUserFamilyRole } from '../middleware/auth.js';
+import { requireAuth, getUserFamilyRole, JWT_SECRET } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -24,6 +25,36 @@ try {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 } catch (err) {
   console.warn('[MEDIA] mkdir uploads warning:', err.message);
+}
+
+/**
+ * Middleware: Authenticates media requests via Bearer Header OR ?token= query parameter (for <img src="...">)
+ */
+function requireMediaAuth(req, res, next) {
+  let token = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (typeof req.query?.token === 'string' && req.query.token.trim()) {
+    token = req.query.token.trim();
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'Nicht autorisiert. Bitte einloggen.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const db = readDb();
+    const user = db.users.find((u) => u.id === decoded.id);
+    if (!user) {
+      return res.status(401).json({ error: 'Benutzerkonto nicht gefunden.' });
+    }
+    req.user = { id: user.id, email: user.email, name: user.name };
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Ungültiges oder abgelaufenes Token.' });
+  }
 }
 
 /**
@@ -131,7 +162,7 @@ router.post('/upload', requireAuth, (req, res) => {
  * GET /api/media/:id
  * Streams the decrypted image directly to the client after verifying family membership
  */
-router.get('/:id', requireAuth, (req, res) => {
+router.get('/:id', requireMediaAuth, (req, res) => {
   try {
     const { id } = req.params;
     const meta = sqlite.prepare('SELECT * FROM media_files WHERE id = ?').get(id);

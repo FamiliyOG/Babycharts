@@ -27,6 +27,7 @@ import settingsRouter from './routes/settings.js';
 import exportsRouter from './routes/exports.js';
 import authRouter from './routes/auth.js';
 import familiesRouter from './routes/families.js';
+import mediaRouter from './routes/media.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.join(__dirname, '..', 'dist');
@@ -129,6 +130,7 @@ app.use('/api/families', familiesRouter);
 app.use('/api/profiles', profilesRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/exports', exportsRouter);
+app.use('/api/media', mediaRouter);
 
 // Trigger manual PDF export for a specific child via API (useful for testing)
 app.post('/api/exports/trigger/:childId', async (req, res) => {

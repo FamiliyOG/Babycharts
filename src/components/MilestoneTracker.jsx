@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-react';
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
+import { uploadEncryptedMedia } from '../utils/api.js';
 
 function sanitizePhotoUrl(url) {
   if (typeof url !== 'string') return null;
@@ -27,6 +28,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
   const [milestoneDate, setMilestoneDate] = useState('');
   const [milestoneNotes, setMilestoneNotes] = useState('');
   const [milestonePhoto, setMilestonePhoto] = useState(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Custom milestone form states
   const [customTitle, setCustomTitle] = useState('');
@@ -51,7 +53,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     setPhotoError(null);
   };
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -62,25 +64,38 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setPhotoError('Datei zu groß: Das Foto darf maximal 10 MB groß sein.');
+    if (file.size > 15 * 1024 * 1024) {
+      setPhotoError('Datei zu groß: Das Foto darf maximal 15 MB groß sein.');
       return;
     }
 
+    setIsUploadingPhoto(true);
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const result = ev.target?.result;
       if (typeof result === 'string' && result.startsWith('data:image/')) {
-        setMilestonePhoto(result);
-        setPhotoError(null);
+        try {
+          // Upload to encrypted media storage scoped to this family
+          const serverUrl = await uploadEncryptedMedia(result, activeChild.familyId, file.name);
+          setMilestonePhoto(serverUrl || result);
+          setPhotoError(null);
+        } catch {
+          // Fallback to Data URL if offline
+          setMilestonePhoto(result);
+        } finally {
+          setIsUploadingPhoto(false);
+        }
       } else {
         setPhotoError('Ungültiges Bildformat.');
+        setIsUploadingPhoto(false);
       }
     };
     reader.onerror = () => {
       setPhotoError('Fehler beim Einlesen des Fotos. Bitte versuchen Sie es erneut.');
+      setIsUploadingPhoto(false);
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleSaveMilestone = (e) => {
@@ -382,14 +397,19 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     </div>
                     <label
                       htmlFor="milestone-photo-input"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition-colors"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition-colors ${
+                        isUploadingPhoto ? 'opacity-50 pointer-events-none' : ''
+                      }`}
                     >
                       <Camera className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Anderes Foto wählen</span>
+                      <span>
+                        {isUploadingPhoto ? 'Verschlüssele & speichere...' : 'Anderes Foto wählen'}
+                      </span>
                       <input
                         id="milestone-photo-input"
                         type="file"
                         accept="image/*"
+                        disabled={isUploadingPhoto}
                         onChange={handlePhotoUpload}
                         className="hidden"
                       />
@@ -398,14 +418,21 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                 ) : (
                   <label
                     htmlFor="milestone-photo-input"
-                    className="flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-2xl cursor-pointer hover:border-amber-500 hover:bg-slate-950/60 transition-all text-slate-400 hover:text-slate-200"
+                    className={`flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-2xl cursor-pointer hover:border-amber-500 hover:bg-slate-950/60 transition-all text-slate-400 hover:text-slate-200 ${
+                      isUploadingPhoto ? 'opacity-50 pointer-events-none' : ''
+                    }`}
                   >
                     <Camera className="w-6 h-6 mb-1 text-amber-400" />
-                    <span className="text-xs font-medium">Foto hochladen (max. 10 MB)</span>
+                    <span className="text-xs font-medium">
+                      {isUploadingPhoto
+                        ? 'Verschlüssele & lade hoch...'
+                        : 'Foto hochladen (verschlüsselt auf Server)'}
+                    </span>
                     <input
                       id="milestone-photo-input"
                       type="file"
                       accept="image/*"
+                      disabled={isUploadingPhoto}
                       onChange={handlePhotoUpload}
                       className="hidden"
                     />

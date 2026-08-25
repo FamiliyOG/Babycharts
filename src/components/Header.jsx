@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   Baby,
   Plus,
@@ -318,7 +318,8 @@ function UserMenuDropdown({
 }) {
   const { dialogRef } = useModalDismissal(isOpen, onToggle);
   const [avatarError, setAvatarError] = useState(null);
-  const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const inputId = `user-avatar-upload-${isMobile ? 'mobile' : 'desktop'}`;
 
   const handleUserAvatarUpload = (e) => {
     const file = e.target.files?.[0];
@@ -336,15 +337,27 @@ function UserMenuDropdown({
       return;
     }
 
+    setIsUploading(true);
     const reader = new FileReader();
     reader.onload = async (ev) => {
-      if (ev.target?.result) {
-        await onUpdateProfile({ avatar: ev.target.result });
-        setAvatarError(null);
+      try {
+        if (ev.target?.result) {
+          const res = await onUpdateProfile({ avatar: ev.target.result });
+          if (!res?.ok) {
+            setAvatarError(res?.error || 'Fehler beim Speichern.');
+          } else {
+            setAvatarError(null);
+          }
+        }
+      } catch {
+        setAvatarError('Fehler beim Hochladen.');
+      } finally {
+        setIsUploading(false);
       }
     };
     reader.onerror = () => {
       setAvatarError('Fehler beim Einlesen des Fotos.');
+      setIsUploading(false);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -392,19 +405,21 @@ function UserMenuDropdown({
                 </div>
               )}
               <label
-                htmlFor="user-avatar-upload-input"
+                htmlFor={inputId}
                 title="Profilbild hochladen / ändern"
                 aria-label="Profilbild hochladen"
-                className="absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center"
+                className={`absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center ${
+                  isUploading ? 'opacity-50 pointer-events-none' : ''
+                }`}
               >
                 <Camera className="w-3 h-3" />
               </label>
               <input
-                id="user-avatar-upload-input"
-                ref={fileInputRef}
+                id={inputId}
                 type="file"
                 accept="image/*"
                 className="hidden"
+                disabled={isUploading}
                 onChange={handleUserAvatarUpload}
               />
               {user.avatar && (
@@ -412,7 +427,8 @@ function UserMenuDropdown({
                   type="button"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    await onUpdateProfile({ avatar: null });
+                    const res = await onUpdateProfile({ avatar: null });
+                    if (!res?.ok) setAvatarError(res?.error || 'Fehler beim Löschen.');
                   }}
                   title="Profilbild entfernen"
                   aria-label="Profilbild entfernen"
@@ -620,7 +636,7 @@ export default function Header({
     setIsFamilyModalOpen,
     setIs2FaModalOpen,
     logout,
-    updateProfile,
+    updateUserProfile,
   } = useAuth();
   const { isDark, setTheme } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -682,7 +698,7 @@ export default function Header({
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onOpen2FaModal={() => setIs2FaModalOpen(true)}
               onLogout={logout}
-              onUpdateProfile={updateProfile}
+              onUpdateProfile={updateUserProfile}
               isPdfMenuOpen={isPdfMenuOpen}
               onTogglePdfMenu={() => setIsPdfMenuOpen(!isPdfMenuOpen)}
               onManualPdfExport={onManualPdfExport}
@@ -741,7 +757,7 @@ export default function Header({
                     onOpenFamilyModal={() => setIsFamilyModalOpen(true)}
                     onOpen2FaModal={() => setIs2FaModalOpen(true)}
                     onLogout={logout}
-                    onUpdateProfile={updateProfile}
+                    onUpdateProfile={updateUserProfile}
                   />
 
                   {/* Theme Switcher (Desktop) */}

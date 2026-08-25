@@ -205,11 +205,25 @@ function MainApp() {
       setActiveChildId(fullProfile.id);
       showToast(`Profil für "${fullProfile.name}" angelegt!`);
       confetti({ particleCount: 40, spread: 50, origin: { y: 0.5 } });
-      createProfile(fullProfile).catch(() => {});
+      try {
+        const res = await createProfile(fullProfile);
+        if (!res) {
+          showToast('Hinweis: Profil offline gespeichert, Server nicht erreicht.');
+        }
+      } catch (err) {
+        console.error('Error creating profile:', err);
+      }
     } else {
       updatedProfiles = profiles.map((p) => (p.id === fullProfile.id ? fullProfile : p));
       showToast(`Profil "${fullProfile.name}" aktualisiert.`);
-      updateProfile(fullProfile.id, fullProfile).catch(() => {});
+      try {
+        const res = await updateProfile(fullProfile.id, fullProfile);
+        if (!res) {
+          showToast('Hinweis: Änderung offline gespeichert, Server nicht erreicht.');
+        }
+      } catch (err) {
+        console.error('Error updating profile:', err);
+      }
     }
 
     setProfiles(updatedProfiles);

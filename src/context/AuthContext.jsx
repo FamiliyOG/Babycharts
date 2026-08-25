@@ -126,7 +126,7 @@ export function AuthProvider({ children }) {
     [refreshUser]
   );
 
-  const updateProfile = useCallback(async (updates) => {
+  const updateUserProfile = useCallback(async (updates) => {
     const res = await updateMe(updates);
     if (res.ok && res.data?.user) {
       setUser(res.data.user);
@@ -163,7 +163,7 @@ export function AuthProvider({ children }) {
       switchFamily,
       joinFamily,
       refreshUser,
-      updateProfile,
+      updateUserProfile,
     }),
     [
       user,
@@ -183,7 +183,7 @@ export function AuthProvider({ children }) {
       switchFamily,
       joinFamily,
       refreshUser,
-      updateProfile,
+      updateUserProfile,
     ]
   );
 

@@ -239,6 +239,16 @@ export async function deleteExportFile(filename) {
   return res.ok;
 }
 
+// ── Encrypted Media Endpoints ───────────────────────────────────────────────
+
+export async function uploadEncryptedMedia(dataUrl, familyId = null, filename = '') {
+  const res = await safeFetch(`${BASE}/media/upload`, {
+    method: 'POST',
+    body: JSON.stringify({ dataUrl, familyId, filename }),
+  });
+  return res.ok && res.data?.url ? res.data.url : null;
+}
+
 // ── Forward Frontend Errors to Server Console ────────────────────────────────
 export function logClientError(message, error = null, context = null) {
   try {

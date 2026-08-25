@@ -141,6 +141,20 @@ function initSchema() {
       status TEXT,
       error TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS media_files (
+      id TEXT PRIMARY KEY,
+      familyId TEXT,
+      userId TEXT,
+      originalName TEXT,
+      mimeType TEXT NOT NULL,
+      sizeBytes INTEGER NOT NULL,
+      iv TEXT NOT NULL,
+      authTag TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
   `);
 
   // Auto-migrate users table if tempTwoFactorSecret column is missing

@@ -342,17 +342,49 @@ function UserMenuDropdown({
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
-        if (ev.target?.result) {
-          const res = await onUpdateProfile({ avatar: ev.target.result });
-          if (!res?.ok) {
-            setAvatarError(res?.error || 'Fehler beim Speichern.');
-          } else {
-            setAvatarError(null);
-          }
+        const result = ev.target?.result;
+        if (typeof result === 'string' && result.startsWith('data:image/')) {
+          const img = new Image();
+          img.onload = async () => {
+            const maxDim = 800;
+            let { width, height } = img;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+            const res = await onUpdateProfile({ avatar: compressedDataUrl });
+            if (!res?.ok) {
+              setAvatarError(res?.error || 'Fehler beim Speichern.');
+            } else {
+              setAvatarError(null);
+            }
+            setIsUploading(false);
+          };
+          img.onerror = () => {
+            setAvatarError('Fehler beim Verarbeiten des Fotos.');
+            setIsUploading(false);
+          };
+          img.src = result;
+        } else {
+          setAvatarError('Ungültiges Bildformat.');
+          setIsUploading(false);
         }
       } catch {
         setAvatarError('Fehler beim Hochladen.');
-      } finally {
         setIsUploading(false);
       }
     };
@@ -393,7 +425,7 @@ function UserMenuDropdown({
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-68 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 z-50 animate-fadeIn text-xs text-slate-800 dark:text-slate-100">
           <div className="p-3 border-b border-slate-200 dark:border-slate-800/80 mb-2 flex items-center gap-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl">
-            <div className="relative group shrink-0">
+            <div className="relative group shrink-0 cursor-pointer">
               {user.avatar ? (
                 <img
                   src={getAuthorizedMediaUrl(user.avatar)}
@@ -409,7 +441,17 @@ function UserMenuDropdown({
                 htmlFor={inputId}
                 title="Profilbild hochladen / ändern"
                 aria-label="Profilbild hochladen"
-                className={`absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center ${
+                className={`absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center cursor-pointer transition-opacity text-cyan-300 z-10 ${
+                  isUploading ? 'opacity-100 pointer-events-none' : ''
+                }`}
+              >
+                <Camera className="w-4 h-4" />
+              </label>
+              <label
+                htmlFor={inputId}
+                title="Profilbild hochladen / ändern"
+                aria-label="Profilbild hochladen"
+                className={`absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center z-10 ${
                   isUploading ? 'opacity-50 pointer-events-none' : ''
                 }`}
               >
@@ -427,13 +469,14 @@ function UserMenuDropdown({
                 <button
                   type="button"
                   onClick={async (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     const res = await onUpdateProfile({ avatar: null });
                     if (!res?.ok) setAvatarError(res?.error || 'Fehler beim Löschen.');
                   }}
                   title="Profilbild entfernen"
                   aria-label="Profilbild entfernen"
-                  className="absolute -top-1 -right-1 p-0.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center"
+                  className="absolute -top-1 -right-1 p-0.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center z-20"
                 >
                   <Trash2 className="w-2.5 h-2.5" />
                 </button>

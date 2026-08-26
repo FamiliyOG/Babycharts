@@ -243,7 +243,7 @@ router.get('/:id', requireMediaAuth, (req, res) => {
     res.setHeader('Content-Disposition', 'inline');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Download-Options', 'noopen');
-    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    res.setHeader('Content-Security-Policy', "default-src 'none'");
     res.setHeader('Cache-Control', 'private, max-age=86400'); // Cache for 24h in client session
     return res.end(decrypted);
   } catch (err) {

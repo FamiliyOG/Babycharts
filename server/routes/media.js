@@ -201,13 +201,27 @@ router.get('/:id', requireMediaAuth, (req, res) => {
       if (meta.userId === req.user.id) {
         hasAccess = true;
       } else {
-        // Check if req.user shares any family with meta.userId
+        // Check if req.user shares any family with meta.userId or if media is referenced in any profile user has access to
+        const userFamilies = db.families.filter(
+          (f) => f.ownerId === req.user.id || f.members?.some((m) => m.userId === req.user.id)
+        );
+        const userFamilyIds = new Set(userFamilies.map((f) => f.id));
+
         const sharedFamily = db.families.some(
           (f) =>
             (f.ownerId === meta.userId || f.members?.some((m) => m.userId === meta.userId)) &&
             (f.ownerId === req.user.id || f.members?.some((m) => m.userId === req.user.id))
         );
-        if (sharedFamily) hasAccess = true;
+
+        const profileReferenced = db.profiles.some(
+          (p) =>
+            p.familyId &&
+            userFamilyIds.has(p.familyId) &&
+            (p.avatar?.includes(id) ||
+              Object.values(p.milestones || {}).some((m) => m?.photo?.includes(id)))
+        );
+
+        if (sharedFamily || profileReferenced) hasAccess = true;
       }
     }
 
@@ -243,7 +257,6 @@ router.get('/:id', requireMediaAuth, (req, res) => {
     res.setHeader('Content-Disposition', 'inline');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Download-Options', 'noopen');
-    res.setHeader('Content-Security-Policy', "default-src 'none'");
     res.setHeader('Cache-Control', 'private, max-age=86400'); // Cache for 24h in client session
     return res.end(decrypted);
   } catch (err) {

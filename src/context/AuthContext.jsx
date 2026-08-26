@@ -127,6 +127,8 @@ export function AuthProvider({ children }) {
   );
 
   const updateUserProfile = useCallback(async (updates) => {
+    // Optimistic UI update so the avatar changes instantly in the frontend
+    setUser((prev) => (prev ? { ...prev, ...updates } : prev));
     const res = await updateMe(updates);
     if (res.ok && res.data?.user) {
       setUser(res.data.user);

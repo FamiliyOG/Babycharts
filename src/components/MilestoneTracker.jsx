@@ -87,26 +87,59 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
       return;
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      setPhotoError('Datei zu groß: Das Foto darf maximal 15 MB groß sein.');
-      return;
-    }
-
     setIsUploadingPhoto(true);
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const result = ev.target?.result;
       if (typeof result === 'string' && result.startsWith('data:image/')) {
-        // Use base64 dataUrl directly for 100% cross-device guarantee & zero 404s
-        setMilestonePhoto(result);
-        setPhotoError(null);
+        // Compress/resize client-side to max 1200px to ensure fast loads & tiny payload size (< 300 KB)
+        const img = new Image();
+        img.onload = async () => {
+          const maxDim = 1200;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
 
-        try {
-          // Trigger optional encrypted upload in background
-          uploadEncryptedMedia(result, activeChild.familyId, file.name).catch(() => {});
-        } finally {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+          // Store optimized data URL in state
+          setMilestonePhoto(compressedDataUrl);
+          setPhotoError(null);
+
+          try {
+            // Also store encrypted media on server
+            const serverUrl = await uploadEncryptedMedia(
+              compressedDataUrl,
+              activeChild.familyId,
+              file.name
+            );
+            if (serverUrl) {
+              setMilestonePhoto(serverUrl);
+            }
+          } catch {
+            // Keep local compressed data URL if server upload fails
+          } finally {
+            setIsUploadingPhoto(false);
+          }
+        };
+        img.onerror = () => {
+          setPhotoError('Fehler beim Verarbeiten des Fotos.');
           setIsUploadingPhoto(false);
-        }
+        };
+        img.src = result;
       } else {
         setPhotoError('Ungültiges Bildformat.');
         setIsUploadingPhoto(false);

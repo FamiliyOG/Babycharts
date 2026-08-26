@@ -95,7 +95,9 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: '10mb' }));
+// Body parser for JSON with 50MB limit to support high-resolution mobile photos
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ── Client Error Logging (Forward frontend errors to Unraid container log) ───
 app.post('/api/client-logs', (req, res) => {

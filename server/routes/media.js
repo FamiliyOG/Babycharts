@@ -97,13 +97,16 @@ router.post('/upload', requireAuth, (req, res) => {
       }
     }
 
-    // Parse base64 header and data
-    const matches = dataUrl.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+    // Parse base64 header and data with strict raster image MIME whitelist (excluding SVG to prevent XSS)
+    const matches = dataUrl.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,(.+)$/i);
     if (!matches || matches.length !== 3) {
-      return res.status(400).json({ error: 'Ungültige Bilddaten.' });
+      return res.status(400).json({
+        error: 'Ungültiges oder nicht unterstütztes Bildformat (nur PNG, JPEG, WebP, GIF).',
+      });
     }
 
-    const mimeType = matches[1];
+    const mimeType =
+      matches[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : matches[1].toLowerCase();
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, 'base64');
 
@@ -164,7 +167,12 @@ router.post('/upload', requireAuth, (req, res) => {
  */
 router.get('/:id', requireMediaAuth, (req, res) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    if (typeof rawId !== 'string' || !/^med-[a-zA-Z0-9-]+$/.test(rawId)) {
+      return res.status(400).json({ error: 'Ungültige Medien-ID.' });
+    }
+    const id = rawId;
+
     const meta = sqlite.prepare('SELECT * FROM media_files WHERE id = ?').get(id);
 
     if (!meta) {
@@ -221,14 +229,23 @@ router.get('/:id', requireMediaAuth, (req, res) => {
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(authTag);
-
     const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
 
-    // Send decrypted buffer with proper caching headers
-    res.setHeader('Content-Type', meta.mimeType);
+    // Whitelist check on mimeType before serving to prevent XSS / MIME sniffing
+    const SAFE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const safeMime = SAFE_MIMES.includes(meta.mimeType)
+      ? meta.mimeType
+      : 'application/octet-stream';
+
+    // Send decrypted buffer with strict security and caching headers
+    res.setHeader('Content-Type', safeMime);
     res.setHeader('Content-Length', decrypted.length);
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Download-Options', 'noopen');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
     res.setHeader('Cache-Control', 'private, max-age=86400'); // Cache for 24h in client session
-    return res.send(decrypted);
+    return res.end(decrypted);
   } catch (err) {
     console.error('[MEDIA] Decrypt error:', err);
     return res.status(500).json({ error: 'Fehler beim Entschlüsseln des Mediums.' });
@@ -241,7 +258,12 @@ router.get('/:id', requireMediaAuth, (req, res) => {
  */
 router.delete('/:id', requireAuth, (req, res) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    if (typeof rawId !== 'string' || !/^med-[a-zA-Z0-9-]+$/.test(rawId)) {
+      return res.status(400).json({ error: 'Ungültige Medien-ID.' });
+    }
+    const id = rawId;
+
     const meta = sqlite.prepare('SELECT * FROM media_files WHERE id = ?').get(id);
 
     if (!meta) {

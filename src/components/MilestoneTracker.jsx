@@ -11,6 +11,11 @@ function sanitizePhotoUrl(url) {
   const trimmed = url.trim();
   if (!trimmed) return null;
 
+  // Allow raw media IDs
+  if (/^med-[a-z0-9-]+$/i.test(trimmed)) {
+    return trimmed;
+  }
+
   // Allow only https absolute URLs
   if (/^https:\/\/[^\s]+$/i.test(trimmed)) {
     return trimmed;

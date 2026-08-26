@@ -250,13 +250,22 @@ export async function uploadEncryptedMedia(dataUrl, familyId = null, filename = 
 export function getAuthorizedMediaUrl(url) {
   if (!url || typeof url !== 'string') return '';
   if (url.startsWith('data:')) return url;
-  if (!url.startsWith('/api/media/')) return url;
+
+  // Normalize media ID or path to full /api/media/:id
+  let fullUrl = url.trim();
+  if (fullUrl.startsWith('med-')) {
+    fullUrl = `/api/media/${fullUrl}`;
+  } else if (fullUrl.startsWith('api/media/')) {
+    fullUrl = `/${fullUrl}`;
+  }
+
+  if (!fullUrl.startsWith('/api/media/')) return fullUrl;
 
   const token = localStorage.getItem('babycharts_token');
-  if (!token) return url;
+  if (!token) return fullUrl;
 
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}token=${encodeURIComponent(token)}`;
+  const separator = fullUrl.includes('?') ? '&' : '?';
+  return `${fullUrl}${separator}token=${encodeURIComponent(token)}`;
 }
 
 // ── Forward Frontend Errors to Server Console ────────────────────────────────

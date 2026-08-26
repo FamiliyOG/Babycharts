@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Baby,
   Plus,
@@ -320,7 +320,7 @@ function UserMenuDropdown({
   const { dialogRef } = useModalDismissal(isOpen, onToggle);
   const [avatarError, setAvatarError] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const inputId = `user-avatar-upload-${isMobile ? 'mobile' : 'desktop'}`;
+  const fileInputRef = useRef(null);
 
   const handleUserAvatarUpload = (e) => {
     const file = e.target.files?.[0];
@@ -425,7 +425,11 @@ function UserMenuDropdown({
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-68 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 z-50 animate-fadeIn text-xs text-slate-800 dark:text-slate-100">
           <div className="p-3 border-b border-slate-200 dark:border-slate-800/80 mb-2 flex items-center gap-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl">
-            <div className="relative group shrink-0 cursor-pointer">
+            <div
+              className="relative group shrink-0 cursor-pointer"
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+              title="Profilbild hochladen / ändern"
+            >
               {user.avatar ? (
                 <img
                   src={getAuthorizedMediaUrl(user.avatar)}
@@ -437,28 +441,22 @@ function UserMenuDropdown({
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <label
-                htmlFor={inputId}
-                title="Profilbild hochladen / ändern"
-                aria-label="Profilbild hochladen"
-                className={`absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center cursor-pointer transition-opacity text-cyan-300 z-10 ${
-                  isUploading ? 'opacity-100 pointer-events-none' : ''
+              <div
+                className={`absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center transition-opacity text-cyan-300 z-10 ${
+                  isUploading ? 'opacity-100' : ''
                 }`}
               >
                 <Camera className="w-4 h-4" />
-              </label>
-              <label
-                htmlFor={inputId}
-                title="Profilbild hochladen / ändern"
-                aria-label="Profilbild hochladen"
-                className={`absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center z-10 ${
-                  isUploading ? 'opacity-50 pointer-events-none' : ''
+              </div>
+              <div
+                className={`absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md transition-transform active:scale-95 flex items-center justify-center z-10 ${
+                  isUploading ? 'opacity-50' : ''
                 }`}
               >
                 <Camera className="w-3 h-3" />
-              </label>
+              </div>
               <input
-                id={inputId}
+                ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 className="hidden"

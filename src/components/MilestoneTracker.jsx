@@ -11,24 +11,29 @@ function sanitizePhotoUrl(url) {
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  // Allow raw media IDs
-  if (/^med-[a-z0-9-]+$/i.test(trimmed)) {
-    return trimmed;
-  }
-
-  // Allow only https absolute URLs
-  if (/^https:\/\/[^\s]+$/i.test(trimmed)) {
-    return trimmed;
-  }
-
-  // Allow only root-relative URLs
-  if (/^\/(?!\/)[^\s]*$/i.test(trimmed)) {
-    return trimmed;
-  }
-
-  // Allow only safe raster image data URLs (base64), explicitly excluding SVG
+  // Allow only safe raster image data URLs (base64)
   if (/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(trimmed)) {
     return trimmed;
+  }
+
+  // Allow only raw media IDs with strict characters
+  if (/^med-[a-zA-Z0-9-]+$/.test(trimmed)) {
+    return `/api/media/${encodeURIComponent(trimmed)}`;
+  }
+
+  // Allow only safe root-relative API media paths
+  if (/^\/api\/media\/med-[a-zA-Z0-9-]+$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Allow safe absolute HTTPS URLs
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:') {
+      return parsed.href;
+    }
+  } catch {
+    return null;
   }
 
   return null;
@@ -50,6 +55,9 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
   const [customIcon, setCustomIcon] = useState('⭐');
   const [customDesc, setCustomDesc] = useState('');
   const [photoError, setPhotoError] = useState(null);
+
+  // State to track media URLs that fail to load from server (404/expired)
+  const [failedImageUrls, setFailedImageUrls] = useState({});
 
   if (!activeChild) return null;
 
@@ -278,28 +286,52 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                 {isDone && (
                   <div className="mb-3 space-y-2">
                     {sanitizePhotoUrl(entry.photo) && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setLightboxData({
-                            photo: sanitizePhotoUrl(entry.photo),
-                            title: m.title,
-                            date: entry.date,
-                            notes: entry.notes,
-                          })
-                        }
-                        title="Foto vergrößern"
-                        className="w-full rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950 block group cursor-pointer relative"
-                      >
-                        <img
-                          src={getAuthorizedMediaUrl(sanitizePhotoUrl(entry.photo))}
-                          alt={m.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
-                          🔍 Vergrößern
-                        </div>
-                      </button>
+                      <div className="w-full">
+                        {failedImageUrls[entry.photo] ? (
+                          <div className="w-full rounded-2xl border border-dashed border-slate-700 bg-slate-900/80 p-4 text-center space-y-2">
+                            <Camera className="w-6 h-6 text-slate-500 mx-auto" />
+                            <p className="text-xs text-slate-400">
+                              Foto konnte nicht geladen werden.
+                            </p>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(m)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors"
+                              >
+                                <Camera className="w-3.5 h-3.5" />
+                                <span>Foto neu hochladen</span>
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLightboxData({
+                                photo: sanitizePhotoUrl(entry.photo),
+                                title: m.title,
+                                date: entry.date,
+                                notes: entry.notes,
+                              })
+                            }
+                            title="Foto vergrößern"
+                            className="w-full rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950 block group cursor-pointer relative"
+                          >
+                            <img
+                              src={getAuthorizedMediaUrl(sanitizePhotoUrl(entry.photo))}
+                              alt={m.title}
+                              onError={() =>
+                                setFailedImageUrls((prev) => ({ ...prev, [entry.photo]: true }))
+                              }
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
+                              🔍 Vergrößern
+                            </div>
+                          </button>
+                        )}
+                      </div>
                     )}
 
                     <div className="text-[11px] bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 text-slate-300 space-y-1">

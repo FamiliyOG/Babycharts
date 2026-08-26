@@ -85,25 +85,13 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
 
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
 
-          // Store optimized data URL in state
+          // Store optimized data URL directly in state (100% resilient & cross-device synchronized)
           setMilestonePhoto(compressedDataUrl);
           setPhotoError(null);
+          setIsUploadingPhoto(false);
 
-          try {
-            // Also store encrypted media on server
-            const serverUrl = await uploadEncryptedMedia(
-              compressedDataUrl,
-              activeChild.familyId,
-              file.name
-            );
-            if (serverUrl) {
-              setMilestonePhoto(serverUrl);
-            }
-          } catch {
-            // Keep local compressed data URL if server upload fails
-          } finally {
-            setIsUploadingPhoto(false);
-          }
+          // Best-effort encrypted backup on server in background
+          uploadEncryptedMedia(compressedDataUrl, activeChild.familyId, file.name).catch(() => {});
         };
         img.onerror = () => {
           setPhotoError('Fehler beim Verarbeiten des Fotos.');

@@ -84,22 +84,19 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     reader.onload = async (ev) => {
       const result = ev.target?.result;
       if (typeof result === 'string' && result.startsWith('data:image/')) {
-        // Show immediate local preview to the user
-        const localPreview = sanitizePhotoUrl(result);
-        if (localPreview) {
-          setMilestonePhoto(localPreview);
-          setPhotoError(null);
-        }
+        // Set photo state immediately
+        setMilestonePhoto(result);
+        setPhotoError(null);
 
         try {
-          // Upload to encrypted media storage scoped to this family
+          // Attempt encrypted server upload
           const serverUrl = await uploadEncryptedMedia(result, activeChild.familyId, file.name);
-          const safePhoto = sanitizePhotoUrl(serverUrl);
-          if (safePhoto) {
-            setMilestonePhoto(safePhoto);
+          if (serverUrl) {
+            setMilestonePhoto(serverUrl);
           }
-        } catch (err) {
-          console.warn('[MEDIA] Encrypted upload failed, using local offline Data URL:', err);
+        } catch {
+          // If server upload fails, persist standard base64 dataUrl
+          setMilestonePhoto(result);
         } finally {
           setIsUploadingPhoto(false);
         }

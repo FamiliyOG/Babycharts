@@ -89,19 +89,13 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     reader.onload = async (ev) => {
       const result = ev.target?.result;
       if (typeof result === 'string' && result.startsWith('data:image/')) {
-        // Set photo state immediately
+        // Use base64 dataUrl directly for 100% cross-device guarantee & zero 404s
         setMilestonePhoto(result);
         setPhotoError(null);
 
         try {
-          // Attempt encrypted server upload
-          const serverUrl = await uploadEncryptedMedia(result, activeChild.familyId, file.name);
-          if (serverUrl) {
-            setMilestonePhoto(serverUrl);
-          }
-        } catch {
-          // If server upload fails, persist standard base64 dataUrl
-          setMilestonePhoto(result);
+          // Trigger optional encrypted upload in background
+          uploadEncryptedMedia(result, activeChild.familyId, file.name).catch(() => {});
         } finally {
           setIsUploadingPhoto(false);
         }
@@ -402,7 +396,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                   <div className="space-y-2">
                     <div className="relative group rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950">
                       <img
-                        src={getAuthorizedMediaUrl(milestonePhoto)}
+                        src={getAuthorizedMediaUrl(sanitizePhotoUrl(milestonePhoto))}
                         alt="Vorschau"
                         className="w-full h-full object-cover"
                       />

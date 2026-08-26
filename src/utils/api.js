@@ -247,25 +247,56 @@ export async function uploadEncryptedMedia(dataUrl, familyId = null, filename = 
   return res.ok && res.data?.url ? res.data.url : null;
 }
 
-export function getAuthorizedMediaUrl(url) {
+export function sanitizeMediaUrl(url) {
   if (!url || typeof url !== 'string') return '';
-  if (url.startsWith('data:')) return url;
+  const trimmed = url.trim();
+  if (!trimmed) return '';
 
-  // Normalize media ID or path to full /api/media/:id
-  let fullUrl = url.trim();
-  if (fullUrl.startsWith('med-')) {
-    fullUrl = `/api/media/${fullUrl}`;
-  } else if (fullUrl.startsWith('api/media/')) {
-    fullUrl = `/${fullUrl}`;
+  // Safe raster image base64 data URLs
+  if (/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(trimmed)) {
+    return trimmed;
   }
 
-  if (!fullUrl.startsWith('/api/media/')) return fullUrl;
+  // Safe raw media ID
+  if (/^med-[a-zA-Z0-9-]+$/.test(trimmed)) {
+    return `/api/media/${encodeURIComponent(trimmed)}`;
+  }
+
+  // Safe root-relative API media paths
+  if (/^\/api\/media\/med-[a-zA-Z0-9-]+$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Safe root-relative media paths without leading slash
+  if (/^api\/media\/med-[a-zA-Z0-9-]+$/.test(trimmed)) {
+    return `/${trimmed}`;
+  }
+
+  // Safe HTTPS URLs
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.href;
+    }
+  } catch {
+    return '';
+  }
+
+  return '';
+}
+
+export function getAuthorizedMediaUrl(url) {
+  const safeUrl = sanitizeMediaUrl(url);
+  if (!safeUrl) return '';
+  if (safeUrl.startsWith('data:')) return safeUrl;
+
+  if (!safeUrl.startsWith('/api/media/')) return safeUrl;
 
   const token = localStorage.getItem('babycharts_token');
-  if (!token) return fullUrl;
+  if (!token) return safeUrl;
 
-  const separator = fullUrl.includes('?') ? '&' : '?';
-  return `${fullUrl}${separator}token=${encodeURIComponent(token)}`;
+  const separator = safeUrl.includes('?') ? '&' : '?';
+  return `${safeUrl}${separator}token=${encodeURIComponent(token)}`;
 }
 
 // ── Forward Frontend Errors to Server Console ────────────────────────────────

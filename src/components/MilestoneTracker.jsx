@@ -3,40 +3,10 @@ import confetti from 'canvas-confetti';
 import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-react';
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
-import { uploadEncryptedMedia, getAuthorizedMediaUrl } from '../utils/api.js';
+import { uploadEncryptedMedia, getAuthorizedMediaUrl, sanitizeMediaUrl } from '../utils/api.js';
 
 function sanitizePhotoUrl(url) {
-  if (typeof url !== 'string') return null;
-
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-
-  // Allow only safe raster image data URLs (base64)
-  if (/^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(trimmed)) {
-    return trimmed;
-  }
-
-  // Allow only raw media IDs with strict characters
-  if (/^med-[a-zA-Z0-9-]+$/.test(trimmed)) {
-    return `/api/media/${encodeURIComponent(trimmed)}`;
-  }
-
-  // Allow only safe root-relative API media paths
-  if (/^\/api\/media\/med-[a-zA-Z0-9-]+$/.test(trimmed)) {
-    return trimmed;
-  }
-
-  // Allow safe absolute HTTPS URLs
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol === 'https:') {
-      return parsed.href;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
+  return sanitizeMediaUrl(url);
 }
 
 export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }) {

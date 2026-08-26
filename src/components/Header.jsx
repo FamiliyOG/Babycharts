@@ -333,49 +333,54 @@ function UserMenuDropdown({
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setAvatarError('Bild darf maximal 10 MB groß sein.');
+    if (file.size > 15 * 1024 * 1024) {
+      setAvatarError('Bild darf maximal 15 MB groß sein.');
       return;
     }
 
     setIsUploading(true);
     const reader = new FileReader();
-    reader.onload = async (ev) => {
+    reader.onload = (ev) => {
       try {
         const result = ev.target?.result;
         if (typeof result === 'string' && result.startsWith('data:image/')) {
           const img = new Image();
           img.onload = async () => {
-            const maxDim = 800;
-            let { width, height } = img;
-            if (width > maxDim || height > maxDim) {
-              if (width > height) {
-                height = Math.round((height * maxDim) / width);
-                width = maxDim;
-              } else {
-                width = Math.round((width * maxDim) / height);
-                height = maxDim;
+            try {
+              const maxDim = 800;
+              let { width, height } = img;
+              if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                  height = Math.round((height * maxDim) / width);
+                  width = maxDim;
+                } else {
+                  width = Math.round((width * maxDim) / height);
+                  height = maxDim;
+                }
               }
+
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+
+              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+              const res = await onUpdateProfile({ avatar: compressedDataUrl });
+              if (!res?.ok) {
+                setAvatarError(res?.error || 'Fehler beim Speichern.');
+              } else {
+                setAvatarError(null);
+              }
+            } catch {
+              setAvatarError('Fehler beim Verarbeiten des Bildes.');
+            } finally {
+              setIsUploading(false);
             }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-            const res = await onUpdateProfile({ avatar: compressedDataUrl });
-            if (!res?.ok) {
-              setAvatarError(res?.error || 'Fehler beim Speichern.');
-            } else {
-              setAvatarError(null);
-            }
-            setIsUploading(false);
           };
           img.onerror = () => {
-            setAvatarError('Fehler beim Verarbeiten des Fotos.');
+            setAvatarError('Fehler beim Laden des Bildes.');
             setIsUploading(false);
           };
           img.src = result;
@@ -398,6 +403,15 @@ function UserMenuDropdown({
 
   return (
     <div ref={dialogRef} className={`relative ${isMobile ? 'block' : 'hidden md:block'}`}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        disabled={isUploading}
+        onChange={handleUserAvatarUpload}
+      />
+
       {isMobile ? (
         <button
           type="button"
@@ -427,7 +441,10 @@ function UserMenuDropdown({
           <div className="p-3 border-b border-slate-200 dark:border-slate-800/80 mb-2 flex items-center gap-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl">
             <div
               className="relative group shrink-0 cursor-pointer"
-              onClick={() => !isUploading && fileInputRef.current?.click()}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isUploading) fileInputRef.current?.click();
+              }}
               title="Profilbild hochladen / ändern"
             >
               {user.avatar ? (
@@ -455,14 +472,6 @@ function UserMenuDropdown({
               >
                 <Camera className="w-3 h-3" />
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={isUploading}
-                onChange={handleUserAvatarUpload}
-              />
               {user.avatar && (
                 <button
                   type="button"

@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "BabyCharts",
-    "subtitle": "Wachstumskurven & Meilensteine"
+    "subtitle": "Wachstumskurven & Meilensteine",
+    "offlineNotice": "Offline-Modus aktiv. Änderungen werden lokal gespeichert."
   },
   "nav": {
     "overview": "Übersicht",
@@ -26,6 +27,66 @@
     "close": "Schließen",
     "copied": "Kopiert!",
     "copy": "Kopieren",
-    "loading": "Laden..."
+    "loading": "Laden...",
+    "add": "Hinzufügen",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "settings": "Einstellungen",
+    "profile": "Profil",
+    "download": "Herunterladen",
+    "search": "Suchen...",
+    "confirm": "Bestätigen"
+  },
+  "header": {
+    "selectChild": "Kind auswählen",
+    "addChild": "Kind hinzufügen",
+    "switchFamily": "Familie wechseln",
+    "manageFamily": "Familie verwalten",
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "security": "Sicherheit & 2FA",
+    "exportReport": "PDF-Bericht erstellen",
+    "doctorReport": "Arztbericht exportieren",
+    "calendar": "Kalender exportieren",
+    "dataExport": "Daten exportieren / importieren"
+  },
+  "growth": {
+    "title": "Wachstumskurven (WHO-Perzentilen)",
+    "addMeasurement": "Messwert eintragen",
+    "weight": "Gewicht",
+    "height": "Körperlänge",
+    "headCircumference": "Kopfumfang",
+    "bmi": "BMI",
+    "percentile": "Perzentile",
+    "history": "Messwert-Historie",
+    "noMeasurements": "Noch keine Messwerte eingetragen."
+  },
+  "milestones": {
+    "title": "Entwicklungsmeilensteine",
+    "achieved": "Erreicht am",
+    "notes": "Notizen",
+    "addCustom": "Eigenen Meilenstein hinzufügen"
+  },
+  "teeth": {
+    "title": "Zahnungs-Tagebuch",
+    "erupted": "Durchgebrochen am",
+    "upperJaw": "Oberkiefer",
+    "lowerJaw": "Unterkiefer"
+  },
+  "health": {
+    "title": "Gesundheits- & Symptomtagebuch",
+    "temperature": "Temperatur (°C)",
+    "symptoms": "Symptome",
+    "medication": "Medikamente",
+    "addEntry": "Eintrag hinzufügen"
+  },
+  "family": {
+    "title": "Familienverwaltung",
+    "members": "Mitglieder",
+    "invite": "Einladen",
+    "role": "Rolle",
+    "leave": "Familie verlassen",
+    "delete": "Familie löschen",
+    "join": "Familie beitreten"
   }
 }

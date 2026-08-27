@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "BabyCharts",
-    "subtitle": "Growth Tracker & Milestones"
+    "subtitle": "Growth Tracker & Milestones",
+    "offlineNotice": "Offline mode active. Changes are stored locally."
   },
   "nav": {
     "overview": "Overview",
@@ -26,6 +27,66 @@
     "close": "Close",
     "copied": "Copied!",
     "copy": "Copy",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "add": "Add",
+    "export": "Export",
+    "import": "Import",
+    "settings": "Settings",
+    "profile": "Profile",
+    "download": "Download",
+    "search": "Search...",
+    "confirm": "Confirm"
+  },
+  "header": {
+    "selectChild": "Select child",
+    "addChild": "Add child",
+    "switchFamily": "Switch family",
+    "manageFamily": "Manage family",
+    "login": "Sign in",
+    "logout": "Sign out",
+    "security": "Security & 2FA",
+    "exportReport": "Generate PDF report",
+    "doctorReport": "Export doctor report",
+    "calendar": "Export calendar",
+    "dataExport": "Export / Import data"
+  },
+  "growth": {
+    "title": "Growth Charts (WHO Percentiles)",
+    "addMeasurement": "Record measurement",
+    "weight": "Weight",
+    "height": "Length",
+    "headCircumference": "Head Circumference",
+    "bmi": "BMI",
+    "percentile": "Percentile",
+    "history": "Measurement History",
+    "noMeasurements": "No measurements recorded yet."
+  },
+  "milestones": {
+    "title": "Developmental Milestones",
+    "achieved": "Achieved on",
+    "notes": "Notes",
+    "addCustom": "Add custom milestone"
+  },
+  "teeth": {
+    "title": "Teething Diary",
+    "erupted": "Erupted on",
+    "upperJaw": "Upper Jaw",
+    "lowerJaw": "Lower Jaw"
+  },
+  "health": {
+    "title": "Health & Symptom Tracker",
+    "temperature": "Temperature (°C)",
+    "symptoms": "Symptoms",
+    "medication": "Medication",
+    "addEntry": "Add entry"
+  },
+  "family": {
+    "title": "Family Management",
+    "members": "Members",
+    "invite": "Invite",
+    "role": "Role",
+    "leave": "Leave family",
+    "delete": "Delete family",
+    "join": "Join family"
   }
 }

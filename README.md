@@ -4,17 +4,18 @@
 
 ![BabyCharts Banner](https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/baby.svg)
 
-**Der moderne, ganzheitliche & datenschutzfreundliche Tracker für Kinder-Wachstum, Vorsorgeuntersuchungen (U1–U9), STIKO-Impfungen, Zähne und Meilensteine.**
+**Der moderne, ganzheitliche & datenschutzfreundliche Tracker für Kinder-Wachstum, Vorsorgeuntersuchungen (U1–U9), STIKO-Impfungen, Zähne, Meilensteine und automatisierte Berichte.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-v20+-green.svg?style=flat-square&logo=node.js)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/Node.js-v22%2B%20%7C%20v24-green.svg?style=flat-square&logo=node.js)](https://nodejs.org)
 [![React](https://img.shields.io/badge/React-19-cyan.svg?style=flat-square&logo=react)](https://react.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38bdf8.svg?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 [![SQLite](<https://img.shields.io/badge/Database-SQLite%20(WAL)-blue.svg?style=flat-square&logo=sqlite>)](https://sqlite.org)
+[![Tests: Vitest](https://img.shields.io/badge/Tests-Vitest%20%7C%20Supertest-646cff.svg?style=flat-square&logo=vitest)](https://vitest.dev)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed.svg?style=flat-square&logo=docker)](https://docker.com)
 [![Code Quality](https://img.shields.io/badge/Linter-0%20Warnings-emerald.svg?style=flat-square)](https://eslint.org)
 
-[Kernfunktionen](#-kernfunktionen) • [Technologie](#️-technologie-stack) • [Schnellstart](#-schnellstart) • [Docker & Unraid](#-docker--unraid-deployment) • [Sicherheit](#-sicherheit--datenschutz) • [Mitwirken](#-mitwirken)
+[Kernfunktionen](#-kernfunktionen) • [Technologie](#️-technologie-stack) • [Schnellstart](#-schnellstart) • [Tests](#-automatisierte-tests) • [Docker & Unraid](#-docker--unraid-deployment) • [Sicherheit](#-sicherheit--datenschutz) • [Mitwirken](#-mitwirken)
 
 </div>
 
@@ -75,23 +76,26 @@ BabyCharts ist eine selbst gehostete All-in-One Plattform für Eltern und Famili
 - **CSV / Excel Export**: Rohdaten-Export für eigene Auswertungen.
 - **JSON Backup & Restore**: Vollständige Datensicherung mit 1-Klick-Wiederherstellung.
 
-### 👥 8. Familienverwaltung & Multi-User
+### 👥 8. Familienverwaltung & Rollen-Autorisierung
 
-- Geteilter Zugriff für Elternteile und Partner mit Schreibrechten (`editor`).
+- **Strikte Cross-Family-Isolation**: Vollständige Daten- und Medienisolierung zwischen verschiedenen Familien.
+- Geteilter Zugriff für Elternteile und Partner mit Schreibrechten (`editor` / `admin`).
 - Einladung von Großeltern oder Angehörigen im reinen Lesemodus (`viewer`).
-- Einladungs-Code-Generator mit Rollenwahl.
+- Einladungs-Code-Generator mit Rollenwahl und Widerrufsfunktion.
 - Mehrere Familien pro Benutzerkonto wechselbar.
 
 ---
 
 ## 🛠️ Technologie-Stack
 
-| Bereich        | Technologien                                                                               |
-| :------------- | :----------------------------------------------------------------------------------------- |
-| **Frontend**   | React 19, Tailwind CSS v4, Chart.js, React-Chartjs-2, jsPDF, Lucide Icons, Canvas-Confetti |
-| **Backend**    | Node.js, Express 5 (ESM), SQLite (`better-sqlite3` im WAL-Modus)                           |
-| **Sicherheit** | JWT (JSON Web Tokens), Bcrypt Passworthashes, 2FA (TOTP via Speakeasy & QRCode)            |
-| **Tooling**    | Vite 8, Prettier, Oxlint & ESLint 9, Docker Multi-Stage Builds                             |
+| Bereich             | Technologien                                                                                |
+| :------------------ | :------------------------------------------------------------------------------------------ |
+| **Frontend**        | React 19, Tailwind CSS v4, Chart.js, React-Chartjs-2, jsPDF, Lucide Icons, Canvas-Confetti  |
+| **Backend**         | Node.js, Express 5 (ESM), SQLite (`better-sqlite3` im WAL-Modus)                            |
+| **Testing**         | Vitest, Supertest (Unit-, Integrations- & Security-Test-Suiten)                             |
+| **Verschlüsselung** | AES-256-GCM für Mediendateien mit persistentem 32-Byte Master-Key, Bcrypt Passworthashes    |
+| **Sicherheit**      | JWT (JSON Web Tokens), 2FA (TOTP via Speakeasy & QRCode), Rollen-Middleware, XSS-Schutz     |
+| **Tooling & CI**    | Vite 8, Prettier, Oxlint, ESLint 9, Stylelint, GitHub Actions CI, Docker Multi-Stage Builds |
 
 ---
 
@@ -99,11 +103,11 @@ BabyCharts ist eine selbst gehostete All-in-One Plattform für Eltern und Famili
 
 ### Voraussetzungen
 
-- Node.js (v20+) & npm
+- Node.js (v22+) & npm
 
 ```bash
 # 1. Repository klonen
-git clone https://github.com/<your-username>/Babycharts.git
+git clone https://github.com/FamiliyOG/Babycharts.git
 cd Babycharts
 
 # 2. Abhängigkeiten installieren
@@ -122,6 +126,24 @@ Die Anwendung ist im Browser unter `http://localhost:5173` erreichbar.
 
 ---
 
+## 🧪 Automatisierte Tests
+
+BabyCharts enthält eine automatisierte Testsuite mit **Vitest** und **Supertest**:
+
+```bash
+# Alle Tests einmalig ausführen
+npm test
+
+# Tests im interaktiven Watch-Modus
+npm run test:watch
+
+# Code-Qualität und Linting prüfen
+npm run lint:all
+npm run format:check
+```
+
+---
+
 ## 🐳 Docker & Unraid Deployment
 
 BabyCharts ist für den 24/7-Dauerbetrieb im Docker-Container optimiert.
@@ -133,8 +155,7 @@ Erstellen Sie eine `docker-compose.yml`:
 ```yaml
 services:
   babycharts:
-    image: babycharts:latest
-    build: .
+    image: ghcr.io/familiyog/babycharts:latest
     container_name: babycharts
     restart: unless-stopped
     ports:
@@ -150,7 +171,7 @@ services:
 Starten mit:
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 ### Unraid Installation
@@ -163,8 +184,10 @@ docker compose up -d --build
 
 ## 🔒 Sicherheit & Datenschutz
 
-- **100 % lokal**: Keine externen Tracking-Tools, Analytics oder Werbenetzwerke.
-- **2-Faktor-Authentifizierung (2FA)**: Schützen Sie sensible Daten via TOTP (kompatibel mit Apple Passwords, 1Password, Bitwarden, Google Authenticator).
+- **100 % lokal & Cloud-frei**: Keine externen Tracking-Tools, Analytics oder Werbenetzwerke.
+- **Cross-Family-Isolation**: Zentral abgesicherte Zugriffsrechte für alle Profile, Medien, Exporte und Einstellungen.
+- **AES-256-GCM Medienverschlüsselung**: Hochgeladene Bilder werden verschlüsselt auf dem Server gespeichert.
+- **2-Faktor-Authentifizierung (2FA)**: Schützen Sie Konten via TOTP (kompatibel mit Apple Passwords, 1Password, Bitwarden, Google Authenticator).
 - **SQLite WAL-Modus**: Volle ACID-Transaktionssicherheit gegen Datenverlust bei unerwarteten Neustarts.
 - **Client-Fehler-Streaming**: Fehler im Frontend werden automatisch im Docker-Log protokolliert, um eine einfache Diagnose zu ermöglichen.
 

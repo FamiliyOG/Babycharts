@@ -17,7 +17,8 @@
   "roles": {
     "admin": "ผู้ดูแลระบบ",
     "editor": "ผู้ปกครอง (แก้ไขได้)",
-    "viewer": "ผู้เข้าชม (ดูอย่างเดียว)"
+    "viewer": "ผู้เข้าชม (ดูอย่างเดียว)",
+    "owner": "เจ้าของ"
   },
   "common": {
     "save": "บันทึก",
@@ -83,6 +84,59 @@
     "submitForgot": "ขอลิงก์รีเซ็ต",
     "submitReset": "เปลี่ยนรหัสผ่าน"
   },
+  "twoFactor": {
+    "title": "การยืนยันตัวตนแบบสองขั้นตอน (2FA)",
+    "subtitle": "ปกป้องบัญชี BabyCharts ของคุณด้วยระบบความปลอดภัยขั้นที่สอง",
+    "statusActive": "2FA เปิดใช้งานอยู่ในบัญชีของคุณ",
+    "statusInactive": "ยังไม่ได้เปิดใช้งาน 2FA",
+    "descriptionActive": "บัญชีของคุณได้รับการปกป้องด้วย TOTP จำเป็นต้องใช้รหัสแบบใช้ครั้งเดียวทุกครั้งที่เข้าสู่ระบบ",
+    "descriptionInactive": "เปิดใช้งาน 2FA ด้วยแอปพลิเคชัน เช่น Google Authenticator, Bitwarden หรือ 1Password",
+    "enableBtn": "เปิดใช้งาน 2FA ทันที",
+    "disableBtn": "ปิดการใช้งาน 2FA",
+    "scanQrTitle": "1. สแกน QR Code ในแอป Authenticator",
+    "manualKeyTitle": "คีย์สำหรับการตั้งค่าด้วยตนเอง:",
+    "enterCodeTitle": "2. กรอกรหัสยืนยัน 6 หลัก",
+    "codePlaceholder": "123456",
+    "verifyAndActivate": "ตรวจสอบรหัส & เปิดใช้งาน 2FA",
+    "recoveryTitle": "บันทึกรหัสกู้คืนฉุกเฉิน",
+    "recoverySubtitle": "บันทึกรหัสเหล่านี้ไว้ในที่ปลอดภัย แต่ละรหัสสามารถใช้ได้เพียงครั้งเดียวหากคุณทำอุปกรณ์สูญหาย",
+    "copiedAll": "คัดลอกรหัสทั้งหมดแล้ว!",
+    "copyAll": "คัดลอกรหัสทั้งหมด",
+    "finishSetup": "เสร็จสิ้นการตั้งค่า",
+    "confirmDisableTitle": "ต้องการปิดใช้งาน 2FA หรือไม่?",
+    "confirmDisableSubtitle": "กรอกรหัสผ่านปัจจุบันของคุณเพื่อยืนยัน",
+    "passwordPlaceholder": "รหัสผ่านปัจจุบันของคุณ",
+    "confirmDisableBtn": "ปิดใช้งาน 2FA ถาวร"
+  },
+  "family": {
+    "title": "การจัดการครอบครัว",
+    "subtitle": "จัดการสมาชิก สิทธิ์ และคำเชิญในครอบครัว",
+    "switchFamily": "เปลี่ยนครอบครัว",
+    "createFamily": "สร้างครอบครัวใหม่",
+    "joinFamily": "เข้าร่วมครอบครัว",
+    "joinCodePlaceholder": "กรอกรหัสเชิญ...",
+    "joinBtn": "เข้าร่วม",
+    "familyName": "ชื่อครอบครัว",
+    "membersTitle": "สมาชิก & สิทธิ์การเข้าถึง",
+    "inviteTitle": "เชิญสมาชิกใหม่",
+    "inviteRole": "บทบาทสำหรับคำเชิญ",
+    "inviteValidity": "ระยะเวลาการใช้งาน",
+    "inviteMaxUses": "จำนวนครั้งที่ใช้ได้สูงสุด",
+    "generateInviteBtn": "สร้างรหัสเชิญ",
+    "activeInvitesTitle": "รหัสเชิญที่ใช้งานได้",
+    "noActiveInvites": "ไม่มีรหัสเชิญที่เปิดใช้งานอยู่",
+    "expiresIn": "หมดอายุ:",
+    "usesLeft": "จำนวนครั้งที่เหลือ:",
+    "unlimited": "ไม่จำกัด",
+    "leaveFamily": "ออกจากครอบครัว",
+    "leaveConfirm": "คุณแน่ใจหรือไม่ว่าต้องการออกจากครอบครัวนี้?",
+    "transferOwnership": "โอนสิทธิ์เจ้าของ",
+    "transferConfirm": "คุณแน่ใจหรือไม่ว่าต้องการโอนความเป็นเจ้าของให้สมาชิกคนนี้?",
+    "removeMember": "ลบสมาชิก",
+    "removeConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบสมาชิกคนนี้ออกจากครอบครัว?",
+    "deleteFamily": "ลบครอบครัว",
+    "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบครอบครัวนี้ถาวร? ข้อมูลทั้งหมดจะหายไป"
+  },
   "errors": {
     "unauthorized": "ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบ",
     "accessDenied": "ปฏิเสธการเข้าถึง สิทธิ์ไม่เพียงพอ",
@@ -121,14 +175,5 @@
     "symptoms": "อาการ",
     "medication": "ยา",
     "addEntry": "เพิ่มบันทึก"
-  },
-  "family": {
-    "title": "การจัดการครอบครัว",
-    "members": "สมาชิก",
-    "invite": "เชิญสมาชิก",
-    "role": "บทบาท",
-    "leave": "ออกจากครอบครัว",
-    "delete": "ลบครอบครัว",
-    "join": "เข้าร่วมครอบครัว"
   }
 }

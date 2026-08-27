@@ -17,7 +17,8 @@
   "roles": {
     "admin": "Administrator",
     "editor": "Elternteil",
-    "viewer": "Besucher"
+    "viewer": "Besucher",
+    "owner": "Eigentümer"
   },
   "common": {
     "save": "Speichern",
@@ -83,6 +84,59 @@
     "submitForgot": "Reset-Link anfordern",
     "submitReset": "Passwort ändern"
   },
+  "twoFactor": {
+    "title": "Zwei-Faktor-Authentifizierung (2FA)",
+    "subtitle": "Schützen Sie Ihr BabyCharts-Konto mit einem zweiten Sicherheitsfaktor.",
+    "statusActive": "2FA ist auf Ihrem Konto aktiv",
+    "statusInactive": "2FA ist nicht aktiviert",
+    "descriptionActive": "Ihr Konto ist durch TOTP-Authentifizierung geschützt. Bei jedem Login wird ein Einmalcode benötigt.",
+    "descriptionInactive": "Aktivieren Sie die 2-Faktor-Authentifizierung mit Apps wie Google Authenticator, Bitwarden oder 1Password.",
+    "enableBtn": "2FA jetzt aktivieren",
+    "disableBtn": "2FA deaktivieren",
+    "scanQrTitle": "1. QR-Code in Authenticator-App scannen",
+    "manualKeyTitle": "Manueller Einrichtungsschlüssel:",
+    "enterCodeTitle": "2. 6-stelligen Bestätigungscode eingeben",
+    "codePlaceholder": "123456",
+    "verifyAndActivate": "Code prüfen & 2FA aktivieren",
+    "recoveryTitle": "Wiederherstellungscodes sichern",
+    "recoverySubtitle": "Speichern Sie diese Codes an einem sicheren Ort. Jeder Code kann genau einmal verwendet werden, falls Sie den Zugriff auf Ihre App verlieren.",
+    "copiedAll": "Alle Codes kopiert!",
+    "copyAll": "Alle Codes kopieren",
+    "finishSetup": "Einrichtung abschließen",
+    "confirmDisableTitle": "2FA wirklich deaktivieren?",
+    "confirmDisableSubtitle": "Geben Sie zur Bestätigung Ihr aktuelles Passwort ein.",
+    "passwordPlaceholder": "Ihr aktuelles Passwort",
+    "confirmDisableBtn": "2FA unwiderruflich deaktivieren"
+  },
+  "family": {
+    "title": "Familienverwaltung",
+    "subtitle": "Verwalten Sie Familienmitglieder, Berechtigungen und Einladungen.",
+    "switchFamily": "Familie wechseln",
+    "createFamily": "Neue Familie erstellen",
+    "joinFamily": "Familie beitreten",
+    "joinCodePlaceholder": "Einladungscode eingeben...",
+    "joinBtn": "Beitreten",
+    "familyName": "Familienname",
+    "membersTitle": "Mitglieder & Berechtigungen",
+    "inviteTitle": "Neues Mitglied einladen",
+    "inviteRole": "Rolle für Einladung",
+    "inviteValidity": "Gültigkeitsdauer",
+    "inviteMaxUses": "Maximale Nutzungen",
+    "generateInviteBtn": "Einladungscode generieren",
+    "activeInvitesTitle": "Aktive Einladungscodes",
+    "noActiveInvites": "Keine aktiven Einladungscodes vorhanden.",
+    "expiresIn": "Läuft ab:",
+    "usesLeft": "Verbleibende Nutzungen:",
+    "unlimited": "Unbegrenzt",
+    "leaveFamily": "Familie verlassen",
+    "leaveConfirm": "Möchten Sie diese Familie wirklich verlassen?",
+    "transferOwnership": "Eigentümer übertragen",
+    "transferConfirm": "Möchten Sie die Eigentümerschaft an dieses Mitglied übertragen?",
+    "removeMember": "Mitglied entfernen",
+    "removeConfirm": "Möchten Sie dieses Mitglied wirklich aus der Familie entfernen?",
+    "deleteFamily": "Familie löschen",
+    "deleteConfirm": "Möchten Sie diese Familie wirklich unwiderruflich löschen? Alle Daten gehen verloren."
+  },
   "errors": {
     "unauthorized": "Nicht autorisiert. Bitte melden Sie sich an.",
     "accessDenied": "Zugriff verweigert. Unzureichende Berechtigungen.",
@@ -121,14 +175,5 @@
     "symptoms": "Symptome",
     "medication": "Medikamente",
     "addEntry": "Eintrag hinzufügen"
-  },
-  "family": {
-    "title": "Familienverwaltung",
-    "members": "Mitglieder",
-    "invite": "Einladen",
-    "role": "Rolle",
-    "leave": "Familie verlassen",
-    "delete": "Familie löschen",
-    "join": "Familie beitreten"
   }
 }

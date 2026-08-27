@@ -17,7 +17,8 @@
   "roles": {
     "admin": "Administrator",
     "editor": "Parent / Editor",
-    "viewer": "Viewer"
+    "viewer": "Viewer",
+    "owner": "Owner"
   },
   "common": {
     "save": "Save",
@@ -83,6 +84,59 @@
     "submitForgot": "Request Reset Link",
     "submitReset": "Change Password"
   },
+  "twoFactor": {
+    "title": "Two-Factor Authentication (2FA)",
+    "subtitle": "Protect your BabyCharts account with a second security factor.",
+    "statusActive": "2FA is active on your account",
+    "statusInactive": "2FA is not enabled",
+    "descriptionActive": "Your account is protected with TOTP. A one-time security code is required at every login.",
+    "descriptionInactive": "Enable two-factor authentication using apps like Google Authenticator, Bitwarden, or 1Password.",
+    "enableBtn": "Enable 2FA Now",
+    "disableBtn": "Disable 2FA",
+    "scanQrTitle": "1. Scan QR code in Authenticator App",
+    "manualKeyTitle": "Manual setup key:",
+    "enterCodeTitle": "2. Enter 6-digit confirmation code",
+    "codePlaceholder": "123456",
+    "verifyAndActivate": "Verify Code & Enable 2FA",
+    "recoveryTitle": "Save Recovery Codes",
+    "recoverySubtitle": "Save these emergency codes in a safe place. Each code can be used once if you lose access to your device.",
+    "copiedAll": "All codes copied!",
+    "copyAll": "Copy all codes",
+    "finishSetup": "Finish Setup",
+    "confirmDisableTitle": "Disable 2FA?",
+    "confirmDisableSubtitle": "Enter your current password to confirm.",
+    "passwordPlaceholder": "Your current password",
+    "confirmDisableBtn": "Disable 2FA Permanently"
+  },
+  "family": {
+    "title": "Family Management",
+    "subtitle": "Manage family members, roles, and invitations.",
+    "switchFamily": "Switch family",
+    "createFamily": "Create new family",
+    "joinFamily": "Join family",
+    "joinCodePlaceholder": "Enter invite code...",
+    "joinBtn": "Join",
+    "familyName": "Family Name",
+    "membersTitle": "Members & Roles",
+    "inviteTitle": "Invite New Member",
+    "inviteRole": "Role for Invite",
+    "inviteValidity": "Validity Duration",
+    "inviteMaxUses": "Maximum Uses",
+    "generateInviteBtn": "Generate Invite Code",
+    "activeInvitesTitle": "Active Invite Codes",
+    "noActiveInvites": "No active invite codes found.",
+    "expiresIn": "Expires:",
+    "usesLeft": "Uses left:",
+    "unlimited": "Unlimited",
+    "leaveFamily": "Leave Family",
+    "leaveConfirm": "Are you sure you want to leave this family?",
+    "transferOwnership": "Transfer Ownership",
+    "transferConfirm": "Are you sure you want to transfer ownership to this member?",
+    "removeMember": "Remove Member",
+    "removeConfirm": "Are you sure you want to remove this member from the family?",
+    "deleteFamily": "Delete Family",
+    "deleteConfirm": "Are you sure you want to permanently delete this family? All data will be lost."
+  },
   "errors": {
     "unauthorized": "Unauthorized. Please log in.",
     "accessDenied": "Access denied. Insufficient permissions.",
@@ -121,14 +175,5 @@
     "symptoms": "Symptoms",
     "medication": "Medication",
     "addEntry": "Add entry"
-  },
-  "family": {
-    "title": "Family Management",
-    "members": "Members",
-    "invite": "Invite",
-    "role": "Role",
-    "leave": "Leave family",
-    "delete": "Delete family",
-    "join": "Join family"
   }
 }

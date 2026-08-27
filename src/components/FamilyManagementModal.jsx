@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Users,
@@ -29,6 +30,7 @@ import {
 } from '../utils/api.js';
 
 export default function FamilyManagementModal({ isOpen, onClose }) {
+  const { t } = useTranslation();
   const {
     user,
     activeFamily,
@@ -713,9 +715,9 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
             />
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors"
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-colors cursor-pointer"
             >
-              Beitreten
+              {t('family.joinBtn')}
             </button>
           </form>
         </div>
@@ -726,10 +728,10 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
             <div>
               <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                 <LogOut className="w-3.5 h-3.5 text-amber-400" />
-                <span>Familie verlassen</span>
+                <span>{t('family.leaveFamily')}</span>
               </div>
               <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                Entfernt Sie aus dieser Familie. Sie können jederzeit per Code erneut beitreten.
+                {t('family.leaveConfirm')}
               </div>
             </div>
             <button
@@ -738,7 +740,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
               className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Verlassen</span>
+              <span>{t('family.leaveFamily')}</span>
             </button>
           </div>
         )}
@@ -749,10 +751,10 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
             <div>
               <div className="text-xs font-bold text-rose-900 dark:text-rose-300 flex items-center gap-1.5">
                 <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                <span>Familie löschen</span>
+                <span>{t('family.deleteFamily')}</span>
               </div>
               <div className="text-[11px] text-rose-700 dark:text-rose-400/90 font-medium mt-0.5">
-                Löscht diese Familie und alle zugehörigen Profile &amp; Daten unwiderruflich
+                {t('family.deleteConfirm')}
               </div>
             </div>
             <button
@@ -761,7 +763,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
               className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Familie löschen</span>
+              <span>{t('family.deleteFamily')}</span>
             </button>
           </div>
         )}

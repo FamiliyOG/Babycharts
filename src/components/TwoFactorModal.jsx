@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, ShieldCheck, ShieldAlert, AlertCircle, Copy, Check } from 'lucide-react';
 import { setup2FA, verify2FA, disable2FA } from '../utils/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 
 export default function TwoFactorModal({ isOpen, onClose }) {
+  const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
   const [step, setStep] = useState('initial'); // 'initial' | 'setup' | 'recovery' | 'disable'
@@ -62,18 +64,18 @@ export default function TwoFactorModal({ isOpen, onClose }) {
     setLoading(true);
     const res = await disable2FA(disablePassword);
     if (res.ok) {
-      setSuccess('Zwei-Faktor-Authentifizierung wurde deaktiviert.');
-      setStep('initial');
+      setSuccess('2FA wurde erfolgreich deaktiviert.');
       setDisablePassword('');
+      setStep('initial');
       if (refreshUser) refreshUser();
     } else {
-      setError(res.error || 'Falsches Passwort.');
+      setError(res.error || 'Passwort ist nicht korrekt.');
     }
     setLoading(false);
   };
 
-  const copySecret = () => {
-    navigator.clipboard.writeText(secret);
+  const handleCopyCodes = () => {
+    navigator.clipboard.writeText(recoveryCodes.join('\n'));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -82,41 +84,41 @@ export default function TwoFactorModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       <div
         ref={dialogRef}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[95vh] overflow-y-auto"
+        className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative animate-scaleUp overflow-hidden"
       >
-        {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Schließen"
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
+          className="absolute right-5 top-5 p-2 text-slate-400 hover:text-white rounded-full bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex p-3 rounded-2xl bg-cyan-950/80 border border-cyan-800/50 text-cyan-400 mb-3 shadow-lg shadow-cyan-950/60">
-            <ShieldCheck className="w-6 h-6" />
+        {/* Modal Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2.5 rounded-2xl bg-cyan-950/60 border border-cyan-800/40 text-cyan-400">
+            <ShieldCheck className="w-5 h-5" />
           </div>
-          <h2 className="text-lg font-bold text-slate-100">Zwei-Faktor-Authentifizierung (2FA)</h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Schützen Sie Ihre Kinder- und Familiendaten mit einer Authenticator-App (z. B. Google
-            Authenticator, Aegis, Bitwarden).
-          </p>
+          <div>
+            <h2 className="text-lg font-bold text-slate-100">{t('twoFactor.title')}</h2>
+            <p className="text-xs text-slate-400">{t('twoFactor.subtitle')}</p>
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-950/50 border border-rose-800/60 text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{error}</span>
-          </div>
-        )}
-
+        {/* Success Alert */}
         {success && (
           <div className="mb-4 p-3 rounded-xl bg-emerald-950/50 border border-emerald-800/60 text-emerald-300 text-xs flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
             <span>{success}</span>
+          </div>
+        )}
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-rose-950/50 border border-rose-800/60 text-rose-300 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span>{error}</span>
           </div>
         )}
 
@@ -145,7 +147,7 @@ export default function TwoFactorModal({ isOpen, onClose }) {
                       isEnabled ? 'text-emerald-400' : 'text-slate-400'
                     }`}
                   >
-                    {isEnabled ? 'Aktiviert & Geschützt' : 'Nicht aktiviert'}
+                    {isEnabled ? t('twoFactor.statusActive') : t('twoFactor.statusInactive')}
                   </div>
                 </div>
               </div>
@@ -162,7 +164,7 @@ export default function TwoFactorModal({ isOpen, onClose }) {
                   }}
                   className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 transition-all cursor-pointer"
                 >
-                  Deaktivieren
+                  {t('twoFactor.disableBtn')}
                 </button>
               ) : (
                 <button
@@ -176,164 +178,58 @@ export default function TwoFactorModal({ isOpen, onClose }) {
                   disabled={loading}
                   className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-950 transition-all cursor-pointer"
                 >
-                  {loading ? 'Laden...' : 'Jetzt aktivieren'}
+                  {loading ? t('common.loading') : t('twoFactor.enableBtn')}
                 </button>
               )}
             </div>
-          </div>
-        )}
 
-        {/* Step: Setup & QR Code Scan */}
-        {step === 'setup' && (
-          <form onSubmit={handleVerify} className="space-y-4 animate-fadeIn">
-            <div className="text-center">
-              <p className="text-xs text-slate-300 mb-3">
-                1. Scannen Sie diesen QR-Code mit Ihrer Authenticator-App:
-              </p>
-
-              {qrCode && (
-                <div className="inline-block p-3 bg-white rounded-2xl shadow-xl mb-3">
-                  <img src={qrCode} alt="2FA QR-Code" className="w-44 h-44" />
-                </div>
-              )}
-
-              <div className="text-[11px] text-slate-400 flex items-center justify-center gap-1 mb-4">
-                <span>Manueller Schlüssel:</span>
-                <code className="font-mono text-cyan-300 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                  {secret}
-                </code>
-                <button
-                  type="button"
-                  onClick={copySecret}
-                  className="p-1 hover:text-white rounded"
-                  title="Schlüssel kopieren"
-                >
-                  {copied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
-
-              <p className="text-xs text-slate-300 mb-1.5 font-semibold">
-                2. Geben Sie den 6-stelligen Bestätigungscode ein:
-              </p>
-              <input
-                type="text"
-                maxLength={6}
-                required
-                autoFocus
-                placeholder="123456"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full text-center tracking-[0.4em] font-mono text-xl py-2 bg-slate-950 border border-cyan-500 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-2"
-              />
-            </div>
-
-            <div className="flex gap-2 pt-2 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={() => setStep('initial')}
-                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="submit"
-                disabled={loading || totpCode.length !== 6}
-                className="flex-1 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md shadow-cyan-950 disabled:opacity-50"
-              >
-                {loading ? 'Prüfen...' : '2FA aktivieren'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Step: Recovery Codes Display (Issue BC-031) */}
-        {step === 'recovery' && (
-          <div className="space-y-4 animate-fadeIn">
-            <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-amber-200">
-              <div className="flex items-center gap-2 font-bold text-xs mb-1 text-amber-300">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>2FA erfolgreich aktiviert!</span>
-              </div>
-              <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                Speichern oder notieren Sie sich diese Einmal-Wiederherstellungscodes an einem
-                sicheren Ort. Falls Sie Ihr Smartphone verlieren, können Sie diese Codes zur
-                Anmeldung nutzen:
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 p-3 bg-slate-950 rounded-2xl border border-slate-800">
-              {recoveryCodes.map((code, idx) => (
-                <div
-                  key={idx}
-                  className="font-mono text-center text-xs py-1.5 px-2 bg-slate-900 rounded-lg text-cyan-300 border border-slate-800/80"
-                >
-                  {code}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-2 pt-2 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(recoveryCodes.join('\n'));
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5"
-              >
-                {copied ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-                <span>{copied ? 'Kopiert!' : 'Codes kopieren'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('initial');
-                  setSuccess('Zwei-Faktor-Authentifizierung wurde erfolgreich aktiviert!');
-                }}
-                className="flex-1 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md shadow-cyan-950"
-              >
-                Fertig
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step: Disable 2FA with Password */}
-        {step === 'disable' && (
-          <form onSubmit={handleDisable} className="space-y-4 animate-fadeIn">
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Bitte bestätigen Sie Ihr Kontopasswort, um die Zwei-Faktor-Authentifizierung zu
-              deaktivieren:
+            <p className="text-xs text-slate-400 leading-relaxed">
+              {isEnabled ? t('twoFactor.descriptionActive') : t('twoFactor.descriptionInactive')}
             </p>
+          </div>
+        )}
+
+        {/* Step 1: QR Code & Key */}
+        {step === 'setup' && (
+          <form onSubmit={handleVerify} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-2">
+                {t('twoFactor.scanQrTitle')}
+              </label>
+              {qrCode && (
+                <div className="p-3 bg-white rounded-2xl flex items-center justify-center max-w-[180px] mx-auto shadow-md">
+                  <img src={qrCode} alt="2FA QR Code" className="w-full h-auto" />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="text-[11px] text-slate-400 mb-1">{t('twoFactor.manualKeyTitle')}</div>
+              <div className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs text-cyan-300 text-center tracking-widest break-all select-all">
+                {secret}
+              </div>
+            </div>
 
             <div>
               <label
-                htmlFor="disable-2fa-pw"
+                htmlFor="verify-totp-input"
                 className="block text-xs font-semibold text-slate-300 mb-1"
               >
-                Passwort *
+                {t('twoFactor.enterCodeTitle')}
               </label>
               <input
-                id="disable-2fa-pw"
-                type="password"
+                id="verify-totp-input"
+                type="text"
                 required
-                autoFocus
-                value={disablePassword}
-                onChange={(e) => setDisablePassword(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+                maxLength={6}
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder={t('twoFactor.codePlaceholder')}
+                className="w-full text-center tracking-widest font-mono text-lg py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-cyan-500"
               />
             </div>
 
-            <div className="flex gap-2 pt-2 border-t border-slate-800">
+            <div className="flex gap-2 pt-2">
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
@@ -342,16 +238,129 @@ export default function TwoFactorModal({ isOpen, onClose }) {
                   e.stopPropagation();
                   setStep('initial');
                 }}
-                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border border-slate-800 text-slate-300 hover:bg-slate-800 text-xs font-semibold cursor-pointer"
               >
-                Abbrechen
+                {t('common.cancel')}
+              </button>
+              <button
+                type="submit"
+                disabled={loading || totpCode.length < 6}
+                className="flex-1 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-cyan-950 transition-all cursor-pointer"
+              >
+                {loading ? t('common.loading') : t('twoFactor.verifyAndActivate')}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Step 2: Recovery Codes */}
+        {step === 'recovery' && (
+          <div className="space-y-4">
+            <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs">
+              <div className="font-bold mb-1">{t('twoFactor.recoveryTitle')}</div>
+              <p className="text-[11px] text-amber-400/90 leading-relaxed">
+                {t('twoFactor.recoverySubtitle')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 p-3 bg-slate-950 rounded-2xl border border-slate-800 font-mono text-xs text-center text-slate-200">
+              {recoveryCodes.map((code) => (
+                <div
+                  key={code}
+                  className="py-1 px-2 bg-slate-900 rounded-lg border border-slate-800/60"
+                >
+                  {code}
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCopyCodes();
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400">{t('twoFactor.copiedAll')}</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  <span>{t('twoFactor.copyAll')}</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setStep('initial');
+                setSuccess('2FA wurde erfolgreich eingerichtet!');
+              }}
+              className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-lg shadow-cyan-950 transition-all cursor-pointer"
+            >
+              {t('twoFactor.finishSetup')}
+            </button>
+          </div>
+        )}
+
+        {/* Step 3: Disable 2FA confirmation */}
+        {step === 'disable' && (
+          <form onSubmit={handleDisable} className="space-y-4">
+            <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs">
+              <div className="font-bold mb-1">{t('twoFactor.confirmDisableTitle')}</div>
+              <p className="text-[11px] text-rose-400/90 leading-relaxed">
+                {t('twoFactor.confirmDisableSubtitle')}
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="disable-password-input"
+                className="block text-xs font-semibold text-slate-300 mb-1"
+              >
+                {t('twoFactor.passwordPlaceholder')} *
+              </label>
+              <input
+                id="disable-password-input"
+                type="password"
+                required
+                value={disablePassword}
+                onChange={(e) => setDisablePassword(e.target.value)}
+                placeholder={t('twoFactor.passwordPlaceholder')}
+                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-rose-500"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setStep('initial');
+                  setDisablePassword('');
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-800 text-slate-300 hover:bg-slate-800 text-xs font-semibold cursor-pointer"
+              >
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={loading || !disablePassword}
-                className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-950 disabled:opacity-50"
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-rose-950 transition-all cursor-pointer"
               >
-                {loading ? 'Wird deaktiviert...' : 'Endgültig deaktivieren'}
+                {loading ? t('common.loading') : t('twoFactor.confirmDisableBtn')}
               </button>
             </div>
           </form>

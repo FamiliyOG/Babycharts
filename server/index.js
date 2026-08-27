@@ -73,11 +73,11 @@ app.use(
   })
 );
 
-// BC-038: Permissions-Policy header (disables microphone, camera, geolocation, payment)
+// BC-038: Permissions-Policy header (disables microphone, camera, geolocation, payment, usb)
 app.use((req, res, next) => {
   res.setHeader(
     'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(), payment=(), usb=(), vr=(), accelerometer=(), gyroscope=()'
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=(), xr-spatial-tracking=(), accelerometer=(), gyroscope=()'
   );
   next();
 });

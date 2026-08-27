@@ -93,3 +93,42 @@ export function getUserFamilyRole(family, userId) {
   const member = family.members?.find((m) => m.userId === userId);
   return member ? member.role : null;
 }
+
+/**
+ * Middleware: Requires the user to have specific role(s) in the target family.
+ * Looks for familyId in req.params, req.body, or req.query.
+ * @param {string[]} allowedRoles - e.g. ['admin'], ['admin', 'editor']
+ */
+export function requireFamilyPermission(allowedRoles = ['admin', 'editor']) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Nicht autorisiert. Bitte einloggen.' });
+    }
+
+    const familyId = req.params?.familyId || req.body?.familyId || req.query?.familyId;
+    if (!familyId) {
+      return res.status(400).json({ error: 'familyId ist erforderlich.' });
+    }
+
+    const db = readDb();
+    const family = db.families.find((f) => f.id === familyId);
+    if (!family) {
+      return res.status(404).json({ error: 'Familie nicht gefunden.' });
+    }
+
+    const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
+
+    if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+      return res.status(403).json({ error: 'Unzureichende Berechtigungen für diese Aktion.' });
+    }
+
+    req.family = family;
+    req.familyRole = role;
+    next();
+  };
+}

@@ -20,39 +20,65 @@ function defaultSchedule() {
   };
 }
 
-// GET all profiles (strictly filtered by familyId if provided, or user's active family)
+// GET all profiles (strictly restricted to user's authorized family)
 router.get('/', optionalAuth, (req, res) => {
   const { familyId } = req.query;
   const db = readDb();
 
-  if (familyId) {
-    const familyProfiles = db.profiles.filter((p) => p.familyId === familyId);
-    return res.json(familyProfiles);
-  }
-
-  // If user is authenticated, check their active family or only return their own families
+  // If user is authenticated, find all families the user belongs to
   if (req.user) {
     const userFamilies = db.families.filter(
       (f) => f.ownerId === req.user.id || f.members?.some((m) => m.userId === req.user.id)
     );
     const userFamilyIds = new Set(userFamilies.map((f) => f.id));
-    const profiles = db.profiles.filter((p) => p.familyId && userFamilyIds.has(p.familyId));
-    return res.json(profiles);
+
+    // If a specific familyId is queried, verify the user has access to it
+    if (familyId) {
+      if (!userFamilyIds.has(familyId)) {
+        return res
+          .status(403)
+          .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+      }
+      return res.json(db.profiles.filter((p) => p.familyId === familyId));
+    }
+
+    // Return profiles across all authorized families for the user
+    return res.json(db.profiles.filter((p) => p.familyId && userFamilyIds.has(p.familyId)));
   }
 
-  // Fallback for non-authenticated legacy / public mode
+  // Non-authenticated access cannot view any family-assigned profiles
+  if (familyId) {
+    return res.status(401).json({ error: 'Nicht autorisiert. Bitte einloggen.' });
+  }
+
+  // Fallback for non-authenticated public mode: only profiles without familyId
   return res.json(db.profiles.filter((p) => !p.familyId));
 });
 
-// GET single profile
+// GET single profile (restricted to family members or public unassigned profiles)
 router.get('/:id', optionalAuth, (req, res) => {
   const db = readDb();
   const profile = db.profiles.find((p) => p.id === req.params.id);
   if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  // If profile belongs to a family, verify user's access
+  if (profile.familyId) {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Nicht autorisiert. Bitte einloggen.' });
+    }
+    const family = db.families.find((f) => f.id === profile.familyId);
+    const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
+  }
+
   return res.json(profile);
 });
 
-// POST – bulk import profiles
+// POST – bulk import profiles (scoped strictly to user's authorized family)
 router.post('/import', requireAuth, (req, res) => {
   const { profiles, familyId } = req.body;
   if (!Array.isArray(profiles)) {
@@ -60,27 +86,60 @@ router.post('/import', requireAuth, (req, res) => {
   }
   const db = readDb();
 
-  // Check role in target family if provided
-  if (familyId) {
-    const family = db.families.find((f) => f.id === familyId);
+  // If user is authenticated, determine target family and verify write permissions
+  let targetFamilyId = familyId;
+  if (!targetFamilyId) {
+    // Find active or first owned/member family
+    const userFamily = db.families.find(
+      (f) =>
+        f.ownerId === req.user.id ||
+        f.members?.some((m) => m.userId === req.user.id && m.role !== 'viewer')
+    );
+    if (userFamily) {
+      targetFamilyId = userFamily.id;
+    }
+  }
+
+  if (targetFamilyId) {
+    const family = db.families.find((f) => f.id === targetFamilyId);
+    if (!family) {
+      return res.status(404).json({ error: 'Familie nicht gefunden.' });
+    }
     const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
     if (role === 'viewer') {
       return res.status(403).json({ error: 'Betrachter haben keine Schreibrechte.' });
     }
   }
 
-  db.profiles = profiles.map((p) => ({
-    ...p,
-    familyId: p.familyId || familyId || null,
-    schedule: p.schedule ?? defaultSchedule(),
-  }));
+  // Scoped merge/upsert: Keep all other profiles from other families intact!
+  const importedMap = new Map();
+  for (const p of profiles) {
+    if (!p || !p.id || !p.name) continue;
+    importedMap.set(p.id, {
+      ...p,
+      familyId: targetFamilyId || null,
+      schedule: p.schedule ?? defaultSchedule(),
+    });
+  }
+
+  // Replace or add only within this target context
+  const existingOtherProfiles = db.profiles.filter(
+    (p) => p.familyId !== targetFamilyId || !importedMap.has(p.id)
+  );
+
+  db.profiles = [...existingOtherProfiles, ...importedMap.values()];
 
   writeDb(db);
   rescheduleAll();
-  return res.json({ ok: true, count: db.profiles.length });
+  return res.json({ ok: true, count: importedMap.size });
 });
 
-// POST – create single profile (requires editor or admin role)
+// POST – create single profile (strictly verifies family membership & editor/admin role)
 router.post('/', requireAuth, (req, res) => {
   const data = req.body;
   if (!data.id || !data.name) {
@@ -95,7 +154,15 @@ router.post('/', requireAuth, (req, res) => {
   // Verify family permissions if familyId is specified
   if (data.familyId) {
     const family = db.families.find((f) => f.id === data.familyId);
+    if (!family) {
+      return res.status(404).json({ error: 'Familie nicht gefunden.' });
+    }
     const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
     if (role === 'viewer') {
       return res.status(403).json({ error: 'Betrachter dürfen keine neuen Kinder anlegen.' });
     }
@@ -113,7 +180,7 @@ router.post('/', requireAuth, (req, res) => {
   return res.status(201).json(profile);
 });
 
-// PUT – update profile (requires editor or admin role)
+// PUT – update profile (requires editor or admin role in profile's family)
 router.put('/:id', requireAuth, (req, res) => {
   const db = readDb();
   const idx = db.profiles.findIndex((p) => p.id === req.params.id);
@@ -121,12 +188,32 @@ router.put('/:id', requireAuth, (req, res) => {
 
   const existingProfile = db.profiles[idx];
 
-  // Verify permissions in profile's family
+  // Verify permissions in existing profile's family
   if (existingProfile.familyId) {
     const family = db.families.find((f) => f.id === existingProfile.familyId);
+    if (!family) {
+      return res.status(404).json({ error: 'Familie nicht gefunden.' });
+    }
     const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
     if (role === 'viewer') {
       return res.status(403).json({ error: 'Betrachter dürfen keine Änderungen vornehmen.' });
+    }
+  }
+
+  // If changing familyId in update, verify user has write access to target family
+  if (req.body?.familyId && req.body.familyId !== existingProfile.familyId) {
+    const targetFamily = db.families.find((f) => f.id === req.body.familyId);
+    if (!targetFamily) {
+      return res.status(404).json({ error: 'Zielfamilie nicht gefunden.' });
+    }
+    const targetRole = getUserFamilyRole(targetFamily, req.user.id);
+    if (!targetRole || targetRole === 'viewer') {
+      return res.status(403).json({ error: 'Keine Schreibrechte für die Zielfamilie.' });
     }
   }
 
@@ -142,7 +229,7 @@ router.put('/:id', requireAuth, (req, res) => {
   return res.json(db.profiles[idx]);
 });
 
-// DELETE – remove profile (requires editor or admin role)
+// DELETE – remove profile (requires editor or admin role in profile's family)
 router.delete('/:id', requireAuth, (req, res) => {
   const db = readDb();
   const existingProfile = db.profiles.find((p) => p.id === req.params.id);
@@ -152,7 +239,15 @@ router.delete('/:id', requireAuth, (req, res) => {
 
   if (existingProfile.familyId) {
     const family = db.families.find((f) => f.id === existingProfile.familyId);
+    if (!family) {
+      return res.status(404).json({ error: 'Familie nicht gefunden.' });
+    }
     const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
     if (role === 'viewer') {
       return res.status(403).json({ error: 'Betrachter dürfen keine Profile löschen.' });
     }

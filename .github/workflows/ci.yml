@@ -44,5 +44,8 @@ jobs:
       - name: Run Linters (Oxlint & ESLint 9)
         run: npm run lint:all
 
+      - name: Run Automated Tests (Vitest & Supertest)
+        run: npm test
+
       - name: Build Frontend (Vite)
         run: npm run build

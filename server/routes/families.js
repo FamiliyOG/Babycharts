@@ -180,6 +180,11 @@ router.post('/:familyId/invites', requireAuth, (req, res) => {
   }
 
   const userRole = getUserFamilyRole(family, req.user.id);
+  if (!userRole) {
+    return res
+      .status(403)
+      .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+  }
   if (userRole === 'viewer') {
     return res.status(403).json({ error: 'Betrachter dürfen keine Einladungen erstellen.' });
   }
@@ -215,6 +220,11 @@ router.delete('/:familyId/invites/:code', requireAuth, (req, res) => {
   }
 
   const userRole = getUserFamilyRole(family, req.user.id);
+  if (!userRole) {
+    return res
+      .status(403)
+      .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+  }
   if (userRole === 'viewer') {
     return res.status(403).json({ error: 'Keine Berechtigung zum Löschen von Einladungen.' });
   }

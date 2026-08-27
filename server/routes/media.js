@@ -58,14 +58,37 @@ function requireMediaAuth(req, res, next) {
 }
 
 /**
- * Derives a consistent 32-byte encryption key from the server settings or environment
+ * Resolves or dynamically generates and persists a cryptographically secure 32-byte Master Encryption Key
+ * Checks:
+ * 1. process.env.MEDIA_ENCRYPTION_KEY (Environment override)
+ * 2. SQLite settings table ('media_master_key')
+ * 3. Cryptographically random 32-byte key persisted to SQLite settings
  */
+function getOrCreateMediaMasterKey() {
+  if (process.env.MEDIA_ENCRYPTION_KEY && process.env.MEDIA_ENCRYPTION_KEY.trim().length > 0) {
+    return crypto.createHash('sha256').update(process.env.MEDIA_ENCRYPTION_KEY.trim()).digest();
+  }
+
+  try {
+    const row = sqlite.prepare('SELECT value FROM settings WHERE key = ?').get('media_master_key');
+    if (row?.value) {
+      return Buffer.from(row.value, 'hex');
+    }
+
+    const randomBytes = crypto.randomBytes(32);
+    sqlite
+      .prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
+      .run('media_master_key', randomBytes.toString('hex'));
+    return randomBytes;
+  } catch {
+    return crypto.createHash('sha256').update(JWT_SECRET).digest();
+  }
+}
+
+const MEDIA_MASTER_KEY = getOrCreateMediaMasterKey();
+
 function getEncryptionKey() {
-  const secret =
-    process.env.MEDIA_ENCRYPTION_KEY ||
-    process.env.JWT_SECRET ||
-    'babycharts-secure-media-key-2026';
-  return crypto.createHash('sha256').update(secret).digest();
+  return MEDIA_MASTER_KEY;
 }
 
 /**

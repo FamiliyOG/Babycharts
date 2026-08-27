@@ -28,6 +28,7 @@ import exportsRouter from './routes/exports.js';
 import authRouter from './routes/auth.js';
 import familiesRouter from './routes/families.js';
 import mediaRouter from './routes/media.js';
+import { requireAuth, getUserFamilyRole } from './middleware/auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.join(__dirname, '..', 'dist');
@@ -134,12 +135,23 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/exports', exportsRouter);
 app.use('/api/media', mediaRouter);
 
-// Trigger manual PDF export for a specific child via API (useful for testing)
-app.post('/api/exports/trigger/:childId', async (req, res) => {
+// Trigger manual PDF export for a specific child via API (requires auth & family access)
+app.post('/api/exports/trigger/:childId', requireAuth, async (req, res) => {
   const { generatePdfForChild } = await import('./pdfGenerator.js');
   const db = readDb();
   const profile = db.profiles.find((p) => p.id === req.params.childId);
   if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  // Verify family authorization
+  if (profile.familyId) {
+    const family = db.families.find((f) => f.id === profile.familyId);
+    const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
+  }
 
   const outputPath = await generatePdfForChild(profile, APP_URL);
   if (outputPath) {
@@ -210,23 +222,27 @@ app.get('{*path}', (req, res, next) => {
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('════════════════════════════════════════════════');
-  console.log(`  BabyCharts Server started`);
-  console.log(`  App URL  : ${APP_URL}`);
-  console.log(`  Port     : ${PORT} (0.0.0.0)`);
-  console.log('════════════════════════════════════════════════');
+if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('════════════════════════════════════════════════');
+    console.log(`  BabyCharts Server started`);
+    console.log(`  App URL  : ${APP_URL}`);
+    console.log(`  Port     : ${PORT} (0.0.0.0)`);
+    console.log('════════════════════════════════════════════════');
 
-  // Initialise scheduler after server is ready
-  setAppUrl(APP_URL);
-  rescheduleAll();
+    // Initialise scheduler after server is ready
+    setAppUrl(APP_URL);
+    rescheduleAll();
 
-  // Automated rolling DB backup (on startup and every 24 hours)
-  createDbBackup().catch((err) => console.error('[Backup] Startup backup error:', err));
-  setInterval(
-    () => {
-      createDbBackup().catch((err) => console.error('[Backup] Scheduled backup error:', err));
-    },
-    24 * 60 * 60 * 1000
-  );
-});
+    // Automated rolling DB backup (on startup and every 24 hours)
+    createDbBackup().catch((err) => console.error('[Backup] Startup backup error:', err));
+    setInterval(
+      () => {
+        createDbBackup().catch((err) => console.error('[Backup] Scheduled backup error:', err));
+      },
+      24 * 60 * 60 * 1000
+    );
+  });
+}
+
+export default app;

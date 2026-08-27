@@ -1,29 +1,43 @@
-/**
- * server/routes/settings.js
- * REST API for global app settings
- * GET  /api/settings
- * POST /api/settings
- */
-
 import { Router } from 'express';
 import { readDb, writeDb } from '../utils/db.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-router.get('/', (_req, res) => {
+// GET /api/settings – authenticated app settings
+router.get('/', requireAuth, (req, res) => {
   const db = readDb();
+  const safeSettings = { ...db.settings };
+  // Never expose sensitive keys in client response
+  delete safeSettings.jwt_secret;
+  delete safeSettings.media_master_key;
+
   res.json({
-    ...db.settings,
+    ...safeSettings,
     databaseEngine: 'SQLite',
     journalMode: 'WAL',
   });
 });
 
-router.post('/', (req, res) => {
+// POST /api/settings – update app settings (requires authentication)
+router.post('/', requireAuth, (req, res) => {
   const db = readDb();
-  db.settings = { ...db.settings, ...req.body };
+  const updates = { ...req.body };
+
+  // Protect internal infrastructure settings from unauthorized overwrite
+  delete updates.jwt_secret;
+  delete updates.media_master_key;
+  delete updates.databaseEngine;
+  delete updates.journalMode;
+
+  db.settings = { ...db.settings, ...updates };
   writeDb(db);
-  res.json(db.settings);
+
+  const responseSettings = { ...db.settings };
+  delete responseSettings.jwt_secret;
+  delete responseSettings.media_master_key;
+
+  res.json(responseSettings);
 });
 
 export default router;

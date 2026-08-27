@@ -35,6 +35,10 @@ function stripNonStandardCssPlugin() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [stripNonStandardCssPlugin(), react(), tailwindcss()],
+  test: {
+    environment: 'node',
+    globals: true,
+  },
   build: {
     rollupOptions: {
       // html2canvas is only needed for jsPDF's doc.html() method which we never use.

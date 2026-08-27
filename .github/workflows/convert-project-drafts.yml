@@ -17,6 +17,8 @@ env:
   TARGET_REPOSITORY: FamiliyOG/Babycharts
   STATUS_FIELD_NAME: Status
   READY_STATUS: '🎯 Ready'
+  IN_PROGRESS_STATUS: '🚧 In Progress'
+  DEFAULT_ASSIGNEE: Zonk1987
 
 jobs:
   convert-drafts:
@@ -66,6 +68,48 @@ jobs:
                 }
               ' \
               --jq '.data.repository.id'
+          )"
+
+          PROJECT_INFO="$(
+            gh api graphql \
+              -F number="${PROJECT_NUMBER}" \
+              -f login="${OWNER}" \
+              -f query='
+                query($login:String!, $number:Int!) {
+                  organization(login:$login) {
+                    projectV2(number:$number) {
+                      id
+                      fields(first:50) {
+                        nodes {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            name
+                            options {
+                              id
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              '
+          )"
+
+          PROJECT_ID="$(jq -r '.data.organization.projectV2.id' <<<"${PROJECT_INFO}")"
+          STATUS_FIELD_ID="$(
+            jq -r \
+              --arg field "${STATUS_FIELD_NAME}" \
+              '.data.organization.projectV2.fields.nodes[] | select(.name == $field) | .id' \
+              <<<"${PROJECT_INFO}"
+          )"
+          IN_PROGRESS_OPTION_ID="$(
+            jq -r \
+              --arg field "${STATUS_FIELD_NAME}" \
+              --arg option "${IN_PROGRESS_STATUS}" \
+              '.data.organization.projectV2.fields.nodes[] | select(.name == $field) | .options[] | select(.name == $option) | .id' \
+              <<<"${PROJECT_INFO}"
           )"
 
           AFTER=""
@@ -187,31 +231,73 @@ jobs:
 
               echo "Converting: ${TITLE}"
 
-              gh api graphql \
-                -f itemId="${ITEM_ID}" \
-                -f repositoryId="${REPOSITORY_ID}" \
-                -f query='
-                  mutation($itemId:ID!, $repositoryId:ID!) {
-                    convertProjectV2DraftIssueItemToIssue(
-                      input: {
-                        itemId: $itemId
-                        repositoryId: $repositoryId
-                      }
-                    ) {
-                      item {
-                        content {
-                          ... on Issue {
-                            number
-                            title
-                            url
+              CONVERT_RESULT="$(
+                gh api graphql \
+                  -f itemId="${ITEM_ID}" \
+                  -f repositoryId="${REPOSITORY_ID}" \
+                  -f query='
+                    mutation($itemId:ID!, $repositoryId:ID!) {
+                      convertProjectV2DraftIssueItemToIssue(
+                        input: {
+                          itemId: $itemId
+                          repositoryId: $repositoryId
+                        }
+                      ) {
+                        item {
+                          id
+                          content {
+                            ... on Issue {
+                              number
+                              title
+                              url
+                            }
                           }
                         }
                       }
                     }
-                  }
-                ' \
-                --jq '.data.convertProjectV2DraftIssueItemToIssue.item.content |
-                "Created issue #\(.number): \(.title) — \(.url)"'
+                  '
+              )"
+
+              NEW_ITEM_ID="$(jq -r '.data.convertProjectV2DraftIssueItemToIssue.item.id // empty' <<<"${CONVERT_RESULT}")"
+              ISSUE_NUMBER="$(jq -r '.data.convertProjectV2DraftIssueItemToIssue.item.content.number // empty' <<<"${CONVERT_RESULT}")"
+              ISSUE_TITLE="$(jq -r '.data.convertProjectV2DraftIssueItemToIssue.item.content.title // empty' <<<"${CONVERT_RESULT}")"
+              ISSUE_URL="$(jq -r '.data.convertProjectV2DraftIssueItemToIssue.item.content.url // empty' <<<"${CONVERT_RESULT}")"
+
+              echo "Created issue #${ISSUE_NUMBER}: ${ISSUE_TITLE} — ${ISSUE_URL}"
+
+              if [[ -n "${DEFAULT_ASSIGNEE:-}" && -n "${ISSUE_NUMBER}" ]]; then
+                echo "Assigning issue #${ISSUE_NUMBER} to ${DEFAULT_ASSIGNEE}..."
+                gh issue edit "${ISSUE_NUMBER}" \
+                  --repo "${REPO_FULL}" \
+                  --add-assignee "${DEFAULT_ASSIGNEE}" || true
+              fi
+
+              if [[ -n "${NEW_ITEM_ID:-}" && -n "${PROJECT_ID:-}" && -n "${STATUS_FIELD_ID:-}" && -n "${IN_PROGRESS_OPTION_ID:-}" ]]; then
+                echo "Moving project item to '${IN_PROGRESS_STATUS}'..."
+                gh api graphql \
+                  -f projectId="${PROJECT_ID}" \
+                  -f itemId="${NEW_ITEM_ID}" \
+                  -f fieldId="${STATUS_FIELD_ID}" \
+                  -f optionId="${IN_PROGRESS_OPTION_ID}" \
+                  -f query='
+                    mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!) {
+                      updateProjectV2ItemFieldValue(
+                        input: {
+                          projectId: $projectId
+                          itemId: $itemId
+                          fieldId: $fieldId
+                          value: {
+                            singleSelectOptionId: $optionId
+                          }
+                        }
+                      ) {
+                        projectV2Item {
+                          id
+                        }
+                      }
+                    }
+                  ' >/dev/null || true
+              fi
 
               converted=$((converted + 1))
             done

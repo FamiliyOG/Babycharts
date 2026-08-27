@@ -45,6 +45,7 @@ app.disable('x-powered-by');
 app.use(
   helmet({
     // BC-036: Strict Content Security Policy configured for SPA, PWA, Chart.js & fonts
+    // upgradeInsecureRequests is set to null so local/LAN HTTP connections (e.g. Unraid/Docker/IP:3001) work seamlessly
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -57,13 +58,15 @@ app.use(
         baseUri: ["'self'"],
         formAction: ["'self'"],
         frameAncestors: ["'self'"],
-        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+        upgradeInsecureRequests: null,
       },
     },
     // BC-037: Strict Referrer-Policy
     referrerPolicy: {
       policy: 'strict-origin-when-cross-origin',
     },
+    // Disable HSTS header unless HTTPS is explicitly enabled to allow self-hosted HTTP / LAN access
+    hsts: process.env.ENABLE_HTTPS === 'true',
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })

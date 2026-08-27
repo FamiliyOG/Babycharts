@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import i18n from '../i18n/index.js';
 import {
   getMe,
   updateMe,
@@ -23,29 +24,41 @@ export function AuthProvider({ children }) {
   const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
   const [is2FaModalOpen, setIs2FaModalOpen] = useState(false);
 
-  const refreshUser = useCallback(async (targetFamilyId = null) => {
-    const token = localStorage.getItem('babycharts_token');
-    if (!token) {
-      setUser(null);
-      setActiveFamily(null);
-      setFamilies([]);
-      setIsLoading(false);
-      return;
+  const syncUserLanguage = useCallback((loadedUser) => {
+    if (loadedUser?.language && ['de', 'en', 'th'].includes(loadedUser.language)) {
+      if (i18n.language !== loadedUser.language) {
+        i18n.changeLanguage(loadedUser.language);
+      }
     }
-
-    const res = await getMe(targetFamilyId);
-    if (res.ok && res.data?.user) {
-      setUser(res.data.user);
-      setActiveFamily(res.data.family);
-      setFamilies(res.data.families || []);
-    } else {
-      logoutUser();
-      setUser(null);
-      setActiveFamily(null);
-      setFamilies([]);
-    }
-    setIsLoading(false);
   }, []);
+
+  const refreshUser = useCallback(
+    async (targetFamilyId = null) => {
+      const token = localStorage.getItem('babycharts_token');
+      if (!token) {
+        setUser(null);
+        setActiveFamily(null);
+        setFamilies([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const res = await getMe(targetFamilyId);
+      if (res.ok && res.data?.user) {
+        setUser(res.data.user);
+        syncUserLanguage(res.data.user);
+        setActiveFamily(res.data.family);
+        setFamilies(res.data.families || []);
+      } else {
+        logoutUser();
+        setUser(null);
+        setActiveFamily(null);
+        setFamilies([]);
+      }
+      setIsLoading(false);
+    },
+    [syncUserLanguage]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -56,6 +69,7 @@ export function AuthProvider({ children }) {
       if (!isMounted) return;
       if (res.ok && res.data?.user) {
         setUser(res.data.user);
+        syncUserLanguage(res.data.user);
         setActiveFamily(res.data.family);
         setFamilies(res.data.families || []);
       } else {
@@ -70,7 +84,7 @@ export function AuthProvider({ children }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [syncUserLanguage]);
 
   const login = useCallback(async (email, password, totpCode = '') => {
     const res = await loginUser(email, password, totpCode);

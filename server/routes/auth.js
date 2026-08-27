@@ -154,6 +154,7 @@ function formatUserPayload(user) {
     name: user.name,
     email: user.email,
     avatar: user.avatar || null,
+    language: user.language || 'de',
     twoFactorEnabled: Boolean(user.twoFactorSecret),
     isDev,
     role: user.role || (isDev ? 'superadmin' : 'user'),
@@ -452,11 +453,11 @@ router.get('/me', requireAuth, (req, res) => {
 
 /**
  * PUT /api/auth/me
- * Updates current user profile (name, avatar)
+ * Updates current user profile (name, avatar, language - BC-054)
  */
 router.put('/me', requireAuth, (req, res) => {
   const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : null;
-  const { avatar } = req.body || {};
+  const { avatar, language } = req.body || {};
   const db = readDb();
   const user = db.users.find((u) => u.id === req.user.id);
   if (!user) {
@@ -474,6 +475,11 @@ router.put('/me', requireAuth, (req, res) => {
     user.avatar = avatar; // base64 data URI or null
   }
 
+  if (typeof language === 'string' && ['de', 'en', 'th'].includes(language.toLowerCase())) {
+    user.language = language.toLowerCase();
+  }
+
+  user.updatedAt = new Date().toISOString();
   writeDb(db);
 
   return res.json({
@@ -823,6 +829,43 @@ router.post('/change-password', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[Auth] Change password error:', err);
     return res.status(500).json({ error: 'Fehler beim Ändern des Passworts.' });
+  }
+});
+
+/**
+ * PUT /api/auth/profile
+ * Updates user profile name, avatar, and preferred language (BC-054)
+ */
+router.put('/profile', requireAuth, (req, res) => {
+  try {
+    const { name, avatar, language } = req.body || {};
+    const db = readDb();
+    const user = db.users.find((u) => u.id === req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'Benutzerkonto nicht gefunden.' });
+    }
+
+    if (typeof name === 'string' && name.trim()) {
+      user.name = name.trim();
+    }
+    if (avatar !== undefined) {
+      user.avatar = avatar;
+    }
+    if (typeof language === 'string' && ['de', 'en', 'th'].includes(language.toLowerCase())) {
+      user.language = language.toLowerCase();
+    }
+
+    user.updatedAt = new Date().toISOString();
+    writeDb(db);
+
+    return res.json({
+      message: 'Profil erfolgreich aktualisiert.',
+      user: formatUserPayload(user),
+    });
+  } catch (err) {
+    console.error('[Auth] Update profile error:', err);
+    return res.status(500).json({ error: 'Fehler beim Aktualisieren des Profils.' });
   }
 });
 

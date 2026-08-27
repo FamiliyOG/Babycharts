@@ -192,6 +192,9 @@ function initSchema() {
     if (!columns.some((c) => c.name === 'passwordResetExpires')) {
       sqlite.exec('ALTER TABLE users ADD COLUMN passwordResetExpires INTEGER');
     }
+    if (!columns.some((c) => c.name === 'language')) {
+      sqlite.exec("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'de'");
+    }
     // Auto-migrate invites table if maxUses or usesCount columns are missing (BC-047)
     const inviteColumns = sqlite.prepare('PRAGMA table_info(invites)').all();
     if (!inviteColumns.some((c) => c.name === 'maxUses')) {
@@ -246,13 +249,13 @@ export function logSecurityEvent({
 function insertUsers(users = []) {
   const insertUser = sqlite.prepare(`
     INSERT OR REPLACE INTO users (
-      id, email, password, name, avatar, isDev, role,
+      id, email, password, name, avatar, isDev, role, language,
       twoFactorSecret, tempTwoFactorSecret, tempTwoFactorExpires,
       recoveryCodes, tokenVersion, passwordResetTokenHash, passwordResetExpires,
       createdAt, updatedAt
     )
     VALUES (
-      @id, @email, @password, @name, @avatar, @isDev, @role,
+      @id, @email, @password, @name, @avatar, @isDev, @role, @language,
       @twoFactorSecret, @tempTwoFactorSecret, @tempTwoFactorExpires,
       @recoveryCodes, @tokenVersion, @passwordResetTokenHash, @passwordResetExpires,
       @createdAt, @updatedAt
@@ -267,6 +270,7 @@ function insertUsers(users = []) {
       avatar: u.avatar || null,
       isDev: u.isDev ? 1 : 0,
       role: u.role || 'user',
+      language: u.language || 'de',
       twoFactorSecret: u.twoFactorSecret || null,
       tempTwoFactorSecret: u.tempTwoFactorSecret || null,
       tempTwoFactorExpires: u.tempTwoFactorExpires || null,

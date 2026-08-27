@@ -40,6 +40,7 @@ const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 // ── Express setup ────────────────────────────────────────────────────────────
 const app = express();
 app.disable('x-powered-by');
+app.set('trust proxy', 1); // Trust reverse proxies (Nginx, Traefik, Cloudflare, Caddy) for Internet + LAN
 
 // ── HTTP Security Headers (Issues BC-035, BC-036, BC-037, BC-038) ────────────
 app.use(

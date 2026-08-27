@@ -1,0 +1,31 @@
+{
+  "app": {
+    "title": "BabyCharts",
+    "subtitle": "Wachstumskurven & Meilensteine"
+  },
+  "nav": {
+    "overview": "Übersicht",
+    "growth": "Wachstum",
+    "milestones": "Meilensteine",
+    "teeth": "Zähnchen",
+    "health": "Gesundheit",
+    "vaccinations": "Impfungen",
+    "uCheckups": "U-Untersuchungen",
+    "family": "Familie"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "editor": "Elternteil",
+    "viewer": "Besucher"
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "copied": "Kopiert!",
+    "copy": "Kopieren",
+    "loading": "Laden..."
+  }
+}

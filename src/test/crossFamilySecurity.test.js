@@ -63,7 +63,15 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
 
   afterAll(() => {
     const db = readDb();
-    db.users = db.users.filter((u) => u.id !== userA.id && u.id !== userB.id);
+    db.users = db.users.filter(
+      (u) => u.id !== userA.id && u.id !== userB.id && u.id !== 'sec-user-c'
+    );
+    db.invites = (db.invites || []).filter(
+      (i) => i.familyId !== familyA.id && i.familyId !== familyB.id
+    );
+    db.usedInvites = (db.usedInvites || []).filter(
+      (u) => u.familyId !== familyA.id && u.familyId !== familyB.id
+    );
     db.families = db.families.filter((f) => f.id !== familyA.id && f.id !== familyB.id);
     db.profiles = db.profiles.filter((p) => p.id !== profileA.id);
     writeDb(db);
@@ -237,5 +245,38 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
       .send({ code: resInvite.body.code });
     expect(resJoinExpired.status).toBe(400);
     expect(resJoinExpired.body?.error).toContain('abgelaufen');
+
+    // 6. Create multi-use invite code with maxUses=2 (BC-047)
+    const userC = {
+      id: 'sec-user-c',
+      name: 'User C',
+      email: 'c@test.com',
+      password: dummyHash,
+    };
+    const tokenC = jwt.sign({ id: userC.id, email: userC.email, name: userC.name }, JWT_SECRET, {
+      expiresIn: '1h',
+    });
+    const dbPre = readDb();
+    dbPre.users.push(userC);
+    writeDb(dbPre);
+
+    const resMultiInvite = await request(app)
+      .post(`/api/families/${familyA.id}/invites`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ role: 'viewer', maxUses: 2 });
+    expect(resMultiInvite.status).toBe(201);
+    expect(resMultiInvite.body?.maxUses).toBe(2);
+
+    // Join with User C (1st use)
+    const resUse1 = await request(app)
+      .post('/api/families/join')
+      .set('Authorization', `Bearer ${tokenC}`)
+      .send({ code: resMultiInvite.body.code });
+    expect(resUse1.status).toBe(200);
+
+    // Code still in DB with usesCount=1
+    const dbMid = readDb();
+    const invMid = dbMid.invites.find((i) => i.code === resMultiInvite.body.code);
+    expect(invMid?.usesCount).toBe(1);
   });
 });

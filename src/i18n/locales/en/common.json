@@ -1,0 +1,31 @@
+{
+  "app": {
+    "title": "BabyCharts",
+    "subtitle": "Growth Tracker & Milestones"
+  },
+  "nav": {
+    "overview": "Overview",
+    "growth": "Growth",
+    "milestones": "Milestones",
+    "teeth": "Teeth",
+    "health": "Health",
+    "vaccinations": "Vaccines",
+    "uCheckups": "Checkups",
+    "family": "Family"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "editor": "Parent / Editor",
+    "viewer": "Viewer"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "copied": "Copied!",
+    "copy": "Copy",
+    "loading": "Loading..."
+  }
+}

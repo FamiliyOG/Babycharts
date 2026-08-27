@@ -249,12 +249,14 @@ router.post('/:familyId/transfer-ownership', requireAuth, (req, res) => {
 
 /**
  * POST /api/families/:familyId/invites
- * Creates an invite code for members with configurable expiration time (BC-045, BC-046)
- * Supports expiresInHours: 1, 24, 48, 168 (7 days), 720 (30 days), defaults to 48 hours.
+ * Creates an invite code for members with configurable expiration time & max uses (BC-045, BC-046, BC-047)
+ * Supports:
+ * - expiresInHours: 1, 24, 48, 168 (7 days), 720 (30 days), defaults to 48 hours.
+ * - maxUses: 1 (single-use), 3, 5, 10, or 0 (unlimited within expiry), defaults to 1.
  */
 router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) => {
   const { familyId } = req.params;
-  const { role = 'editor', expiresInHours = 48 } = req.body;
+  const { role = 'editor', expiresInHours = 48, maxUses = 1 } = req.body;
 
   const db = readDb();
   const family = db.families.find((f) => f.id === familyId);
@@ -279,6 +281,11 @@ router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) =
     !Number.isNaN(parsedHours) && parsedHours >= 1 && parsedHours <= 720 ? parsedHours : 48;
   const expiresAt = new Date(Date.now() + validHours * 60 * 60 * 1000).toISOString();
 
+  // BC-047: Validate maxUses (0 = unlimited, 1..50)
+  const parsedUses = Number.parseInt(maxUses, 10);
+  const validMaxUses =
+    !Number.isNaN(parsedUses) && parsedUses >= 0 && parsedUses <= 50 ? parsedUses : 1;
+
   const inviteCode = generateInviteCode(db.invites);
   const newInvite = {
     code: inviteCode,
@@ -289,6 +296,8 @@ router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) =
     role: role === 'viewer' ? 'viewer' : 'editor',
     createdAt: new Date().toISOString(),
     expiresAt,
+    maxUses: validMaxUses,
+    usesCount: 0,
   };
 
   db.invites.push(newInvite);
@@ -335,7 +344,7 @@ router.delete('/:familyId/invites/:code', requireAuth, (req, res) => {
 
 /**
  * POST /api/families/join
- * Joins a family using an invite code (enforces single-use and expiration timestamp, BC-045)
+ * Joins a family using an invite code (enforces max uses and expiration timestamp, BC-045, BC-047)
  */
 router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
   const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
@@ -359,6 +368,17 @@ router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
     return res
       .status(400)
       .json({ error: 'Dieser Einladungscode ist abgelaufen. Bitte fordern Sie einen neuen an.' });
+  }
+
+  // BC-047: Check if max uses reached
+  const currentUses = invite.usesCount || 0;
+  const maxUses = invite.maxUses !== undefined ? invite.maxUses : 1;
+  if (maxUses > 0 && currentUses >= maxUses) {
+    db.invites = db.invites.filter((inv) => inv.code !== normalizedCode);
+    writeDb(db);
+    return res
+      .status(400)
+      .json({ error: 'Dieser Einladungscode hat die maximale Anzahl an Verwendungen erreicht.' });
   }
 
   const family = db.families.find((f) => f.id === invite.familyId);
@@ -388,11 +408,15 @@ router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
     joinedAt: new Date().toISOString(),
   });
 
-  // Single-use: Consume and permanently delete the invite code
-  db.invites = db.invites.filter((inv) => inv.code !== normalizedCode);
+  // BC-047: Increment usesCount and cleanup if max reached
+  invite.usesCount = (invite.usesCount || 0) + 1;
+  if (maxUses > 0 && invite.usesCount >= maxUses) {
+    db.invites = db.invites.filter((inv) => inv.code !== normalizedCode);
+  }
+
   db.usedInvites = db.usedInvites || [];
   db.usedInvites.push({
-    code: normalizedCode,
+    code: `${normalizedCode}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     familyId: family.id,
     usedBy: req.user.id,
     usedAt: new Date().toISOString(),

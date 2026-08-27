@@ -76,6 +76,8 @@ function initSchema() {
       createdBy TEXT,
       createdAt TEXT NOT NULL,
       expiresAt TEXT,
+      maxUses INTEGER DEFAULT 1,
+      usesCount INTEGER DEFAULT 0,
       FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE
     );
 
@@ -190,6 +192,14 @@ function initSchema() {
     if (!columns.some((c) => c.name === 'passwordResetExpires')) {
       sqlite.exec('ALTER TABLE users ADD COLUMN passwordResetExpires INTEGER');
     }
+    // Auto-migrate invites table if maxUses or usesCount columns are missing (BC-047)
+    const inviteColumns = sqlite.prepare('PRAGMA table_info(invites)').all();
+    if (!inviteColumns.some((c) => c.name === 'maxUses')) {
+      sqlite.exec('ALTER TABLE invites ADD COLUMN maxUses INTEGER DEFAULT 1');
+    }
+    if (!inviteColumns.some((c) => c.name === 'usesCount')) {
+      sqlite.exec('ALTER TABLE invites ADD COLUMN usesCount INTEGER DEFAULT 0');
+    }
   } catch (err) {
     console.warn('[DB] Migration notice:', err.message);
   }
@@ -260,14 +270,12 @@ function insertUsers(users = []) {
       twoFactorSecret: u.twoFactorSecret || null,
       tempTwoFactorSecret: u.tempTwoFactorSecret || null,
       tempTwoFactorExpires: u.tempTwoFactorExpires || null,
-      recoveryCodes: Array.isArray(u.recoveryCodes)
-        ? JSON.stringify(u.recoveryCodes)
-        : u.recoveryCodes || null,
-      tokenVersion: u.tokenVersion || 0,
+      recoveryCodes: u.recoveryCodes ? JSON.stringify(u.recoveryCodes) : null,
+      tokenVersion: u.tokenVersion !== undefined ? u.tokenVersion : 0,
       passwordResetTokenHash: u.passwordResetTokenHash || null,
       passwordResetExpires: u.passwordResetExpires || null,
       createdAt: u.createdAt || new Date().toISOString(),
-      updatedAt: u.updatedAt || null,
+      updatedAt: u.updatedAt || new Date().toISOString(),
     });
   }
 }
@@ -305,8 +313,8 @@ function insertFamilies(families = []) {
 
 function insertInvites(invites = [], usedInvites = []) {
   const insertInvite = sqlite.prepare(`
-    INSERT OR REPLACE INTO invites (code, familyId, role, createdBy, createdAt, expiresAt)
-    VALUES (@code, @familyId, @role, @createdBy, @createdAt, @expiresAt)
+    INSERT OR REPLACE INTO invites (code, familyId, role, createdBy, createdAt, expiresAt, maxUses, usesCount)
+    VALUES (@code, @familyId, @role, @createdBy, @createdAt, @expiresAt, @maxUses, @usesCount)
   `);
   for (const inv of invites) {
     insertInvite.run({
@@ -316,6 +324,8 @@ function insertInvites(invites = [], usedInvites = []) {
       createdBy: inv.createdBy || null,
       createdAt: inv.createdAt || new Date().toISOString(),
       expiresAt: inv.expiresAt || null,
+      maxUses: inv.maxUses !== undefined ? inv.maxUses : 1,
+      usesCount: inv.usesCount !== undefined ? inv.usesCount : 0,
     });
   }
 

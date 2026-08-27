@@ -45,6 +45,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
   const [familyData, setFamilyData] = useState(null);
   const [inviteRole, setInviteRole] = useState('editor'); // 'editor' | 'viewer'
   const [inviteExpiresIn, setInviteExpiresIn] = useState('48'); // '24' | '48' | '168' | '720'
+  const [inviteMaxUses, setInviteMaxUses] = useState('1'); // '1' | '3' | '5' | '0'
   const [generatedInvite, setGeneratedInvite] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -127,7 +128,12 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
 
   const handleCreateInvite = async () => {
     if (!activeFamily?.id) return;
-    const res = await createFamilyInvite(activeFamily.id, inviteRole, Number(inviteExpiresIn));
+    const res = await createFamilyInvite(
+      activeFamily.id,
+      inviteRole,
+      Number(inviteExpiresIn),
+      Number(inviteMaxUses)
+    );
     if (res.ok) {
       setGeneratedInvite(res.data);
       loadFamily();
@@ -537,7 +543,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
             </p>
 
             <div className="space-y-2 mb-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
                   <label
                     htmlFor="invite-role-select"
@@ -550,10 +556,10 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     aria-label="Rolle für Einladung auswählen"
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
                   >
-                    <option value="editor">✏️ Elternteil (Bearbeiten)</option>
-                    <option value="viewer">👁️ Besucher (Nur Lesen)</option>
+                    <option value="editor">✏️ Elternteil</option>
+                    <option value="viewer">👁️ Besucher</option>
                   </select>
                 </div>
 
@@ -569,12 +575,33 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     aria-label="Gültigkeitsdauer auswählen"
                     value={inviteExpiresIn}
                     onChange={(e) => setInviteExpiresIn(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
                   >
-                    <option value="24">⏱️ 24 Stunden</option>
-                    <option value="48">⏱️ 48 Stunden (Standard)</option>
+                    <option value="24">⏱️ 24 Std.</option>
+                    <option value="48">⏱️ 48 Std.</option>
                     <option value="168">⏱️ 7 Tage</option>
                     <option value="720">⏱️ 30 Tage</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="invite-max-uses-select"
+                    className="block text-[10px] font-semibold text-slate-400 mb-1"
+                  >
+                    Verwendungen:
+                  </label>
+                  <select
+                    id="invite-max-uses-select"
+                    aria-label="Maximale Verwendungen auswählen"
+                    value={inviteMaxUses}
+                    onChange={(e) => setInviteMaxUses(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
+                  >
+                    <option value="1">🔒 Einmalig (1x)</option>
+                    <option value="3">👥 Bis zu 3x</option>
+                    <option value="5">👥 Bis zu 5x</option>
+                    <option value="0">♾️ Unbegrenzt</option>
                   </select>
                 </div>
               </div>

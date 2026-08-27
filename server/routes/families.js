@@ -353,11 +353,11 @@ router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
     return res.status(403).json({ error: 'Nur Administratoren dürfen Mitgliedsrollen ändern.' });
   }
 
-  // Prevent modifying the owner's role
+  // BC-043: Prevent modifying the owner's role
   if (family.ownerId === userId) {
     return res
       .status(400)
-      .json({ error: 'Die Rolle des Familieninhabers kann nicht geändert werden.' });
+      .json({ error: 'Die Rolle des Familieninhabers kann nicht geändert werden (Owner-Schutz).' });
   }
 
   const member = (family.members || []).find((m) => m.userId === userId);
@@ -366,6 +366,19 @@ router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
   }
 
   const oldRole = member.role;
+
+  // BC-042: Protect the last admin in the family from being demoted
+  if (oldRole === 'admin' && role !== 'admin') {
+    const adminCount = (family.members || []).filter(
+      (m) => m.role === 'admin' || m.userId === family.ownerId
+    ).length;
+    if (adminCount <= 1) {
+      return res.status(400).json({
+        error: 'Der letzte Administrator einer Familie kann nicht herabgestuft werden.',
+      });
+    }
+  }
+
   member.role = role;
   writeDb(db);
 
@@ -380,8 +393,74 @@ router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
 });
 
 /**
+ * POST /api/families/:familyId/leave
+ * Allows a member to leave a family (BC-041, BC-042, BC-043)
+ */
+router.post('/:familyId/leave', requireAuth, (req, res) => {
+  const { familyId } = req.params;
+  const db = readDb();
+  const family = db.families.find((f) => f.id === familyId);
+
+  if (!family) {
+    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  }
+
+  // BC-043: The family owner cannot leave their own family (must delete it or transfer ownership)
+  if (family.ownerId === req.user.id) {
+    return res.status(400).json({
+      error:
+        'Als Inhaber können Sie die Familie nicht verlassen. Sie können die Familie stattdessen löschen.',
+    });
+  }
+
+  const memberIndex = (family.members || []).findIndex((m) => m.userId === req.user.id);
+  if (memberIndex === -1) {
+    return res.status(400).json({ error: 'Sie sind kein Mitglied dieser Familie.' });
+  }
+
+  const member = family.members[memberIndex];
+
+  // BC-042: If the member is an admin, ensure they are not the sole remaining admin
+  if (member.role === 'admin') {
+    const adminCount = (family.members || []).filter(
+      (m) => m.role === 'admin' || m.userId === family.ownerId
+    ).length;
+    if (adminCount <= 1) {
+      return res.status(400).json({
+        error:
+          'Sie sind der letzte Administrator. Bitte ernennen Sie ein anderes Mitglied zum Administrator, bevor Sie die Familie verlassen.',
+      });
+    }
+  }
+
+  // Remove the member from the family
+  family.members.splice(memberIndex, 1);
+
+  // If this family was the active family of the user, switch to another available family
+  const user = db.users.find((u) => u.id === req.user.id);
+  if (user && user.activeFamilyId === familyId) {
+    const remainingFamily = db.families.find(
+      (f) =>
+        f.id !== familyId &&
+        (f.ownerId === req.user.id || (f.members || []).some((m) => m.userId === req.user.id))
+    );
+    user.activeFamilyId = remainingFamily ? remainingFamily.id : null;
+  }
+
+  writeDb(db);
+
+  console.log(
+    `\x1b[35m[FAMILY LEAVE ${new Date().toISOString()}]\x1b[0m User ${req.user.email} left family ${family.name} (${family.id})`
+  );
+
+  return res.json({
+    message: `Sie haben die Familie "${family.name}" erfolgreich verlassen.`,
+  });
+});
+
+/**
  * DELETE /api/families/:familyId/members/:userId
- * Removes a member from the family (admin only)
+ * Removes a member from the family (admin only, BC-042, BC-043)
  */
 router.delete('/:familyId/members/:userId', requireAuth, (req, res) => {
   const { familyId, userId } = req.params;
@@ -397,8 +476,28 @@ router.delete('/:familyId/members/:userId', requireAuth, (req, res) => {
     return res.status(403).json({ error: 'Nur Administratoren dürfen Mitglieder entfernen.' });
   }
 
+  // BC-043: Owner protection
   if (family.ownerId === userId) {
-    return res.status(400).json({ error: 'Der Familieninhaber kann nicht entfernt werden.' });
+    return res
+      .status(400)
+      .json({ error: 'Der Familieninhaber kann nicht entfernt werden (Owner-Schutz).' });
+  }
+
+  const targetMember = (family.members || []).find((m) => m.userId === userId);
+  if (!targetMember) {
+    return res.status(404).json({ error: 'Mitglied nicht in dieser Familie gefunden.' });
+  }
+
+  // BC-042: Protect the last admin
+  if (targetMember.role === 'admin') {
+    const adminCount = (family.members || []).filter(
+      (m) => m.role === 'admin' || m.userId === family.ownerId
+    ).length;
+    if (adminCount <= 1) {
+      return res.status(400).json({
+        error: 'Der letzte Administrator einer Familie kann nicht entfernt werden.',
+      });
+    }
   }
 
   family.members = (family.members || []).filter((m) => m.userId !== userId);

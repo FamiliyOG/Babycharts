@@ -171,12 +171,26 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
     expect(resAllowed.status).toBe(200);
     expect(resAllowed.body?.member?.role).toBe('editor');
 
-    // 4. Admin cannot change the owner role
+    // 4. Admin cannot change the owner role (BC-043)
     const resOwnerProtect = await request(app)
       .put(`/api/families/${familyA.id}/members/${userA.id}`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ role: 'viewer' });
     expect(resOwnerProtect.status).toBe(400);
-    expect(resOwnerProtect.body?.error).toContain('Familieninhaber');
+    expect(resOwnerProtect.body?.error).toContain('Owner-Schutz');
+
+    // 5. Owner cannot leave their own family (BC-043)
+    const resOwnerLeave = await request(app)
+      .post(`/api/families/${familyA.id}/leave`)
+      .set('Authorization', `Bearer ${tokenA}`);
+    expect(resOwnerLeave.status).toBe(400);
+    expect(resOwnerLeave.body?.error).toContain('Inhaber');
+
+    // 6. Member (User B) can leave family successfully (BC-041)
+    const resMemberLeave = await request(app)
+      .post(`/api/families/${familyA.id}/leave`)
+      .set('Authorization', `Bearer ${tokenB}`);
+    expect(resMemberLeave.status).toBe(200);
+    expect(resMemberLeave.body?.message).toContain('erfolgreich verlassen');
   });
 });

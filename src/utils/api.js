@@ -194,6 +194,12 @@ export async function removeFamilyMember(familyId, userId) {
   });
 }
 
+export async function leaveFamily(familyId) {
+  return safeFetch(`${BASE}/families/${familyId}/leave`, {
+    method: 'POST',
+  });
+}
+
 export async function deleteFamily(familyId) {
   return safeFetch(`${BASE}/families/${familyId}`, {
     method: 'DELETE',

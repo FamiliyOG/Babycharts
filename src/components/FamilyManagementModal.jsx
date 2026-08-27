@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
-import { X, Users, Copy, Check, UserPlus, Trash2, KeyRound, Edit2, Camera } from 'lucide-react';
+import {
+  X,
+  Users,
+  Copy,
+  Check,
+  UserPlus,
+  Trash2,
+  KeyRound,
+  Edit2,
+  Camera,
+  LogOut,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 import {
@@ -9,6 +20,7 @@ import {
   deleteFamilyInvite,
   updateFamilyMemberRole,
   removeFamilyMember,
+  leaveFamily,
   deleteFamily,
   getAuthorizedMediaUrl,
 } from '../utils/api.js';
@@ -165,6 +177,22 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
       await refreshUser(activeFamily.id);
     } else {
       setStatusMessage(res.error || 'Fehler beim Ändern der Rolle.');
+    }
+  };
+
+  const handleLeaveFamily = async () => {
+    if (!activeFamily?.id) return;
+    const confirmed = window.confirm(
+      `Möchten Sie die Familie "${activeFamily.name}" wirklich verlassen?\n\nSie verlieren damit den Zugriff auf die Daten dieser Familie, bis Sie erneut eingeladen werden.`
+    );
+    if (!confirmed) return;
+
+    const res = await leaveFamily(activeFamily.id);
+    if (res.ok) {
+      await refreshUser();
+      onClose();
+    } else {
+      setStatusMessage(res.error || 'Fehler beim Verlassen der Familie.');
     }
   };
 
@@ -594,6 +622,29 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
           </form>
         </div>
 
+        {/* Leave Family (for Non-Owner Members, BC-041, BC-042, BC-043) */}
+        {!activeFamily?.isOwner && (
+          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs mb-3">
+            <div>
+              <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <LogOut className="w-3.5 h-3.5 text-amber-400" />
+                <span>Familie verlassen</span>
+              </div>
+              <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                Entfernt Sie aus dieser Familie. Sie können jederzeit per Code erneut beitreten.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleLeaveFamily}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Verlassen</span>
+            </button>
+          </div>
+        )}
+
         {/* Danger Zone: Delete Family (Owner or Admin only) */}
         {(isAdmin || activeFamily?.isOwner) && (
           <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
@@ -609,7 +660,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
             <button
               type="button"
               onClick={handleDeleteCurrentFamily}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all active:scale-95 shrink-0"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Familie löschen</span>

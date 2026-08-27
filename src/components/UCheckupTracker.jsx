@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { U_CHECKUPS } from '../data/uCheckups.js';
 import { calculateAge } from '../utils/percentileCalc.js';
 import { CheckCircle2, Clock, AlertCircle, ClipboardList, Plus } from 'lucide-react';
 
 export default function UCheckupTracker({ activeChild, measurements = [], onAddCheckupClick }) {
+  const { t } = useTranslation();
+
   if (!activeChild) return null;
 
   const currentAge = calculateAge(activeChild.birthdate);
@@ -27,14 +30,12 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span>U-Untersuchungen (Gelbes Heft)</span>
+              <span>{t('uCheckups.title')}</span>
               <span className="text-xs px-2.5 py-0.5 rounded-md font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
-                {completedCount} / {U_CHECKUPS.length} Untersuchungen dokumentiert
+                {completedCount} / {U_CHECKUPS.length} {t('uCheckups.completed')}
               </span>
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Offizieller deutscher Vorsorgeplan U1 bis U9 für {activeChild.name}
-            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t('uCheckups.subtitle')}</p>
           </div>
         </div>
 
@@ -42,10 +43,10 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
           <button
             type="button"
             onClick={onAddCheckupClick}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-950/50 transition-all active:scale-95 self-start sm:self-auto"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-950/50 transition-all active:scale-95 self-start sm:self-auto cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Untersuchung eintragen</span>
+            <span>{t('uCheckups.addCheckup')}</span>
           </button>
         )}
       </div>
@@ -64,7 +65,7 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
             'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400';
           let statusBadge = (
             <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-              Ausstehend
+              {t('uCheckups.pending')}
             </span>
           );
           let icon = <Clock className="w-4 h-4 text-slate-400" />;
@@ -81,7 +82,7 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
               : '';
             statusBadge = (
               <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                ✓ Am {formattedDate} erfasst
+                ✓ {t('uCheckups.recordedOn', { date: formattedDate })}
               </span>
             );
             icon = <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
@@ -90,7 +91,7 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
               'bg-amber-50 dark:bg-amber-950/50 border-amber-400 dark:border-amber-500/80 text-amber-950 dark:text-amber-200 shadow-md ring-2 ring-amber-400/40';
             statusBadge = (
               <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 animate-pulse">
-                ⚡ Jetzt fällig!
+                ⚡ {t('uCheckups.dueNow')}
               </span>
             );
             icon = <AlertCircle className="w-4 h-4 text-amber-500" />;

@@ -241,9 +241,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
                 </span>
               )}
             </h3>
-            <p className="text-xs text-slate-400">
-              {t('health.subtitle')}
-            </p>
+            <p className="text-xs text-slate-400">{t('health.subtitle')}</p>
           </div>
         </div>
 

@@ -239,9 +239,7 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
                 {eruptedCount} / 20 {t('teeth.teethCount')}
               </span>
             </h3>
-            <p className="text-xs text-slate-400">
-              {t('teeth.subtitle')}
-            </p>
+            <p className="text-xs text-slate-400">{t('teeth.subtitle')}</p>
           </div>
         </div>
 

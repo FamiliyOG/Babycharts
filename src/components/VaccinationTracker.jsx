@@ -77,9 +77,7 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                 {completedCount} / {STIKO_VACCINATIONS.length} {t('vaccinations.completed')}
               </span>
             </h3>
-            <p className="text-xs text-slate-400">
-              {t('vaccinations.subtitle')}
-            </p>
+            <p className="text-xs text-slate-400">{t('vaccinations.subtitle')}</p>
           </div>
         </div>
       </div>

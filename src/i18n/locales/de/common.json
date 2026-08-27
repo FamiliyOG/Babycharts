@@ -221,6 +221,15 @@
     "recordVaccine": "Impfung eintragen",
     "removeVaccine": "Impfung entfernen"
   },
+  "uCheckups": {
+    "title": "U-Untersuchungen (Gelbes Heft)",
+    "subtitle": "Offizieller deutscher Vorsorgeplan U1 bis U9.",
+    "completed": "Untersuchungen dokumentiert",
+    "addCheckup": "Untersuchung eintragen",
+    "dueNow": "Jetzt fällig!",
+    "recordedOn": "Am {{date}} erfasst",
+    "pending": "Ausstehend"
+  },
   "errors": {
     "unauthorized": "Nicht autorisiert. Bitte melden Sie sich an.",
     "accessDenied": "Zugriff verweigert. Unzureichende Berechtigungen.",

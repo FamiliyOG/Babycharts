@@ -221,6 +221,15 @@
     "recordVaccine": "Record Vaccination",
     "removeVaccine": "Remove Vaccination"
   },
+  "uCheckups": {
+    "title": "Well-child Checkups (U1-U9)",
+    "subtitle": "Official preventive checkup schedule U1 to U9.",
+    "completed": "Checkups documented",
+    "addCheckup": "Record checkup",
+    "dueNow": "Due now!",
+    "recordedOn": "Recorded on {{date}}",
+    "pending": "Pending"
+  },
   "errors": {
     "unauthorized": "Unauthorized. Please log in.",
     "accessDenied": "Access denied. Insufficient permissions.",

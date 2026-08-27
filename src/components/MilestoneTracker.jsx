@@ -213,9 +213,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                 {achievedCount} {t('milestones.completed')}
               </span>
             </h3>
-            <p className="text-xs text-slate-400">
-              {t('milestones.subtitle')}
-            </p>
+            <p className="text-xs text-slate-400">{t('milestones.subtitle')}</p>
           </div>
         </div>
 

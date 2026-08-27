@@ -355,7 +355,7 @@ export default function AuthModal({ isOpen, onClose }) {
                 <div className="pt-2 animate-fadeIn">
                   <label
                     htmlFor="auth-totp-input"
-                    className="block text-xs font-semibold text-cyan-300 mb-1 flex items-center gap-1.5"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-cyan-300 mb-1"
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>{t('auth.totpLabel')} *</span>

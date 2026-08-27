@@ -148,4 +148,35 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
     expect(res.body?.media_master_key).toBeUndefined();
     expect(res.body?.databaseEngine).toBe('SQLite');
   });
+
+  it('enforces role updates security (BC-039, BC-040)', async () => {
+    // 1. Add User B to Family A as viewer
+    const db = readDb();
+    const fam = db.families.find((f) => f.id === familyA.id);
+    fam.members.push({ userId: userB.id, role: 'viewer', joinedAt: new Date().toISOString() });
+    writeDb(db);
+
+    // 2. User B (viewer) cannot update their own or other roles
+    const resForbidden = await request(app)
+      .put(`/api/families/${familyA.id}/members/${userB.id}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ role: 'admin' });
+    expect(resForbidden.status).toBe(403);
+
+    // 3. User A (owner/admin) CAN update User B role to editor
+    const resAllowed = await request(app)
+      .put(`/api/families/${familyA.id}/members/${userB.id}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ role: 'editor' });
+    expect(resAllowed.status).toBe(200);
+    expect(resAllowed.body?.member?.role).toBe('editor');
+
+    // 4. Admin cannot change the owner role
+    const resOwnerProtect = await request(app)
+      .put(`/api/families/${familyA.id}/members/${userA.id}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ role: 'viewer' });
+    expect(resOwnerProtect.status).toBe(400);
+    expect(resOwnerProtect.body?.error).toContain('Familieninhaber');
+  });
 });

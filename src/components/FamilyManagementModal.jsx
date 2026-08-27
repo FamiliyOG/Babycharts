@@ -7,6 +7,7 @@ import {
   updateFamily,
   createFamilyInvite,
   deleteFamilyInvite,
+  updateFamilyMemberRole,
   removeFamilyMember,
   deleteFamily,
   getAuthorizedMediaUrl,
@@ -152,6 +153,18 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     const res = await removeFamilyMember(activeFamily.id, userId);
     if (res.ok) {
       loadFamily();
+    }
+  };
+
+  const handleRoleChange = async (userId, newRole) => {
+    if (!activeFamily?.id) return;
+    const res = await updateFamilyMemberRole(activeFamily.id, userId, newRole);
+    if (res.ok) {
+      setStatusMessage(res.data?.message || 'Rolle erfolgreich aktualisiert.');
+      loadFamily();
+      await refreshUser(activeFamily.id);
+    } else {
+      setStatusMessage(res.error || 'Fehler beim Ändern der Rolle.');
     }
   };
 
@@ -411,17 +424,30 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getRoleBadgeClass(member.role)}`}
-                      >
-                        {getRoleLabel(member.role)}
-                      </span>
+                      {isAdmin && !isCurrentUser && member.userId !== familyData.ownerId ? (
+                        <select
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member.userId, e.target.value)}
+                          aria-label={`Rolle für ${member.name} ändern`}
+                          className="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-bold rounded-lg px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                        >
+                          <option value="admin">👑 Administrator</option>
+                          <option value="editor">✏️ Elternteil (Editor)</option>
+                          <option value="viewer">👁️ Besucher (Viewer)</option>
+                        </select>
+                      ) : (
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getRoleBadgeClass(member.role)}`}
+                        >
+                          {getRoleLabel(member.role)}
+                        </span>
+                      )}
 
                       {canRemove && (
                         <button
                           type="button"
                           onClick={() => handleRemoveMember(member.userId, member.name)}
-                          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors"
+                          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
                           title="Mitglied entfernen"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

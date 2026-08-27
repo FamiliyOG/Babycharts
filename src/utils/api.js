@@ -24,6 +24,7 @@ async function safeFetch(url, options = {}) {
     };
 
     const res = await fetch(url, {
+      credentials: 'same-origin',
       ...options,
       headers,
     });
@@ -177,6 +178,13 @@ export async function joinFamilyWithCode(code) {
 export async function deleteFamilyInvite(familyId, code) {
   return safeFetch(`${BASE}/families/${familyId}/invites/${encodeURIComponent(code)}`, {
     method: 'DELETE',
+  });
+}
+
+export async function updateFamilyMemberRole(familyId, userId, role) {
+  return safeFetch(`${BASE}/families/${familyId}/members/${userId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ role }),
   });
 }
 

@@ -329,6 +329,57 @@ router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
 });
 
 /**
+ * PUT /api/families/:familyId/members/:userId
+ * Updates a member's role in the family (admin only, Issue BC-039, BC-040)
+ */
+router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
+  const { familyId, userId } = req.params;
+  const { role } = req.body || {};
+
+  const ALLOWED_ROLES = ['admin', 'editor', 'viewer'];
+  if (!role || !ALLOWED_ROLES.includes(role)) {
+    return res.status(400).json({ error: 'Ungültige Rolle. Erlaubt sind: admin, editor, viewer.' });
+  }
+
+  const db = readDb();
+  const family = db.families.find((f) => f.id === familyId);
+
+  if (!family) {
+    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  }
+
+  const userRole = getUserFamilyRole(family, req.user.id);
+  if (userRole !== 'admin') {
+    return res.status(403).json({ error: 'Nur Administratoren dürfen Mitgliedsrollen ändern.' });
+  }
+
+  // Prevent modifying the owner's role
+  if (family.ownerId === userId) {
+    return res
+      .status(400)
+      .json({ error: 'Die Rolle des Familieninhabers kann nicht geändert werden.' });
+  }
+
+  const member = (family.members || []).find((m) => m.userId === userId);
+  if (!member) {
+    return res.status(404).json({ error: 'Mitglied nicht in dieser Familie gefunden.' });
+  }
+
+  const oldRole = member.role;
+  member.role = role;
+  writeDb(db);
+
+  console.log(
+    `\x1b[35m[ROLE CHANGE ${new Date().toISOString()}]\x1b[0m User ${req.user.email} changed role of ${userId} in family ${family.id} from ${oldRole} to ${role}`
+  );
+
+  return res.json({
+    message: `Rolle erfolgreich auf "${role === 'admin' ? 'Administrator' : role === 'editor' ? 'Elternteil' : 'Besucher'}" geändert.`,
+    member,
+  });
+});
+
+/**
  * DELETE /api/families/:familyId/members/:userId
  * Removes a member from the family (admin only)
  */

@@ -296,6 +296,67 @@ router.post('/register', registerLimiter, async (req, res) => {
 });
 
 /**
+ * Helper to verify 2FA TOTP or recovery codes for login
+ */
+function verifyUserTwoFactor(user, rawTotp, db) {
+  const decryptedSecret = decryptTwoFactorSecret(user.twoFactorSecret);
+  let verified = false;
+
+  if (decryptedSecret) {
+    verified = speakeasy.totp.verify({
+      secret: decryptedSecret,
+      encoding: 'base32',
+      token: rawTotp,
+      window: 2,
+    });
+  }
+
+  // Check recovery codes fallback (Issue BC-031)
+  if (!verified && user.recoveryCodes?.length > 0) {
+    const normalizedInput = rawTotp.toUpperCase();
+    const codeIndex = user.recoveryCodes.findIndex((c) => c.toUpperCase() === normalizedInput);
+    if (codeIndex !== -1) {
+      verified = true;
+      user.recoveryCodes.splice(codeIndex, 1);
+      writeDb(db);
+      const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
+      console.log(
+        `[2FA RECOVERY ${new Date().toISOString()}] Recovery code consumed for user: ${cleanEmail} (${user.recoveryCodes.length} remaining)`
+      );
+    }
+  }
+
+  return verified;
+}
+
+/**
+ * Helper to ensure a user has an active family upon login
+ */
+function getOrCreateActiveFamily(user, db) {
+  const userFamilies = db.families.filter(
+    (f) => f.ownerId === user.id || f.members?.some((m) => m.userId === user.id)
+  );
+
+  let activeFamily = userFamilies[0] || null;
+
+  if (!activeFamily) {
+    const newFamily = {
+      id: `fam-${Date.now()}`,
+      name: `Familie ${user.name}`,
+      ownerId: user.id,
+      members: [{ userId: user.id, role: 'admin', joinedAt: new Date().toISOString() }],
+      createdAt: new Date().toISOString(),
+    };
+    db.families.push(newFamily);
+    writeDb(db);
+    activeFamily = newFamily;
+    userFamilies.push(newFamily);
+  }
+
+  return { activeFamily, userFamilies };
+}
+
+/**
  * POST /api/auth/login
  * Authenticates user and returns JWT + user families
  */
@@ -331,36 +392,11 @@ router.post('/login', loginLimiter, async (req, res) => {
         });
       }
 
-      const decryptedSecret = decryptTwoFactorSecret(user.twoFactorSecret);
-      let verified = false;
-
-      if (decryptedSecret) {
-        verified = speakeasy.totp.verify({
-          secret: decryptedSecret,
-          encoding: 'base32',
-          token: rawTotp,
-          window: 2,
-        });
-      }
-
-      // Check recovery codes fallback (Issue BC-031)
-      if (!verified && user.recoveryCodes?.length > 0) {
-        const normalizedInput = rawTotp.toUpperCase();
-        const codeIndex = user.recoveryCodes.findIndex((c) => c.toUpperCase() === normalizedInput);
-        if (codeIndex !== -1) {
-          verified = true;
-          // Consume one-time recovery code
-          user.recoveryCodes.splice(codeIndex, 1);
-          writeDb(db);
-          console.log(
-            `\x1b[32m[2FA RECOVERY ${new Date().toISOString()}]\x1b[0m Recovery code consumed for user: ${user.email} (${user.recoveryCodes.length} remaining)`
-          );
-        }
-      }
-
+      const verified = verifyUserTwoFactor(user, rawTotp, db);
       if (!verified) {
+        const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
         console.warn(
-          `\x1b[33m[2FA LOGIN ${new Date().toISOString()}]\x1b[0m 2FA login verification failed for user: ${user.email}`
+          `[2FA LOGIN ${new Date().toISOString()}] 2FA login verification failed for user: ${cleanEmail}`
         );
         return res
           .status(400)
@@ -368,27 +404,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       }
     }
 
-    // Find all families user is member of
-    const userFamilies = db.families.filter(
-      (f) => f.ownerId === user.id || f.members?.some((m) => m.userId === user.id)
-    );
-
-    let activeFamily = userFamilies[0] || null;
-
-    // Fallback: if no family exists yet, create one for this user
-    if (!activeFamily) {
-      const newFamily = {
-        id: `fam-${Date.now()}`,
-        name: `Familie ${user.name}`,
-        ownerId: user.id,
-        members: [{ userId: user.id, role: 'admin', joinedAt: new Date().toISOString() }],
-        createdAt: new Date().toISOString(),
-      };
-      db.families.push(newFamily);
-      writeDb(db);
-      activeFamily = newFamily;
-    }
-
+    const { activeFamily, userFamilies } = getOrCreateActiveFamily(user, db);
     const token = createToken(user);
     const userRole = getUserFamilyRole(activeFamily, user.id);
 

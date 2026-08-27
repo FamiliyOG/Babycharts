@@ -139,12 +139,15 @@ export default function AuthModal({ isOpen, onClose }) {
           <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-2xl border border-slate-800 mb-5">
             <button
               type="button"
-              onClick={() => {
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setMode('login');
                 setError(null);
                 setSuccess(null);
               }}
-              className={`py-2 text-xs font-bold rounded-xl transition-all ${
+              className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 mode === 'login'
                   ? 'bg-slate-800 text-white shadow'
                   : 'text-slate-400 hover:text-slate-200'
@@ -154,12 +157,15 @@ export default function AuthModal({ isOpen, onClose }) {
             </button>
             <button
               type="button"
-              onClick={() => {
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setMode('register');
                 setError(null);
                 setSuccess(null);
               }}
-              className={`py-2 text-xs font-bold rounded-xl transition-all ${
+              className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 mode === 'register'
                   ? 'bg-slate-800 text-white shadow'
                   : 'text-slate-400 hover:text-slate-200'
@@ -340,12 +346,15 @@ export default function AuthModal({ isOpen, onClose }) {
                       {mode === 'login' && (
                         <button
                           type="button"
-                          onClick={() => {
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             setMode('forgot');
                             setError(null);
                             setSuccess(null);
                           }}
-                          className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium transition-colors"
+                          className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium transition-colors cursor-pointer"
                         >
                           Passwort vergessen?
                         </button>
@@ -448,12 +457,15 @@ export default function AuthModal({ isOpen, onClose }) {
             {(mode === 'forgot' || mode === 'reset') && (
               <button
                 type="button"
-                onClick={() => {
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setMode('login');
                   setError(null);
                   setSuccess(null);
                 }}
-                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors"
+                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors cursor-pointer"
               >
                 Zurück zur Anmeldung
               </button>

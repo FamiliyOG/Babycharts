@@ -197,7 +197,7 @@ function drawPdfHeader(doc, marginLeft, marginTop, contentWidth, pageWidth, nowS
   doc.setFontSize(14);
   doc.setTextColor(255, 255, 255);
   doc.text(
-    i18n.t('pdfReports.growthTitle') || 'BABYCHARTS WACHSTUMSBERICHT',
+    String(i18n.t('pdfReports.growthTitle') || 'BABYCHARTS WACHSTUMSBERICHT'),
     marginLeft + 5,
     marginTop + 9
   );
@@ -206,7 +206,7 @@ function drawPdfHeader(doc, marginLeft, marginTop, contentWidth, pageWidth, nowS
   doc.setFontSize(9);
   doc.setTextColor(148, 163, 184);
   doc.text(
-    i18n.t('pdfReports.growthSubtitle') || 'WHO-Wachstumskurven & Protokoll',
+    String(i18n.t('pdfReports.growthSubtitle') || 'WHO-Wachstumskurven & Protokoll'),
     marginLeft + 5,
     marginTop + 15
   );
@@ -214,13 +214,13 @@ function drawPdfHeader(doc, marginLeft, marginTop, contentWidth, pageWidth, nowS
   doc.setFontSize(8);
   doc.setTextColor(203, 213, 225);
   doc.text(
-    `${i18n.t('pdfReports.exportDate')}: ${nowStr}`,
+    `${String(i18n.t('pdfReports.exportDate'))}: ${String(nowStr)}`,
     pageWidth - marginLeft - 5,
     marginTop + 9,
     { align: 'right' }
   );
   doc.text(
-    `${i18n.t('pdfReports.status')}: ${statusLabel}`,
+    `${String(i18n.t('pdfReports.status'))}: ${String(statusLabel)}`,
     pageWidth - marginLeft - 5,
     marginTop + 15,
     {
@@ -242,23 +242,35 @@ function drawChildInfoBox(doc, childMeta, layout) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
-  doc.text(`${i18n.t('pdfReports.child')}: ${childName}`, marginLeft + 5, y + 8);
+  doc.text(
+    `${String(i18n.t('pdfReports.child'))}: ${String(childName || 'Kind')}`,
+    marginLeft + 5,
+    y + 8
+  );
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
   const genderText = isGirl
-    ? i18n.t('pdfReports.girl') || 'Maedchen'
-    : i18n.t('pdfReports.boy') || 'Junge';
-  doc.text(`${i18n.t('pdfReports.gender')}: ${genderText}`, marginLeft + 5, y + 14);
+    ? String(i18n.t('pdfReports.girl') || 'Maedchen')
+    : String(i18n.t('pdfReports.boy') || 'Junge');
+  doc.text(`${String(i18n.t('pdfReports.gender'))}: ${genderText}`, marginLeft + 5, y + 14);
 
   if (activeChild) {
     // Format birthdate from YYYY-MM-DD
     const formattedBirth = activeChild.birthdate
       ? new Date(activeChild.birthdate).toLocaleDateString()
       : '-';
-    doc.text(`${i18n.t('pdfReports.birthdate')}: ${formattedBirth}`, marginLeft + 90, y + 8);
-    doc.text(`${i18n.t('pdfReports.currentAge')}: ${ageInfoText}`, marginLeft + 90, y + 14);
+    doc.text(
+      `${String(i18n.t('pdfReports.birthdate'))}: ${String(formattedBirth)}`,
+      marginLeft + 90,
+      y + 8
+    );
+    doc.text(
+      `${String(i18n.t('pdfReports.currentAge'))}: ${String(ageInfoText || '-')}`,
+      marginLeft + 90,
+      y + 14
+    );
   }
 
   return y + 26;
@@ -374,14 +386,21 @@ function drawLatestMeasurementCards(
   return y + cardHeight + 8;
 }
 
-function drawChartSection(doc, marginLeft, y, contentWidth, title, base64, chartH = 48) {
+function drawChartSection(doc, base64, title, chartLayout) {
+  const { marginLeft, y, contentWidth, pageHeight, marginTop } = chartLayout;
+  const chartH = 48;
+  let currentY = y;
+  if (currentY + chartH + 15 > pageHeight - 15) {
+    doc.addPage();
+    currentY = marginTop;
+  }
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setTextColor(30, 41, 59);
-  doc.text(title, marginLeft, y);
-  y += 3;
-  doc.addImage(base64, 'PNG', marginLeft, y, contentWidth, chartH);
-  return y + chartH + 6;
+  doc.text(String(title), marginLeft, currentY);
+  currentY += 3;
+  doc.addImage(base64, 'PNG', marginLeft, currentY, contentWidth, chartH);
+  return currentY + chartH + 6;
 }
 
 function drawMeasurementTable(
@@ -393,42 +412,47 @@ function drawMeasurementTable(
   pageHeight,
   marginTop
 ) {
-  if (y + 20 > pageHeight - 15) {
+  let currentY = y;
+  if (currentY + 20 > pageHeight - 15) {
     doc.addPage();
-    y = marginTop;
+    currentY = marginTop;
   }
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text(`${i18n.t('growth.history')} (${sortedMeasurements.length})`, marginLeft, y);
-  y += 4;
+  doc.text(
+    `${String(i18n.t('growth.history'))} (${sortedMeasurements.length})`,
+    marginLeft,
+    currentY
+  );
+  currentY += 4;
 
   doc.setFillColor(241, 245, 249);
   doc.setDrawColor(203, 213, 225);
-  doc.rect(marginLeft, y, contentWidth, 7, 'FD');
+  doc.rect(marginLeft, currentY, contentWidth, 7, 'FD');
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(51, 65, 85);
-  doc.text(i18n.t('common.date'), marginLeft + 3, y + 5);
-  doc.text(i18n.t('pdfReports.checkup'), marginLeft + 28, y + 5);
-  doc.text(`${i18n.t('pdfReports.weight')} (g)`, marginLeft + 50, y + 5);
-  doc.text(`${i18n.t('pdfReports.length')} (cm)`, marginLeft + 80, y + 5);
-  doc.text(`${i18n.t('pdfReports.head')} (cm)`, marginLeft + 108, y + 5);
-  doc.text(i18n.t('pdfReports.bmi'), marginLeft + 133, y + 5);
-  doc.text(i18n.t('common.notes'), marginLeft + 150, y + 5);
-  y += 7;
+  doc.text(String(i18n.t('common.date')), marginLeft + 3, currentY + 5);
+  doc.text(String(i18n.t('pdfReports.checkup')), marginLeft + 28, currentY + 5);
+  doc.text(`${String(i18n.t('pdfReports.weight'))} (g)`, marginLeft + 50, currentY + 5);
+  doc.text(`${String(i18n.t('pdfReports.length'))} (cm)`, marginLeft + 80, currentY + 5);
+  doc.text(`${String(i18n.t('pdfReports.head'))} (cm)`, marginLeft + 108, currentY + 5);
+  doc.text(String(i18n.t('pdfReports.bmi')), marginLeft + 133, currentY + 5);
+  doc.text(String(i18n.t('common.notes')), marginLeft + 150, currentY + 5);
+  currentY += 7;
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   sortedMeasurements.forEach((m, idx) => {
-    if (y > pageHeight - 20) {
+    if (currentY > pageHeight - 20) {
       doc.addPage();
-      y = marginTop;
+      currentY = marginTop;
     }
     const rowBg = idx % 2 === 0 ? 255 : 248;
     doc.setFillColor(rowBg, rowBg, rowBg);
     doc.setDrawColor(241, 245, 249);
-    doc.rect(marginLeft, y, contentWidth, 6, 'FD');
+    doc.rect(marginLeft, currentY, contentWidth, 6, 'FD');
 
     doc.setTextColor(15, 23, 42);
     const formattedRowDate = m.date
@@ -438,24 +462,28 @@ function drawMeasurementTable(
           year: 'numeric',
         })
       : '-';
-    doc.text(formattedRowDate, marginLeft + 3, y + 4);
+    doc.text(String(formattedRowDate), marginLeft + 3, currentY + 4);
     doc.setTextColor(8, 145, 178);
-    doc.text(m.checkup || '-', marginLeft + 28, y + 4);
+    doc.text(String(m.checkup || '-'), marginLeft + 28, currentY + 4);
     doc.setTextColor(15, 23, 42);
     doc.text(
       m.weight ? `${Math.round(m.weight * 1000).toLocaleString()} g` : '-',
       marginLeft + 50,
-      y + 4
+      currentY + 4
     );
-    doc.text(m.length ? `${m.length} cm` : '-', marginLeft + 80, y + 4);
-    doc.text(m.headCircumference ? `${m.headCircumference} cm` : '-', marginLeft + 108, y + 4);
-    doc.text(calculateBMI(m.weight, m.length)?.toString() || '-', marginLeft + 133, y + 4);
+    doc.text(m.length ? `${m.length} cm` : '-', marginLeft + 80, currentY + 4);
+    doc.text(
+      m.headCircumference ? `${m.headCircumference} cm` : '-',
+      marginLeft + 108,
+      currentY + 4
+    );
+    doc.text(calculateBMI(m.weight, m.length)?.toString() || '-', marginLeft + 133, currentY + 4);
     doc.setTextColor(100, 116, 139);
-    doc.text(m.notes ? m.notes.substring(0, 20) : '-', marginLeft + 150, y + 4);
-    y += 6;
+    doc.text(m.notes ? String(m.notes).substring(0, 20) : '-', marginLeft + 150, currentY + 4);
+    currentY += 6;
   });
 
-  return y + 8;
+  return currentY + 8;
 }
 
 function drawPdfFooter(doc, marginLeft, y, pageWidth, pageHeight, _marginTop) {
@@ -472,12 +500,16 @@ function drawPdfFooter(doc, marginLeft, y, pageWidth, pageHeight, _marginTop) {
     doc.setFontSize(7);
     doc.setTextColor(148, 163, 184);
     doc.text(
-      'Basierend auf den offiziellen WHO Child Growth Standards (0-5 Jahre)',
+      String('Basierend auf den offiziellen WHO Child Growth Standards (0-5 Jahre)'),
       marginLeft,
       footerY
     );
-    doc.text(`Seite ${pageNum} / ${totalPages}`, pageWidth / 2, footerY, { align: 'center' });
-    doc.text('BabyCharts Web-Anwendung', pageWidth - marginLeft, footerY, { align: 'right' });
+    doc.text(String(`Seite ${pageNum} / ${totalPages}`), pageWidth / 2, footerY, {
+      align: 'center',
+    });
+    doc.text(String('BabyCharts Web-Anwendung'), pageWidth - marginLeft, footerY, {
+      align: 'right',
+    });
   }
 }
 

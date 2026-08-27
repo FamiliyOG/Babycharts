@@ -574,5 +574,24 @@
     "head": "Head Circ.",
     "bmi": "BMI",
     "percentile": "Percentile"
+  },
+  "homeScreen": {
+    "badge": "The All-in-One Child Health Platform",
+    "heroTitle": "Your child's development at a perfect glance.",
+    "heroSubtitle": "WHO growth charts, German U-checkup booklet, STIKO vaccination schedule, milk teeth diary, photo milestones, and pediatrician PDF reports – safely hosted on your own server.",
+    "ctaButton": "Get started & sign in",
+    "card1Title": "WHO Growth Charts",
+    "card1Desc": "Precise percentile analytics for weight, height, head circumference & BMI (0–5 years) with interactive zoom.",
+    "card2Title": "U1 – U9 Checkup Plan",
+    "card2Desc": "German yellow U-booklet with recommended time windows, doctor notes, and automatic appointment preview.",
+    "card3Title": "STIKO Vaccination Card",
+    "card3Desc": "Official Standing Committee on Vaccination guidelines with dose tracking and timely reminders.",
+    "card4Title": "Baby Teeth Chart",
+    "card4Desc": "Interactive 20-tooth chart to document teething progress with eruption dates & personal notes.",
+    "card5Title": "Milestone Diary",
+    "card5Desc": "Capture first steps, first smiles, and precious developmental moments with photo uploads and lightbox.",
+    "card6Title": "Family & Doctor PDF Exports",
+    "card6Desc": "Shared family access via invite codes as well as structured PDF & Excel exports for pediatricians.",
+    "privacyBanner": "100% private, privacy-first & self-hosted"
   }
 }

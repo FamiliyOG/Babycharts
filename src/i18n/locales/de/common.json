@@ -574,5 +574,24 @@
     "head": "Kopfumfang",
     "bmi": "BMI",
     "percentile": "Perzentile"
+  },
+  "homeScreen": {
+    "badge": "Die All-in-One Plattform für die Kindergesundheit",
+    "heroTitle": "Die Entwicklung Ihres Kindes im perfekten Überblick.",
+    "heroSubtitle": "WHO-Wachstumskurven, deutsches U-Untersuchungsheft, STIKO-Impfkalender, Milchzahn-Dokumentation, Foto-Meilensteine und kinderärztliche PDF-Reports – sicher auf Ihrem eigenen Server gehostet.",
+    "ctaButton": "Jetzt loslegen & anmelden",
+    "card1Title": "WHO Wachstumskurven",
+    "card1Desc": "Präzise Perzentilen-Analysen für Gewicht, Größe, Kopfumfang & BMI (0–5 Jahre) mit interaktivem Zoom.",
+    "card2Title": "U1 – U9 Vorsorgeplan",
+    "card2Desc": "Deutsches gelbes U-Heft mit empfohlenen Fristen, Arztnotizen und automatischer Terminvorschau.",
+    "card3Title": "STIKO Impfpass",
+    "card3Desc": "Offizielle Empfehlungen der Ständigen Impfkommission mit Dosierungs-Tracking und Erinnerungen.",
+    "card4Title": "Milchzahn-Diagramm",
+    "card4Desc": "Interaktives 20-Zähne-Gebiss zur einfachen Dokumentation des Zahndurchbruchs mit Datum & Notizen.",
+    "card5Title": "Meilenstein-Tagebuch",
+    "card5Desc": "Erste Schritte, erstes Lächeln und besondere Momente mit Foto-Upload und Lightbox festhalten.",
+    "card6Title": "Familie & PDF-Arztberichte",
+    "card6Desc": "Geteilter Familienzugriff per Einladungscode sowie strukturierte PDF- & Excel-Exporte für Kinderärzte.",
+    "privacyBanner": "100 % privat, datenschutzfreundlich & selbst gehostet"
   }
 }

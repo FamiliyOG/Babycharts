@@ -8,9 +8,11 @@ import {
   Smile,
   FileDown,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function WelcomeHomeScreen() {
+  const { t } = useTranslation();
   const { setIsAuthModalOpen } = useAuth();
 
   return (
@@ -18,18 +20,16 @@ export default function WelcomeHomeScreen() {
       {/* Hero Badge */}
       <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-300 dark:border-cyan-800/60 text-cyan-800 dark:text-cyan-300 text-xs font-bold mb-4 shadow-xs">
         <Sparkles className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-        <span>Die All-in-One Plattform für die Kindergesundheit</span>
+        <span>{t('homeScreen.badge')}</span>
       </div>
 
       {/* Hero Header */}
       <div className="text-center max-w-3xl mx-auto mb-8">
         <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 dark:bg-linear-to-r dark:from-white dark:via-slate-100 dark:to-slate-400 dark:bg-clip-text dark:text-transparent leading-tight mb-4">
-          Die Entwicklung Ihres Kindes im perfekten Überblick.
+          {t('homeScreen.heroTitle')}
         </h1>
         <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto font-medium">
-          WHO-Wachstumskurven, deutsches U-Untersuchungsheft, STIKO-Impfkalender,
-          Milchzahn-Dokumentation, Foto-Meilensteine und kinderärztliche PDF-Reports – sicher auf
-          Ihrem eigenen Server gehostet.
+          {t('homeScreen.heroSubtitle')}
         </p>
 
         {/* Single Clear CTA Button */}
@@ -39,7 +39,7 @@ export default function WelcomeHomeScreen() {
             onClick={() => setIsAuthModalOpen(true)}
             className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-sm shadow-xl shadow-cyan-900/30 active:scale-95 transition-all cursor-pointer"
           >
-            <span>Jetzt loslegen &amp; anmelden</span>
+            <span>{t('homeScreen.ctaButton')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -53,11 +53,10 @@ export default function WelcomeHomeScreen() {
             <Activity className="w-5 h-5" />
           </div>
           <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
-            WHO Wachstumskurven
+            {t('homeScreen.card1Title')}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            Präzise Perzentilen-Analysen für Gewicht, Größe, Kopfumfang &amp; BMI (0–5 Jahre) mit
-            interaktivem Zoom.
+            {t('homeScreen.card1Desc')}
           </p>
         </div>
 
@@ -67,11 +66,10 @@ export default function WelcomeHomeScreen() {
             <Award className="w-5 h-5" />
           </div>
           <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
-            U1 – U9 Vorsorgeplan
+            {t('homeScreen.card2Title')}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            Deutsches gelbes U-Heft mit empfohlenen Fristen, Arztnotizen und automatischer
-            Terminvorschau.
+            {t('homeScreen.card2Desc')}
           </p>
         </div>
 
@@ -81,11 +79,10 @@ export default function WelcomeHomeScreen() {
             <Syringe className="w-5 h-5" />
           </div>
           <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
-            STIKO Impfpass
+            {t('homeScreen.card3Title')}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            Offizielle Empfehlungen der Ständigen Impfkommission mit Dosierungs-Tracking und
-            Erinnerungen.
+            {t('homeScreen.card3Desc')}
           </p>
         </div>
 
@@ -95,11 +92,10 @@ export default function WelcomeHomeScreen() {
             <Smile className="w-5 h-5" />
           </div>
           <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
-            Milchzahn-Diagramm
+            {t('homeScreen.card4Title')}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            Interaktives 20-Zähne-Gebiss zur einfachen Dokumentation des Zahndurchbruchs mit Datum
-            &amp; Notizen.
+            {t('homeScreen.card4Desc')}
           </p>
         </div>
 
@@ -109,11 +105,10 @@ export default function WelcomeHomeScreen() {
             <Sparkles className="w-5 h-5" />
           </div>
           <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
-            Meilenstein-Tagebuch
+            {t('homeScreen.card5Title')}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            Erste Schritte, erstes Lächeln und besondere Momente mit Foto-Upload und Lightbox
-            festhalten.
+            {t('homeScreen.card5Desc')}
           </p>
         </div>
 
@@ -123,11 +118,10 @@ export default function WelcomeHomeScreen() {
             <FileDown className="w-5 h-5" />
           </div>
           <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
-            Familie &amp; PDF-Arztberichte
+            {t('homeScreen.card6Title')}
           </h2>
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            Geteilter Familienzugriff per Einladungscode sowie strukturierte PDF- &amp;
-            Excel-Exporte für Kinderärzte.
+            {t('homeScreen.card6Desc')}
           </p>
         </div>
       </div>
@@ -135,7 +129,7 @@ export default function WelcomeHomeScreen() {
       {/* Security & Privacy Banner */}
       <div className="mt-8 text-center text-xs text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5">
         <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-        <span>100 % privat, datenschutzfreundlich &amp; selbst gehostet</span>
+        <span>{t('homeScreen.privacyBanner')}</span>
       </div>
     </div>
   );

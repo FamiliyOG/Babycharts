@@ -74,4 +74,22 @@ describe('Multi-Language & Thai PDF Export Test Suite (BC-068, BC-069)', () => {
       expect(fileName).toContain('.pdf');
     }
   });
+
+  it('generates full DIN A4 growth PDF report in DE, EN, and TH', async () => {
+    const { exportReportToPdf } = await import('../utils/pdfGenerator.js');
+    for (const lang of ['de', 'en', 'th']) {
+      await i18n.changeLanguage(lang);
+      const fileName = await exportReportToPdf(
+        'pdf-report-template',
+        sampleChild.name,
+        sampleChild.gender,
+        sampleChild,
+        sampleMeasurements,
+        false
+      );
+      expect(fileName).toBeDefined();
+      expect(typeof fileName).toBe('string');
+      expect(fileName).toContain('.pdf');
+    }
+  });
 });

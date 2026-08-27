@@ -116,10 +116,9 @@ router.post('/import', requireAuth, (req, res) => {
     }
   }
 
-  // Scoped merge/upsert: Keep all other profiles from other families intact!
   const importedMap = new Map();
   for (const p of profiles) {
-    if (!p || !p.id || !p.name) continue;
+    if (!p?.id || !p.name) continue;
     importedMap.set(p.id, {
       ...p,
       familyId: targetFamilyId || null,

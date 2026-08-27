@@ -122,7 +122,7 @@ router.post('/upload', requireAuth, (req, res) => {
 
     // Parse base64 header and data with strict raster image MIME whitelist (excluding SVG to prevent XSS)
     const matches = dataUrl.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,(.+)$/i);
-    if (!matches || matches.length !== 3) {
+    if (matches?.length !== 3) {
       return res.status(400).json({
         error: 'Ungültiges oder nicht unterstütztes Bildformat (nur PNG, JPEG, WebP, GIF).',
       });
@@ -184,6 +184,42 @@ router.post('/upload', requireAuth, (req, res) => {
   }
 });
 
+function checkMediaAccess(meta, user, db) {
+  if (meta.familyId) {
+    const family = db.families.find((f) => f.id === meta.familyId);
+    if (family) {
+      return family.ownerId === user.id || family.members?.some((m) => m.userId === user.id);
+    }
+    return false;
+  }
+
+  if (meta.userId === user.id) {
+    return true;
+  }
+
+  // Check if user shares any family with meta.userId or if media is referenced in any profile user has access to
+  const userFamilies = db.families.filter(
+    (f) => f.ownerId === user.id || f.members?.some((m) => m.userId === user.id)
+  );
+  const userFamilyIds = new Set(userFamilies.map((f) => f.id));
+
+  const sharedFamily = db.families.some(
+    (f) =>
+      (f.ownerId === meta.userId || f.members?.some((m) => m.userId === meta.userId)) &&
+      (f.ownerId === user.id || f.members?.some((m) => m.userId === user.id))
+  );
+
+  const profileReferenced = db.profiles.some(
+    (p) =>
+      p.familyId &&
+      userFamilyIds.has(p.familyId) &&
+      (p.avatar?.includes(meta.id) ||
+        Object.values(p.milestones || {}).some((m) => m?.photo?.includes(meta.id)))
+  );
+
+  return sharedFamily || profileReferenced;
+}
+
 /**
  * GET /api/media/:id
  * Streams the decrypted image directly to the client after verifying family membership
@@ -203,50 +239,7 @@ router.get('/:id', requireMediaAuth, (req, res) => {
     }
 
     const db = readDb();
-
-    // Check authorization:
-    // 1. If familyId is assigned: User MUST belong to that family (owner or member)
-    // 2. If no familyId (personal user avatar / profile photo): User MUST be the creator OR share a family with the creator
-    let hasAccess = false;
-
-    if (meta.familyId) {
-      const family = db.families.find((f) => f.id === meta.familyId);
-      if (family) {
-        // Owner or member of the family
-        if (
-          family.ownerId === req.user.id ||
-          family.members?.some((m) => m.userId === req.user.id)
-        ) {
-          hasAccess = true;
-        }
-      }
-    } else {
-      if (meta.userId === req.user.id) {
-        hasAccess = true;
-      } else {
-        // Check if req.user shares any family with meta.userId or if media is referenced in any profile user has access to
-        const userFamilies = db.families.filter(
-          (f) => f.ownerId === req.user.id || f.members?.some((m) => m.userId === req.user.id)
-        );
-        const userFamilyIds = new Set(userFamilies.map((f) => f.id));
-
-        const sharedFamily = db.families.some(
-          (f) =>
-            (f.ownerId === meta.userId || f.members?.some((m) => m.userId === meta.userId)) &&
-            (f.ownerId === req.user.id || f.members?.some((m) => m.userId === req.user.id))
-        );
-
-        const profileReferenced = db.profiles.some(
-          (p) =>
-            p.familyId &&
-            userFamilyIds.has(p.familyId) &&
-            (p.avatar?.includes(id) ||
-              Object.values(p.milestones || {}).some((m) => m?.photo?.includes(id)))
-        );
-
-        if (sharedFamily || profileReferenced) hasAccess = true;
-      }
-    }
+    const hasAccess = checkMediaAccess(meta, req.user, db);
 
     if (!hasAccess) {
       return res

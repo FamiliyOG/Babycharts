@@ -230,6 +230,12 @@ function buildChartData({
 
 const DEFAULT_Y_BOUNDS = { min: 0, max: null };
 
+function getXAxisStepSize(maxAgeMonths) {
+  if (maxAgeMonths <= 12) return 1;
+  if (maxAgeMonths <= 24) return 2;
+  return 6;
+}
+
 function buildChartOptions(
   metric,
   maxAgeMonths,
@@ -323,7 +329,7 @@ function buildChartOptions(
         ticks: {
           color: tickColor,
           font: { size: 11 },
-          stepSize: maxAgeMonths <= 12 ? 1 : maxAgeMonths <= 24 ? 2 : 6,
+          stepSize: getXAxisStepSize(maxAgeMonths),
           callback: (val) => {
             if (val === 0) return 'Geburt';
             if (val % 12 === 0) return `${val / 12} J.`;

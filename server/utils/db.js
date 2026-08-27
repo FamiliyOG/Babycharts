@@ -6,6 +6,7 @@
  * - Users, 2FA/TOTP, Families, Invites, Profiles, Measurements, Health logs, Milestones & Teeth
  */
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -221,7 +222,7 @@ export function logSecurityEvent({
   details = null,
 }) {
   try {
-    const id = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const id = `audit-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const timestamp = new Date().toISOString();
     sqlite
       .prepare(
@@ -660,7 +661,7 @@ export async function createDbBackup() {
       (f) => f.startsWith('babycharts-backup-') && f.endsWith('.sqlite')
     );
     if (files.length > 7) {
-      files.sort();
+      files.sort((a, b) => a.localeCompare(b));
       const toDelete = files.slice(0, -7);
       for (const file of toDelete) {
         try {

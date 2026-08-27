@@ -59,6 +59,43 @@ function getAllowedChildFolders(user, db) {
   return new Set(userProfiles.map((p) => sanitizeName(p.name)).filter(Boolean));
 }
 
+async function processPdfFile(dir, entryName, relPath, allowedFolders, files) {
+  if (!entryName.endsWith('.pdf')) return;
+  const topFolder = relPath.split('/')[0];
+  if (!allowedFolders.has(topFolder)) return;
+
+  try {
+    const stat = await fs.stat(path.join(dir, entryName));
+    files.push({
+      filename: relPath,
+      sizeBytes: stat.size,
+      createdAt: stat.birthtime.toISOString(),
+      modifiedAt: stat.mtime.toISOString(),
+    });
+  } catch {
+    // Ignore stat errors
+  }
+}
+
+async function scanExportFiles(dir, base, allowedFolders, files) {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const relPath = base ? `${base}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        if (!base && !allowedFolders.has(entry.name)) {
+          continue;
+        }
+        await scanExportFiles(path.join(dir, entry.name), relPath, allowedFolders, files);
+      } else {
+        await processPdfFile(dir, entry.name, relPath, allowedFolders, files);
+      }
+    }
+  } catch {
+    // Ignore missing or inaccessible directories
+  }
+}
+
 // GET – list all PDFs (strictly authenticated & filtered to user's family children)
 router.get('/', requireAuth, async (req, res) => {
   const exportDir = getExportDir();
@@ -66,40 +103,7 @@ router.get('/', requireAuth, async (req, res) => {
   const allowedFolders = getAllowedChildFolders(req.user, db);
 
   const files = [];
-  const scanDir = async (dir, base = '') => {
-    try {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        const relPath = base ? `${base}/${entry.name}` : entry.name;
-        if (entry.isDirectory()) {
-          // Only scan subdirectories that match the user's family profiles
-          if (!base && !allowedFolders.has(entry.name)) {
-            continue;
-          }
-          await scanDir(path.join(dir, entry.name), relPath);
-        } else if (entry.name.endsWith('.pdf')) {
-          const topFolder = relPath.split('/')[0];
-          if (allowedFolders.has(topFolder)) {
-            try {
-              const stat = await fs.stat(path.join(dir, entry.name));
-              files.push({
-                filename: relPath,
-                sizeBytes: stat.size,
-                createdAt: stat.birthtime.toISOString(),
-                modifiedAt: stat.mtime.toISOString(),
-              });
-            } catch {
-              // Ignore stat errors
-            }
-          }
-        }
-      }
-    } catch {
-      // Ignore missing or inaccessible directories
-    }
-  };
-
-  await scanDir(exportDir);
+  await scanExportFiles(exportDir, '', allowedFolders, files);
   files.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   return res.json(files);
 });
@@ -122,7 +126,7 @@ router.get('/download', requireAuth, (req, res) => {
   // Check authorization for the child folder
   const db = readDb();
   const allowedFolders = getAllowedChildFolders(req.user, db);
-  const normalizedRel = path.relative(exportDir, filePath).replace(/\\/g, '/');
+  const normalizedRel = path.relative(exportDir, filePath).replaceAll('\\', '/');
   const topFolder = normalizedRel.split('/')[0];
 
   if (!allowedFolders.has(topFolder)) {
@@ -154,7 +158,7 @@ router.delete('/delete', requireAuth, async (req, res) => {
   }
 
   const db = readDb();
-  const normalizedRel = path.relative(exportDir, filePath).replace(/\\/g, '/');
+  const normalizedRel = path.relative(exportDir, filePath).replaceAll('\\', '/');
   const topFolder = normalizedRel.split('/')[0];
 
   // Find the corresponding profile & family

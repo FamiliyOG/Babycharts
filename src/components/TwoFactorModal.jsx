@@ -7,10 +7,11 @@ import { useModalDismissal } from '../utils/useModalDismissal.js';
 export default function TwoFactorModal({ isOpen, onClose }) {
   const { user, refreshUser } = useAuth();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
-  const [step, setStep] = useState('initial'); // 'initial' | 'setup' | 'disable'
+  const [step, setStep] = useState('initial'); // 'initial' | 'setup' | 'recovery' | 'disable'
   const [qrCode, setQrCode] = useState(null);
   const [secret, setSecret] = useState('');
   const [totpCode, setTotpCode] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState([]);
   const [disablePassword, setDisablePassword] = useState('');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
@@ -41,8 +42,13 @@ export default function TwoFactorModal({ isOpen, onClose }) {
     setLoading(true);
     const res = await verify2FA(totpCode);
     if (res.ok) {
-      setSuccess('Zwei-Faktor-Authentifizierung wurde erfolgreich aktiviert!');
-      setStep('initial');
+      if (res.data?.recoveryCodes?.length > 0) {
+        setRecoveryCodes(res.data.recoveryCodes);
+        setStep('recovery');
+      } else {
+        setSuccess('Zwei-Faktor-Authentifizierung wurde erfolgreich aktiviert!');
+        setStep('initial');
+      }
       if (refreshUser) refreshUser();
     } else {
       setError(res.error || 'Der eingegebene Code war nicht korrekt.');
@@ -234,6 +240,63 @@ export default function TwoFactorModal({ isOpen, onClose }) {
               </button>
             </div>
           </form>
+        )}
+
+        {/* Step: Recovery Codes Display (Issue BC-031) */}
+        {step === 'recovery' && (
+          <div className="space-y-4 animate-fadeIn">
+            <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800/60 text-amber-200">
+              <div className="flex items-center gap-2 font-bold text-xs mb-1 text-amber-300">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>2FA erfolgreich aktiviert!</span>
+              </div>
+              <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                Speichern oder notieren Sie sich diese Einmal-Wiederherstellungscodes an einem
+                sicheren Ort. Falls Sie Ihr Smartphone verlieren, können Sie diese Codes zur
+                Anmeldung nutzen:
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 p-3 bg-slate-950 rounded-2xl border border-slate-800">
+              {recoveryCodes.map((code, idx) => (
+                <div
+                  key={idx}
+                  className="font-mono text-center text-xs py-1.5 px-2 bg-slate-900 rounded-lg text-cyan-300 border border-slate-800/80"
+                >
+                  {code}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(recoveryCodes.join('\n'));
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                <span>{copied ? 'Kopiert!' : 'Codes kopieren'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('initial');
+                  setSuccess('Zwei-Faktor-Authentifizierung wurde erfolgreich aktiviert!');
+                }}
+                className="flex-1 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md shadow-cyan-950"
+              >
+                Fertig
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Step: Disable 2FA with Password */}

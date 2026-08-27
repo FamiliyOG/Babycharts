@@ -85,6 +85,32 @@ export async function disable2FA(password) {
   });
 }
 
+export async function forgotPassword(email) {
+  return safeFetch(`${BASE}/auth/forgot-password`, {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token, newPassword) {
+  return safeFetch(`${BASE}/auth/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
+export async function changePassword(currentPassword, newPassword, logoutAllDevices = true) {
+  const res = await safeFetch(`${BASE}/auth/change-password`, {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword, logoutAllDevices }),
+  });
+  if (res.ok && res.data?.token) {
+    const cleanToken = res.data.token.replace(/[^a-zA-Z0-9._-]/g, '');
+    localStorage.setItem('babycharts_token', cleanToken);
+  }
+  return res;
+}
+
 export async function registerUser({ name, email, password, familyName, inviteCode }) {
   const res = await safeFetch(`${BASE}/auth/register`, {
     method: 'POST',

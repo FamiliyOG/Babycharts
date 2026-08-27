@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Lock,
@@ -16,6 +17,7 @@ import { useModalDismissal } from '../utils/useModalDismissal.js';
 import { forgotPassword, resetPassword } from '../utils/api.js';
 
 export default function AuthModal({ isOpen, onClose }) {
+  const { t } = useTranslation();
   const { login, register } = useAuth();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
   const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'reset'
@@ -120,17 +122,16 @@ export default function AuthModal({ isOpen, onClose }) {
             )}
           </div>
           <h2 className="text-xl font-bold text-slate-100">
-            {mode === 'login' && 'Willkommen zurück'}
-            {mode === 'register' && 'Konto & Familie erstellen'}
-            {mode === 'forgot' && 'Passwort vergessen'}
-            {mode === 'reset' && 'Neues Passwort vergeben'}
+            {mode === 'login' && t('auth.loginTitle')}
+            {mode === 'register' && t('auth.registerTitle')}
+            {mode === 'forgot' && t('auth.forgotTitle')}
+            {mode === 'reset' && t('auth.resetTitle')}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            {mode === 'login' && 'Melden Sie sich an, um Ihre Familiendaten zu synchronisieren'}
-            {mode === 'register' &&
-              'Erstellen Sie Ihr Profil oder treten Sie einer bestehenden Familie bei'}
-            {mode === 'forgot' && 'Geben Sie Ihre E-Mail ein, um Ihr Passwort zurückzusetzen'}
-            {mode === 'reset' && 'Geben Sie das neue Passwort und Ihren Reset-Code ein'}
+            {mode === 'login' && t('auth.loginSubtitle')}
+            {mode === 'register' && t('auth.registerSubtitle')}
+            {mode === 'forgot' && t('auth.forgotSubtitle')}
+            {mode === 'reset' && t('auth.resetSubtitle')}
           </p>
         </div>
 
@@ -153,7 +154,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Anmelden
+              {t('auth.signInTab')}
             </button>
             <button
               type="button"
@@ -171,7 +172,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Registrieren
+              {t('auth.registerTab')}
             </button>
           </div>
         )}
@@ -199,7 +200,7 @@ export default function AuthModal({ isOpen, onClose }) {
                 htmlFor="auth-name-input"
                 className="block text-xs font-semibold text-slate-300 mb-1"
               >
-                Ihr Name *
+                {t('auth.nameLabel')} *
               </label>
               <div className="relative">
                 <User className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
@@ -209,7 +210,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="z. B. Stefanie Mayer"
+                  placeholder={t('auth.namePlaceholder')}
                   className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                 />
               </div>
@@ -222,7 +223,7 @@ export default function AuthModal({ isOpen, onClose }) {
                 htmlFor="auth-forgot-email"
                 className="block text-xs font-semibold text-slate-300 mb-1"
               >
-                Ihre registrierte E-Mail-Adresse *
+                {t('auth.emailLabel')} *
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
@@ -232,7 +233,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@beispiel.de"
+                  placeholder={t('auth.emailPlaceholder')}
                   className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                 />
               </div>
@@ -246,18 +247,18 @@ export default function AuthModal({ isOpen, onClose }) {
                   htmlFor="auth-reset-token"
                   className="block text-xs font-semibold text-slate-300 mb-1"
                 >
-                  Reset-Token / Code *
+                  {t('auth.resetCodeLabel')} *
                 </label>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
+                  <Key className="w-4 h-4 absolute left-3.5 top-3 text-cyan-400" />
                   <input
                     id="auth-reset-token"
                     type="text"
                     required
                     value={resetToken}
-                    onChange={(e) => setResetToken(e.target.value)}
-                    placeholder="Reset-Token einfügen"
-                    className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                    onChange={(e) => setResetToken(e.target.value.trim())}
+                    placeholder={t('auth.resetCodePlaceholder')}
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-cyan-300 font-mono placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
@@ -267,7 +268,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   htmlFor="auth-new-password"
                   className="block text-xs font-semibold text-slate-300 mb-1"
                 >
-                  Neues Passwort * (min. 8 Zeichen, Groß-/Klein &amp; Zahl)
+                  {t('auth.newPasswordLabel')} *
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
@@ -278,7 +279,7 @@ export default function AuthModal({ isOpen, onClose }) {
                     minLength={8}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Neues sicheres Passwort"
+                    placeholder={t('auth.passwordPlaceholder')}
                     className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
@@ -288,98 +289,94 @@ export default function AuthModal({ isOpen, onClose }) {
 
           {(mode === 'login' || mode === 'register') && (
             <>
-              {requires2FA && mode === 'login' ? (
-                <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-800/60 animate-fadeIn">
+              <div>
+                <label
+                  htmlFor="auth-email-input"
+                  className="block text-xs font-semibold text-slate-300 mb-1"
+                >
+                  {t('auth.emailLabel')} *
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
+                  <input
+                    id="auth-email-input"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('auth.emailPlaceholder')}
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label
+                    htmlFor="auth-password-input"
+                    className="block text-xs font-semibold text-slate-300"
+                  >
+                    {t('auth.passwordLabel')} *
+                  </label>
+                  {mode === 'login' && (
+                    <button
+                      type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMode('forgot');
+                        setError(null);
+                        setSuccess(null);
+                      }}
+                      className="text-[11px] text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                    >
+                      {t('auth.forgotPasswordLink')}
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
+                  <input
+                    id="auth-password-input"
+                    type="password"
+                    required
+                    minLength={mode === 'register' ? 8 : undefined}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t('auth.passwordPlaceholder')}
+                    className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* 2FA TOTP Code Input (Shown if user has 2FA enabled) */}
+              {requires2FA && mode === 'login' && (
+                <div className="pt-2 animate-fadeIn">
                   <label
                     htmlFor="auth-totp-input"
-                    className="block text-xs font-bold text-cyan-300 mb-1.5"
+                    className="block text-xs font-semibold text-cyan-300 mb-1 flex items-center gap-1.5"
                   >
-                    🔐 Authenticator-Code oder Recovery-Code
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>{t('auth.totpLabel')} *</span>
                   </label>
-                  <input
-                    id="auth-totp-input"
-                    type="text"
-                    required
-                    autoFocus
-                    placeholder="123456 oder ABCD-1234"
-                    value={totpCode}
-                    onChange={(e) => setTotpCode(e.target.value)}
-                    className="w-full text-center tracking-widest font-mono text-lg py-2.5 bg-slate-950 border border-cyan-500 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-2 text-center">
-                    Geben Sie den 6-stelligen Code aus Ihrer 2FA-App oder einen Ihrer
-                    Notfall-Wiederherstellungscodes ein.
-                  </p>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-cyan-400" />
+                    <input
+                      id="auth-totp-input"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      autoFocus
+                      required
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder={t('auth.totpPlaceholder')}
+                      className="w-full pl-10 pr-3 py-2.5 bg-cyan-950/40 border border-cyan-700/60 rounded-xl text-sm text-cyan-200 tracking-widest font-mono placeholder-slate-600 focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div>
-                    <label
-                      htmlFor="auth-email-input"
-                      className="block text-xs font-semibold text-slate-300 mb-1"
-                    >
-                      E-Mail-Adresse *
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
-                      <input
-                        id="auth-email-input"
-                        type="email"
-                        required
-                        autoComplete="username"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="name@beispiel.de"
-                        className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label
-                        htmlFor="auth-password-input"
-                        className="block text-xs font-semibold text-slate-300"
-                      >
-                        Passwort *
-                      </label>
-                      {mode === 'login' && (
-                        <button
-                          type="button"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setMode('forgot');
-                            setError(null);
-                            setSuccess(null);
-                          }}
-                          className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium transition-colors cursor-pointer"
-                        >
-                          Passwort vergessen?
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
-                      <input
-                        id="auth-password-input"
-                        type="password"
-                        required
-                        minLength={mode === 'register' ? 8 : 1}
-                        autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder={
-                          mode === 'register'
-                            ? 'Mindestens 8 Zeichen (A-Z, a-z, 0-9)'
-                            : 'Ihr Passwort'
-                        }
-                        className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                  </div>
-                </>
               )}
 
               {mode === 'register' && (
@@ -389,7 +386,7 @@ export default function AuthModal({ isOpen, onClose }) {
                       htmlFor="auth-family-name-input"
                       className="block text-xs font-semibold text-slate-300 mb-1"
                     >
-                      Name Ihrer Familie (optional)
+                      {t('auth.familyNameLabel')}
                     </label>
                     <div className="relative">
                       <Users className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
@@ -398,7 +395,7 @@ export default function AuthModal({ isOpen, onClose }) {
                         type="text"
                         value={familyName}
                         onChange={(e) => setFamilyName(e.target.value)}
-                        placeholder="z. B. Familie Mayer"
+                        placeholder={t('auth.familyNamePlaceholder')}
                         className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                       />
                     </div>
@@ -409,7 +406,7 @@ export default function AuthModal({ isOpen, onClose }) {
                       htmlFor="auth-invite-code-input"
                       className="block text-xs font-semibold text-slate-300 mb-1"
                     >
-                      Haben Sie einen Einladungscode? (optional)
+                      {t('auth.inviteCodeLabel')}
                     </label>
                     <div className="relative">
                       <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-cyan-400" />
@@ -419,14 +416,10 @@ export default function AuthModal({ isOpen, onClose }) {
                         maxLength={10}
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                        placeholder="z. B. BABY88"
+                        placeholder={t('auth.inviteCodePlaceholder')}
                         className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-cyan-300 font-mono tracking-wider placeholder-slate-600 focus:outline-none focus:border-cyan-500 uppercase"
                       />
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Geben Sie den 6-stelligen Code ein, falls Sie von einem
-                      Partner/Familienmitglied eingeladen wurden.
-                    </p>
                   </div>
                 </>
               )}
@@ -437,17 +430,17 @@ export default function AuthModal({ isOpen, onClose }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-linear-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg shadow-cyan-950/60 active:scale-[0.98] transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-xs sm:text-sm bg-linear-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg shadow-cyan-950/60 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
-                <span>Wird verarbeitet...</span>
+                <span>{t('common.loading')}</span>
               ) : (
                 <>
                   <span>
-                    {mode === 'login' && 'Jetzt anmelden'}
-                    {mode === 'register' && 'Konto erstellen'}
-                    {mode === 'forgot' && 'Reset-Code anfordern'}
-                    {mode === 'reset' && 'Passwort speichern'}
+                    {mode === 'login' && t('auth.submitLogin')}
+                    {mode === 'register' && t('auth.submitRegister')}
+                    {mode === 'forgot' && t('auth.submitForgot')}
+                    {mode === 'reset' && t('auth.submitReset')}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </>
@@ -467,7 +460,7 @@ export default function AuthModal({ isOpen, onClose }) {
                 }}
                 className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors cursor-pointer"
               >
-                Zurück zur Anmeldung
+                {t('auth.backToLogin')}
               </button>
             )}
           </div>

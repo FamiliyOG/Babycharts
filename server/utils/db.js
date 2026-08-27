@@ -24,11 +24,12 @@ try {
   console.warn('[DB] mkdir DATA_DIR warning:', err.message);
 }
 
-// Initialize SQLite database
-export const sqlite = new Database(DB_PATH);
+// Initialize SQLite database with busyTimeout to prevent concurrent file locking during tests / multi-threading
+export const sqlite = new Database(DB_PATH, { timeout: 10000 });
 
 // Configure SQLite for high performance and integrity
 sqlite.pragma('journal_mode = WAL');
+sqlite.pragma('busy_timeout = 10000');
 sqlite.pragma('foreign_keys = ON');
 sqlite.pragma('synchronous = NORMAL');
 

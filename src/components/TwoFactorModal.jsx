@@ -197,7 +197,7 @@ export default function TwoFactorModal({ isOpen, onClose }) {
                 {t('twoFactor.scanQrTitle')}
               </label>
               {qrCode && (
-                <div className="p-3 bg-white rounded-2xl flex items-center justify-center max-w-[180px] mx-auto shadow-md">
+                <div className="p-3 bg-white rounded-2xl flex items-center justify-center max-w-45 mx-auto shadow-md">
                   <img src={qrCode} alt="2FA QR Code" className="w-full h-auto" />
                 </div>
               )}

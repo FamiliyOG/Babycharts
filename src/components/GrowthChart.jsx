@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Chart as ChartJS,
   LinearScale,
@@ -32,13 +33,6 @@ const METRIC_UNITS = {
   length: 'cm',
   headCircumference: 'cm',
   bmi: 'kg/m²',
-};
-
-const METRIC_TITLES = {
-  weight: 'Gewicht nach Alter',
-  length: 'Körpergröße / Länge nach Alter',
-  headCircumference: 'Kopfumfang nach Alter',
-  bmi: 'BMI nach Alter',
 };
 
 function formatMetricDisplayValue(val, metric) {
@@ -236,47 +230,39 @@ function buildChartData({
 
 const DEFAULT_Y_BOUNDS = { min: 0, max: null };
 
-function buildChartOptions(metric, maxAgeMonths, isDark = true, yBounds = DEFAULT_Y_BOUNDS) {
+function buildChartOptions(
+  metric,
+  maxAgeMonths,
+  isDark = true,
+  yBounds = DEFAULT_Y_BOUNDS,
+  metricTitles = {}
+) {
   const gridColor = isDark ? 'rgba(51, 65, 85, 0.3)' : 'rgba(203, 213, 225, 0.6)';
   const tickColor = isDark ? '#94a3b8' : '#64748b';
-  const titleColor = isDark ? '#64748b' : '#475569';
-  const tooltipBg = isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.98)';
-  const tooltipTitleColor = isDark ? '#f8fafc' : '#0f172a';
-  const tooltipBodyColor = isDark ? '#cbd5e1' : '#334155';
-  const tooltipBorder = isDark ? 'rgba(51, 65, 85, 0.8)' : '#cbd5e1';
+  const titleColor = isDark ? '#cbd5e1' : '#475569';
+  const tooltipBg = isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+  const tooltipTitle = isDark ? '#f8fafc' : '#0f172a';
+  const tooltipBody = isDark ? '#cbd5e1' : '#334155';
+  const tooltipBorder = isDark ? 'rgba(51, 65, 85, 0.8)' : 'rgba(203, 213, 225, 0.8)';
 
   return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 500,
+      easing: 'easeOutQuart',
+    },
+    layout: {
+      padding: { top: 10, right: 15, bottom: 5, left: 5 },
+    },
     plugins: {
       legend: {
         display: false,
       },
-      zoom: {
-        pan: {
-          enabled: true,
-          mode: 'x',
-          modifierKey: null,
-        },
-        zoom: {
-          wheel: {
-            enabled: true,
-            speed: 0.08,
-          },
-          pinch: {
-            enabled: true,
-          },
-          mode: 'x',
-        },
-        limits: {
-          x: { min: 0, max: maxAgeMonths, minRange: 1 },
-          y: { min: yBounds.min ?? 0, max: yBounds.max ?? undefined },
-        },
-      },
       tooltip: {
         backgroundColor: tooltipBg,
-        titleColor: tooltipTitleColor,
-        bodyColor: tooltipBodyColor,
+        titleColor: tooltipTitle,
+        bodyColor: tooltipBody,
         borderColor: tooltipBorder,
         borderWidth: 1,
         padding: 12,
@@ -284,28 +270,43 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true, yBounds = DEFAUL
         usePointStyle: true,
         callbacks: {
           title: (items) => {
-            const rawItem = items[0]?.raw;
-            if (rawItem?.date) {
-              const ageStr = rawItem.ageText || `${rawItem.x} Monate`;
-              let formattedDate = rawItem.date;
-              try {
-                formattedDate = new Date(rawItem.date).toLocaleDateString('de-DE', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                });
-              } catch {
-                formattedDate = rawItem.date;
-              }
-              return `Datum: ${formattedDate} (${ageStr})`;
-            }
-            return `Alter: ${items[0]?.parsed?.x} Monate`;
+            if (!items.length) return '';
+            const month = items[0].parsed.x;
+            const years = Math.floor(month / 12);
+            const remainingMonths = month % 12;
+            if (years === 0) return `Alter: ${month} Monate`;
+            if (remainingMonths === 0) return `Alter: ${years} Jahre`;
+            return `Alter: ${years} J. ${remainingMonths} M.`;
           },
-          label: (ctx) => {
-            const label = ctx.dataset.label || '';
-            const val = ctx.parsed.y;
-            const displayVal = formatMetricDisplayValue(val, metric);
-            return `${label}: ${displayVal}`;
+          label: (context) => {
+            const label = context.dataset.label || '';
+            const val = context.parsed.y;
+            if (val === null || val === undefined) return null;
+            return ` ${label}: ${formatMetricDisplayValue(val, metric)}`;
+          },
+        },
+      },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'xy',
+          threshold: 5,
+        },
+        zoom: {
+          wheel: {
+            enabled: true,
+            speed: 0.1,
+          },
+          pinch: {
+            enabled: true,
+          },
+          mode: 'xy',
+        },
+        limits: {
+          x: { min: 0, max: 60, minRange: 3 },
+          y: {
+            min: yBounds.min !== null ? yBounds.min : 'original',
+            max: yBounds.max !== null ? yBounds.max : 'original',
           },
         },
       },
@@ -322,25 +323,24 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true, yBounds = DEFAUL
         ticks: {
           color: tickColor,
           font: { size: 11 },
-          maxRotation: 0,
-          autoSkip: true,
+          stepSize: maxAgeMonths <= 12 ? 1 : maxAgeMonths <= 24 ? 2 : 6,
           callback: (val) => {
-            if (typeof val !== 'number') return val;
-            // Clean up floating point inaccuracies during zoom (e.g. 1.12034747516M -> 1.1M or 1M)
-            const rounded = Number(Number(val).toFixed(1));
-            return `${rounded}M`;
+            if (val === 0) return 'Geburt';
+            if (val % 12 === 0) return `${val / 12} J.`;
+            return `${val} M.`;
           },
         },
         title: {
           display: true,
-          text: 'Alter in Monaten (0 - 5 Jahre)',
+          text: 'Alter (Monate / Jahre)',
           color: titleColor,
           font: { size: 11, weight: '600' },
         },
       },
       y: {
-        min: yBounds.min ?? 0,
-        max: yBounds.max ?? undefined,
+        type: 'linear',
+        min: yBounds.min,
+        max: yBounds.max,
         grid: {
           color: gridColor,
           drawBorder: true,
@@ -352,7 +352,7 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true, yBounds = DEFAUL
         },
         title: {
           display: true,
-          text: `${METRIC_TITLES[metric]} (${METRIC_UNITS[metric]})`,
+          text: `${metricTitles[metric] || ''} (${METRIC_UNITS[metric]})`,
           color: titleColor,
           font: { size: 11, weight: '600' },
         },
@@ -361,22 +361,36 @@ function buildChartOptions(metric, maxAgeMonths, isDark = true, yBounds = DEFAUL
   };
 }
 
-export default function GrowthChart({ activeChild, measurements = [] }) {
+export default function GrowthChart({ activeChild }) {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
-  const chartRef = useRef(null);
-  const [metric, setMetric] = useState('weight');
+  const [metric, setMetric] = useState('weight'); // 'weight' | 'length' | 'headCircumference' | 'bmi'
   const [maxAgeMonths, setMaxAgeMonths] = useState(24);
   const [hoveredLegendKey, setHoveredLegendKey] = useState(null);
-  const [hiddenDatasets, setHiddenDatasets] = useState({});
+  const [hiddenDatasets, setHiddenDatasets] = useState({
+    child: false,
+    p50: false,
+    p15_85: false,
+    p85: false,
+    p97: false,
+    p3: false,
+  });
+
+  const chartRef = useRef(null);
 
   if (!activeChild) return null;
 
   const isGirl = activeChild.gender === 'girl';
-  const genderKey = isGirl ? 'girl' : 'boy';
+  const measurements = activeChild.measurements || [];
+  const rawWhoData = WHO_DATA[metric]?.[isGirl ? 'girls' : 'boys'] || [];
+  const filteredWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);
 
-  // Fetch WHO reference percentile datasets for selected metric (keep data up to 60 for smooth panning/zooming)
-  const rawWhoData = WHO_DATA[genderKey]?.[metric] || [];
-  const filteredWhoData = rawWhoData.filter((d) => d.month <= 60);
+  const METRIC_TITLES = {
+    weight: t('growth.weightTitle'),
+    length: t('growth.lengthTitle'),
+    headCircumference: t('growth.headCircumferenceTitle'),
+    bmi: t('growth.bmiTitle'),
+  };
 
   // Compute maximum sensible Y range for current view range to keep Y axis beautifully proportioned
   const currentRangeWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);
@@ -442,7 +456,7 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
     childColor,
     isDark,
   });
-  const options = buildChartOptions(metric, maxAgeMonths, isDark, yBounds);
+  const options = buildChartOptions(metric, maxAgeMonths, isDark, yBounds, METRIC_TITLES);
 
   const getMetricButtonClass = (targetMetric) => {
     const isSelected = metric === targetMetric;
@@ -464,7 +478,7 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${getMetricButtonClass('weight')}`}
           >
             <Scale className="w-3.5 h-3.5" />
-            <span>Gewicht</span>
+            <span>{t('growth.weight')}</span>
           </button>
 
           <button
@@ -473,7 +487,7 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${getMetricButtonClass('length')}`}
           >
             <Ruler className="w-3.5 h-3.5" />
-            <span>Größe</span>
+            <span>{t('growth.length')}</span>
           </button>
 
           <button
@@ -482,7 +496,7 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${getMetricButtonClass('headCircumference')}`}
           >
             <Circle className="w-3.5 h-3.5" />
-            <span>Kopf</span>
+            <span>{t('growth.headCircumference')}</span>
           </button>
 
           <button
@@ -491,7 +505,7 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all ${getMetricButtonClass('bmi')}`}
           >
             <Activity className="w-3.5 h-3.5" />
-            <span>BMI</span>
+            <span>{t('growth.bmi')}</span>
           </button>
         </div>
 
@@ -520,12 +534,12 @@ export default function GrowthChart({ activeChild, measurements = [] }) {
             <button
               type="button"
               onClick={handleResetZoom}
-              title="Zoom zurücksetzen"
-              aria-label="Zoom zurücksetzen"
+              title={t('growth.zoomReset')}
+              aria-label={t('growth.zoomReset')}
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors"
             >
               <RotateCcw className="w-3 h-3" />
-              <span className="hidden sm:inline">Reset</span>
+              <span className="hidden sm:inline">{t('growth.zoomReset')}</span>
             </button>
           </div>
 

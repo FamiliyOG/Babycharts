@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import confetti from 'canvas-confetti';
 import { MILK_TEETH } from '../data/teeth.js';
 
 export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
+  const { t } = useTranslation();
   const [selectedTooth, setSelectedTooth] = useState(null);
   const [hoveredTooth, setHoveredTooth] = useState(null);
   const [eruptedDate, setEruptedDate] = useState('');
@@ -232,13 +234,13 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <span>Milchzahn-Tracker</span>
+              <span>{t('teeth.title')}</span>
               <span className="text-xs px-2 py-0.5 rounded-md bg-cyan-950/80 text-cyan-300 border border-cyan-800/40 font-bold">
-                {eruptedCount} / 20 Zähne durchgebrochen
+                {eruptedCount} / 20 {t('teeth.teethCount')}
               </span>
             </h3>
             <p className="text-xs text-slate-400">
-              Anatomisches Milchgebiss – Klicke auf einen Zahn, um den Durchbruch festzuhalten
+              {t('teeth.subtitle')}
             </p>
           </div>
         </div>

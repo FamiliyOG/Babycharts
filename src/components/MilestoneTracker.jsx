@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import confetti from 'canvas-confetti';
 import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-react';
 import { STANDARD_MILESTONES } from '../data/milestones.js';
@@ -10,6 +11,7 @@ function sanitizePhotoUrl(url) {
 }
 
 export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }) {
+  const { t } = useTranslation();
   const [selectedMilestone, setSelectedMilestone] = useState(null);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [lightboxData, setLightboxData] = useState(null);
@@ -206,14 +208,13 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <span>Meilenstein- &amp; Entwicklungstagebuch</span>
+              <span>{t('milestones.title')}</span>
               <span className="text-xs px-2.5 py-0.5 rounded-md bg-amber-950/80 text-amber-300 border border-amber-800/40 font-bold">
-                {achievedCount} Meilensteine erreicht
+                {achievedCount} {t('milestones.completed')}
               </span>
             </h3>
             <p className="text-xs text-slate-400">
-              Besondere Entwicklungsschritte, erste Worte und unvergessliche Momente von{' '}
-              {activeChild.name}
+              {t('milestones.subtitle')}
             </p>
           </div>
         </div>
@@ -222,10 +223,10 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
           <button
             type="button"
             onClick={() => setIsCustomModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-950 transition-all active:scale-95 self-start sm:self-auto shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-950 transition-all active:scale-95 self-start sm:self-auto shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Eigenen Meilenstein anlegen</span>
+            <span>{t('milestones.addCustom')}</span>
           </button>
         )}
       </div>

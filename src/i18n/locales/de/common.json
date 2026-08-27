@@ -36,7 +36,10 @@
     "profile": "Profil",
     "download": "Herunterladen",
     "search": "Suchen...",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "notes": "Notizen",
+    "date": "Datum",
+    "actions": "Aktionen"
   },
   "header": {
     "selectChild": "Kind auswählen",
@@ -137,6 +140,87 @@
     "deleteFamily": "Familie löschen",
     "deleteConfirm": "Möchten Sie diese Familie wirklich unwiderruflich löschen? Alle Daten gehen verloren."
   },
+  "growth": {
+    "title": "Wachstumskurven (WHO-Perzentilen)",
+    "subtitle": "Offizielle WHO-Wachstumsstandards nach Alter",
+    "addMeasurement": "Messwert eintragen",
+    "weight": "Gewicht",
+    "length": "Körperlänge",
+    "headCircumference": "Kopfumfang",
+    "bmi": "BMI",
+    "percentile": "Perzentile",
+    "history": "Messwert-Historie",
+    "noMeasurements": "Noch keine Messwerte eingetragen.",
+    "weightTitle": "Gewicht nach Alter",
+    "lengthTitle": "Körpergröße / Länge nach Alter",
+    "headCircumferenceTitle": "Kopfumfang nach Alter",
+    "bmiTitle": "BMI nach Alter",
+    "zoomReset": "Zoom zurücksetzen",
+    "latestValue": "Aktueller Wert:",
+    "whoBand": "WHO-Perzentilenbereich (P3 - P97)",
+    "measurementCount": "Messungen"
+  },
+  "health": {
+    "title": "Gesundheits- & Symptomtagebuch",
+    "subtitle": "Dokumentieren Sie Fieber, Krankheitssymptome und Medikamente.",
+    "addEntry": "Eintrag hinzufügen",
+    "editEntry": "Eintrag bearbeiten",
+    "temperature": "Temperatur (°C)",
+    "medication": "Medikamente",
+    "symptoms": "Symptome",
+    "tempHistory": "Temperaturverlauf",
+    "symptomOverview": "Häufige Symptome",
+    "entries": "Einträge",
+    "noEntries": "Noch keine Gesundheitseinträge vorhanden.",
+    "feverWarning": "Erhöhte Temperatur / Fieber",
+    "commonSymptoms": {
+      "runnyNose": "Schnupfen",
+      "cough": "Husten",
+      "soreThroat": "Halsschmerzen",
+      "stomachAche": "Bauchschmerzen",
+      "vomiting": "Erbrechen",
+      "diarrhea": "Durchfall",
+      "rash": "Hautausschlag",
+      "lossOfAppetite": "Appetitlosigkeit",
+      "fussiness": "Unruhe / Weinen",
+      "fatigue": "Müdigkeit"
+    }
+  },
+  "milestones": {
+    "title": "Entwicklungsmeilensteine",
+    "subtitle": "Feiern und dokumentieren Sie die ersten großen Entwicklungsschritte.",
+    "achieved": "Erreicht am",
+    "addCustom": "Eigenen Meilenstein hinzufügen",
+    "editMilestone": "Meilenstein bearbeiten",
+    "completed": "Erreicht",
+    "pending": "Ausstehend",
+    "photoUpload": "Erinnerungsfoto",
+    "customTitleLabel": "Titel des Meilensteins",
+    "customDescLabel": "Beschreibung (optional)",
+    "customIconLabel": "Icon / Emoji"
+  },
+  "teeth": {
+    "title": "Zahnungs-Tagebuch",
+    "subtitle": "Klicken Sie auf einen Zahn, um den Durchbruch mit Datum und Notiz zu vermerken.",
+    "erupted": "Durchgebrochen am",
+    "upperJaw": "Oberkiefer",
+    "lowerJaw": "Unterkiefer",
+    "teethCount": "Zähne durchgebrochen",
+    "editTooth": "Zahndaten bearbeiten",
+    "markErupted": "Als durchgebrochen markieren",
+    "removeErupted": "Durchbruch entfernen"
+  },
+  "vaccinations": {
+    "title": "Impfpass & STIKO-Empfehlungen",
+    "subtitle": "Dokumentieren Sie die Schutzimpfungen laut STIKO-Impfkalender.",
+    "completed": "Geimpft",
+    "open": "Offen / Anstehend",
+    "vaccinatedOn": "Geimpft am",
+    "doctor": "Arzt / Praxis",
+    "batch": "Chargennummer",
+    "recordVaccine": "Impfung eintragen",
+    "removeVaccine": "Impfung entfernen"
+  },
   "errors": {
     "unauthorized": "Nicht autorisiert. Bitte melden Sie sich an.",
     "accessDenied": "Zugriff verweigert. Unzureichende Berechtigungen.",
@@ -145,35 +229,5 @@
     "serverError": "Ein unerwarteter Serverfehler ist aufgetreten.",
     "rateLimit": "Zu viele Anfragen. Bitte warten Sie einen Moment.",
     "expiredToken": "Dieser Link oder Code ist abgelaufen."
-  },
-  "growth": {
-    "title": "Wachstumskurven (WHO-Perzentilen)",
-    "addMeasurement": "Messwert eintragen",
-    "weight": "Gewicht",
-    "height": "Körperlänge",
-    "headCircumference": "Kopfumfang",
-    "bmi": "BMI",
-    "percentile": "Perzentile",
-    "history": "Messwert-Historie",
-    "noMeasurements": "Noch keine Messwerte eingetragen."
-  },
-  "milestones": {
-    "title": "Entwicklungsmeilensteine",
-    "achieved": "Erreicht am",
-    "notes": "Notizen",
-    "addCustom": "Eigenen Meilenstein hinzufügen"
-  },
-  "teeth": {
-    "title": "Zahnungs-Tagebuch",
-    "erupted": "Durchgebrochen am",
-    "upperJaw": "Oberkiefer",
-    "lowerJaw": "Unterkiefer"
-  },
-  "health": {
-    "title": "Gesundheits- & Symptomtagebuch",
-    "temperature": "Temperatur (°C)",
-    "symptoms": "Symptome",
-    "medication": "Medikamente",
-    "addEntry": "Eintrag hinzufügen"
   }
 }

@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Syringe, Check, Calendar, Plus, Edit2 } from 'lucide-react';
 import { STIKO_VACCINATIONS } from '../data/vaccinations.js';
 
 export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit }) {
+  const { t } = useTranslation();
   const [selectedVaccine, setSelectedVaccine] = useState(null);
   const [vaxDate, setVaxDate] = useState('');
   const [vaxDoctor, setVaxDoctor] = useState('');
@@ -70,13 +72,13 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <span>STIKO-Impfkalender</span>
-              <span className="text-xs px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/40">
-                {completedCount} / {STIKO_VACCINATIONS.length} geimpft
+              <span>{t('vaccinations.title')}</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/40 font-bold">
+                {completedCount} / {STIKO_VACCINATIONS.length} {t('vaccinations.completed')}
               </span>
             </h3>
             <p className="text-xs text-slate-400">
-              Offizielle Impfempfehlungen der Ständigen Impfkommission für {activeChild.name}
+              {t('vaccinations.subtitle')}
             </p>
           </div>
         </div>
@@ -101,7 +103,7 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                   <div className="font-semibold text-xs text-slate-200">{vax.name}</div>
                   {isDone ? (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 shrink-0">
-                      <Check className="w-3 h-3" /> Geimpft
+                      <Check className="w-3 h-3" /> {t('vaccinations.completed')}
                     </span>
                   ) : (
                     <span className="text-[10px] text-slate-400 font-medium shrink-0">

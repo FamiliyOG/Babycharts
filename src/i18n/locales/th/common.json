@@ -36,7 +36,10 @@
     "profile": "โปรไฟล์",
     "download": "ดาวน์โหลด",
     "search": "ค้นหา...",
-    "confirm": "ยืนยัน"
+    "confirm": "ยืนยัน",
+    "notes": "บันทึก",
+    "date": "วันที่",
+    "actions": "การกระทำ"
   },
   "header": {
     "selectChild": "เลือกเด็ก",
@@ -137,6 +140,87 @@
     "deleteFamily": "ลบครอบครัว",
     "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบครอบครัวนี้ถาวร? ข้อมูลทั้งหมดจะหายไป"
   },
+  "growth": {
+    "title": "กราฟการเติบโต (เกณฑ์ WHO)",
+    "subtitle": "เกณฑ์มาตรฐานการเจริญเติบโตของเด็กตามอายุ (WHO)",
+    "addMeasurement": "บันทึกข้อมูลการวัด",
+    "weight": "น้ำหนัก",
+    "length": "ส่วนสูง",
+    "headCircumference": "รอบศีรษะ",
+    "bmi": "ดัชนีมวลกาย (BMI)",
+    "percentile": "เปอร์เซ็นไทล์",
+    "history": "ประวัติการวัด",
+    "noMeasurements": "ยังไม่มีข้อมูลการวัด",
+    "weightTitle": "น้ำหนักตามเกณฑ์อายุ",
+    "lengthTitle": "ส่วนสูงตามเกณฑ์อายุ",
+    "headCircumferenceTitle": "รอบศีรษะตามเกณฑ์อายุ",
+    "bmiTitle": "BMI ตามเกณฑ์อายุ",
+    "zoomReset": "รีเซ็ตการซูม",
+    "latestValue": "ค่าล่าสุด:",
+    "whoBand": "ช่วงเปอร์เซ็นไทล์ WHO (P3 - P97)",
+    "measurementCount": "การวัด"
+  },
+  "health": {
+    "title": "บันทึกสุขภาพและอาการ",
+    "subtitle": "บันทึกประวัติไข้ อาการป่วย และการให้ยา",
+    "addEntry": "เพิ่มบันทึก",
+    "editEntry": "แก้ไขบันทึก",
+    "temperature": "อุณหภูมิ (°C)",
+    "medication": "ยา",
+    "symptoms": "อาการ",
+    "tempHistory": "กราฟอุณหภูมิ",
+    "symptomOverview": "อาการที่พบบ่อย",
+    "entries": "รายการบันทึก",
+    "noEntries": "ยังไม่มีบันทึกข้อมูลสุขภาพ",
+    "feverWarning": "มีไข้ / อุณหภูมิสูง",
+    "commonSymptoms": {
+      "runnyNose": "มีน้ำมูก",
+      "cough": "ไอ",
+      "soreThroat": "เจ็บคอ",
+      "stomachAche": "ปวดท้อง",
+      "vomiting": "อาเจียน",
+      "diarrhea": "ท้องเสีย",
+      "rash": "ผื่นคัน",
+      "lossOfAppetite": "เบื่ออาหาร",
+      "fussiness": "งอแง / ร้องไห้",
+      "fatigue": "อ่อนเพลีย"
+    }
+  },
+  "milestones": {
+    "title": "พัฒนาการตามวัย",
+    "subtitle": "บันทึกและเฉลิมฉลองก้าวสำคัญแรกของลูกน้อย",
+    "achieved": "ทำได้เมื่อวันที่",
+    "addCustom": "เพิ่มพัฒนาการของตนเอง",
+    "editMilestone": "แก้ไขพัฒนาการ",
+    "completed": "สำเร็จแล้ว",
+    "pending": "รอดำเนินการ",
+    "photoUpload": "รูปภาพความทรงจำ",
+    "customTitleLabel": "ชื่อพัฒนาการ",
+    "customDescLabel": "รายละเอียด (ไม่บังคับ)",
+    "customIconLabel": "ไอคอน / อิโมจิ"
+  },
+  "teeth": {
+    "title": "บันทึกฟันน้ำนม",
+    "subtitle": "คลิกที่ฟันแต่ละซี่เพื่อบันทึกวันที่ฟันขึ้นและหมายเหตุ",
+    "erupted": "ฟันขึ้นเมื่อวันที่",
+    "upperJaw": "ฟันบน",
+    "lowerJaw": "ฟันล่าง",
+    "teethCount": "ฟันขึ้นแล้ว",
+    "editTooth": "แก้ไขข้อมูลฟัน",
+    "markErupted": "ทำเครื่องหมายว่าฟันขึ้นแล้ว",
+    "removeErupted": "ลบข้อมูลฟันขึ้น"
+  },
+  "vaccinations": {
+    "title": "สมุดบันทึกวัคซีน",
+    "subtitle": "บันทึกประวัติการรับวัคซีนตามตารางแนะนำ",
+    "completed": "ได้รับแล้ว",
+    "open": "รอดำเนินการ / นัดหมายถัดไป",
+    "vaccinatedOn": "ได้รับเมื่อวันที่",
+    "doctor": "แพทย์ / คลินิก",
+    "batch": "หมายเลขรุ่นผลิต (Batch)",
+    "recordVaccine": "บันทึกการฉีดวัคซีน",
+    "removeVaccine": "ลบการฉีดวัคซีน"
+  },
   "errors": {
     "unauthorized": "ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบ",
     "accessDenied": "ปฏิเสธการเข้าถึง สิทธิ์ไม่เพียงพอ",
@@ -145,35 +229,5 @@
     "serverError": "เกิดข้อผิดพลาดของเซิร์ฟเวอร์",
     "rateLimit": "มีคำขอมากเกินไป กรุณารอสักครู่",
     "expiredToken": "ลิงก์หรือรหัสนี้หมดอายุแล้ว"
-  },
-  "growth": {
-    "title": "กราฟการเติบโต (เกณฑ์ WHO)",
-    "addMeasurement": "บันทึกข้อมูลการวัด",
-    "weight": "น้ำหนัก",
-    "height": "ส่วนสูง",
-    "headCircumference": "รอบศีรษะ",
-    "bmi": "ดัชนีมวลกาย (BMI)",
-    "percentile": "เปอร์เซ็นไทล์",
-    "history": "ประวัติการวัด",
-    "noMeasurements": "ยังไม่มีข้อมูลการวัด"
-  },
-  "milestones": {
-    "title": "พัฒนาการตามวัย",
-    "achieved": "ทำได้เมื่อวันที่",
-    "notes": "บันทึกเพิ่มเติม",
-    "addCustom": "เพิ่มพัฒนาการของตนเอง"
-  },
-  "teeth": {
-    "title": "บันทึกฟันน้ำนม",
-    "erupted": "ฟันขึ้นเมื่อวันที่",
-    "upperJaw": "ฟันบน",
-    "lowerJaw": "ฟันล่าง"
-  },
-  "health": {
-    "title": "บันทึกสุขภาพและอาการ",
-    "temperature": "อุณหภูมิ (°C)",
-    "symptoms": "อาการ",
-    "medication": "ยา",
-    "addEntry": "เพิ่มบันทึก"
   }
 }

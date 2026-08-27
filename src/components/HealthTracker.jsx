@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Activity,
   Thermometer,
@@ -36,6 +37,7 @@ const COMMON_SYMPTOMS = [
 ];
 
 export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
+  const { t } = useTranslation();
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
 
@@ -230,17 +232,17 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <span>Krankheits- &amp; Fieber-Tagebuch</span>
+              <span>{t('health.title')}</span>
               {latestTemp && latestTempBadge && (
                 <span
                   className={`text-xs px-2.5 py-0.5 rounded-md font-bold border ${latestTempBadge.badgeClass}`}
                 >
-                  Aktuell: {latestTemp} °C ({latestTempBadge.label})
+                  {t('growth.latestValue')} {latestTemp} °C ({latestTempBadge.label})
                 </span>
               )}
             </h3>
             <p className="text-xs text-slate-400">
-              Temperaturverlauf, Medikamente und Symptome von {activeChild.name} festhalten
+              {t('health.subtitle')}
             </p>
           </div>
         </div>
@@ -253,20 +255,20 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
               generateDoctorFeverReport(activeChild);
             }}
             title="Kinderarzt 72h-Bericht als PDF herunterladen"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 transition-all active:scale-95 cursor-pointer"
           >
             <FileText className="w-4 h-4 text-rose-400" />
-            <span>Kinderarzt-Bericht (PDF)</span>
+            <span>{t('header.doctorReport')}</span>
           </button>
 
           {canEdit && (
             <button
               type="button"
               onClick={openCreateModal}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-950 transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-950 transition-all active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Messung / Medikament</span>
+              <span>{t('health.addEntry')}</span>
             </button>
           )}
         </div>

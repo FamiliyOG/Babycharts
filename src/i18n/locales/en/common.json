@@ -36,7 +36,10 @@
     "profile": "Profile",
     "download": "Download",
     "search": "Search...",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "notes": "Notes",
+    "date": "Date",
+    "actions": "Actions"
   },
   "header": {
     "selectChild": "Select child",
@@ -137,6 +140,87 @@
     "deleteFamily": "Delete Family",
     "deleteConfirm": "Are you sure you want to permanently delete this family? All data will be lost."
   },
+  "growth": {
+    "title": "Growth Charts (WHO Percentiles)",
+    "subtitle": "Official WHO Child Growth Standards by age",
+    "addMeasurement": "Record measurement",
+    "weight": "Weight",
+    "length": "Length",
+    "headCircumference": "Head Circumference",
+    "bmi": "BMI",
+    "percentile": "Percentile",
+    "history": "Measurement History",
+    "noMeasurements": "No measurements recorded yet.",
+    "weightTitle": "Weight-for-age",
+    "lengthTitle": "Length/Height-for-age",
+    "headCircumferenceTitle": "Head circumference-for-age",
+    "bmiTitle": "BMI-for-age",
+    "zoomReset": "Reset Zoom",
+    "latestValue": "Latest value:",
+    "whoBand": "WHO Percentile Band (P3 - P97)",
+    "measurementCount": "Measurements"
+  },
+  "health": {
+    "title": "Health & Symptom Tracker",
+    "subtitle": "Track fever, symptoms, and medication history.",
+    "addEntry": "Add entry",
+    "editEntry": "Edit entry",
+    "temperature": "Temperature (°C)",
+    "medication": "Medication",
+    "symptoms": "Symptoms",
+    "tempHistory": "Temperature Chart",
+    "symptomOverview": "Frequent Symptoms",
+    "entries": "Entries",
+    "noEntries": "No health entries recorded yet.",
+    "feverWarning": "Elevated Temperature / Fever",
+    "commonSymptoms": {
+      "runnyNose": "Runny nose",
+      "cough": "Cough",
+      "soreThroat": "Sore throat",
+      "stomachAche": "Stomach ache",
+      "vomiting": "Vomiting",
+      "diarrhea": "Diarrhea",
+      "rash": "Skin rash",
+      "lossOfAppetite": "Loss of appetite",
+      "fussiness": "Fussiness / Crying",
+      "fatigue": "Fatigue"
+    }
+  },
+  "milestones": {
+    "title": "Developmental Milestones",
+    "subtitle": "Track and celebrate first major milestones.",
+    "achieved": "Achieved on",
+    "addCustom": "Add custom milestone",
+    "editMilestone": "Edit milestone",
+    "completed": "Completed",
+    "pending": "Pending",
+    "photoUpload": "Memory Photo",
+    "customTitleLabel": "Milestone Title",
+    "customDescLabel": "Description (optional)",
+    "customIconLabel": "Icon / Emoji"
+  },
+  "teeth": {
+    "title": "Teething Diary",
+    "subtitle": "Click on any tooth to record eruption date and notes.",
+    "erupted": "Erupted on",
+    "upperJaw": "Upper Jaw",
+    "lowerJaw": "Lower Jaw",
+    "teethCount": "Teeth erupted",
+    "editTooth": "Edit Tooth Data",
+    "markErupted": "Mark as Erupted",
+    "removeErupted": "Remove Eruption"
+  },
+  "vaccinations": {
+    "title": "Vaccination Record",
+    "subtitle": "Document vaccinations according to recommended schedules.",
+    "completed": "Completed",
+    "open": "Pending / Upcoming",
+    "vaccinatedOn": "Vaccinated on",
+    "doctor": "Doctor / Clinic",
+    "batch": "Batch Number",
+    "recordVaccine": "Record Vaccination",
+    "removeVaccine": "Remove Vaccination"
+  },
   "errors": {
     "unauthorized": "Unauthorized. Please log in.",
     "accessDenied": "Access denied. Insufficient permissions.",
@@ -145,35 +229,5 @@
     "serverError": "An unexpected server error occurred.",
     "rateLimit": "Too many requests. Please wait a moment.",
     "expiredToken": "This link or code has expired."
-  },
-  "growth": {
-    "title": "Growth Charts (WHO Percentiles)",
-    "addMeasurement": "Record measurement",
-    "weight": "Weight",
-    "height": "Length",
-    "headCircumference": "Head Circumference",
-    "bmi": "BMI",
-    "percentile": "Percentile",
-    "history": "Measurement History",
-    "noMeasurements": "No measurements recorded yet."
-  },
-  "milestones": {
-    "title": "Developmental Milestones",
-    "achieved": "Achieved on",
-    "notes": "Notes",
-    "addCustom": "Add custom milestone"
-  },
-  "teeth": {
-    "title": "Teething Diary",
-    "erupted": "Erupted on",
-    "upperJaw": "Upper Jaw",
-    "lowerJaw": "Lower Jaw"
-  },
-  "health": {
-    "title": "Health & Symptom Tracker",
-    "temperature": "Temperature (°C)",
-    "symptoms": "Symptoms",
-    "medication": "Medication",
-    "addEntry": "Add entry"
   }
 }

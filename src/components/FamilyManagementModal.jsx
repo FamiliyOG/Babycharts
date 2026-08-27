@@ -536,37 +536,56 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
               Großeltern):
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-2 mb-3">
-              <select
-                id="invite-role-select"
-                aria-label="Rolle für Einladung auswählen"
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
-              >
-                <option value="editor">✏️ Elternteil (Vollzugriff / Bearbeiten)</option>
-                <option value="viewer">👁️ Besucher (Nur Lesezugriff)</option>
-              </select>
+            <div className="space-y-2 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label
+                    htmlFor="invite-role-select"
+                    className="block text-[10px] font-semibold text-slate-400 mb-1"
+                  >
+                    Berechtigung:
+                  </label>
+                  <select
+                    id="invite-role-select"
+                    aria-label="Rolle für Einladung auswählen"
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
+                  >
+                    <option value="editor">✏️ Elternteil (Bearbeiten)</option>
+                    <option value="viewer">👁️ Besucher (Nur Lesen)</option>
+                  </select>
+                </div>
 
-              <select
-                id="invite-expiry-select"
-                aria-label="Gültigkeitsdauer auswählen"
-                value={inviteExpiresIn}
-                onChange={(e) => setInviteExpiresIn(e.target.value)}
-                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
-              >
-                <option value="24">⏱️ Gültig für 24 Stunden</option>
-                <option value="48">⏱️ Gültig für 48 Stunden (Standard)</option>
-                <option value="168">⏱️ Gültig für 7 Tage</option>
-                <option value="720">⏱️ Gültig für 30 Tage</option>
-              </select>
+                <div>
+                  <label
+                    htmlFor="invite-expiry-select"
+                    className="block text-[10px] font-semibold text-slate-400 mb-1"
+                  >
+                    Gültigkeitsdauer:
+                  </label>
+                  <select
+                    id="invite-expiry-select"
+                    aria-label="Gültigkeitsdauer auswählen"
+                    value={inviteExpiresIn}
+                    onChange={(e) => setInviteExpiresIn(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
+                  >
+                    <option value="24">⏱️ 24 Stunden</option>
+                    <option value="48">⏱️ 48 Stunden (Standard)</option>
+                    <option value="168">⏱️ 7 Tage</option>
+                    <option value="720">⏱️ 30 Tage</option>
+                  </select>
+                </div>
+              </div>
 
               <button
                 type="button"
                 onClick={handleCreateInvite}
-                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
+                className="w-full mt-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Code generieren
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Einladungscode generieren</span>
               </button>
             </div>
 

@@ -249,8 +249,13 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setGender('boy')}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setGender('boy');
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                   gender === 'boy'
                     ? 'bg-cyan-950/80 border-cyan-500 text-cyan-200 shadow-md shadow-cyan-950'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
@@ -271,8 +276,13 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
 
               <button
                 type="button"
-                onClick={() => setGender('girl')}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setGender('girl');
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                   gender === 'girl'
                     ? 'bg-pink-950/80 border-pink-500 text-pink-200 shadow-md shadow-pink-950'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'

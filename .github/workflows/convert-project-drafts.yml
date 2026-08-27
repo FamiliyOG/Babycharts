@@ -16,7 +16,7 @@ env:
   PROJECT_OWNER: FamiliyOG
   TARGET_REPOSITORY: FamiliyOG/Babycharts
   STATUS_FIELD_NAME: Status
-  READY_STATUS: Ready for Issue
+  READY_STATUS: '🎯 Ready'
 
 jobs:
   convert-drafts:

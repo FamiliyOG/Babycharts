@@ -267,9 +267,16 @@
     "medication": "Medication",
     "symptoms": "Symptoms",
     "tempHistory": "Temperature Chart",
+    "tempCurve": "Fever Curve",
+    "historyTitle": "History",
+    "entriesCount": "Entries",
     "symptomOverview": "Frequent Symptoms",
     "entries": "Entries",
-    "noEntries": "No health entries recorded yet.",
+    "noEntries": "No health or fever entries recorded yet.",
+    "exportPdf": "Export doctor report",
+    "fever": "Fever",
+    "elevatedTemp": "Elevated Temperature",
+    "normal": "Normal",
     "feverWarning": "Elevated Temperature / Fever",
     "commonSymptoms": {
       "runnyNose": "Runny nose",
@@ -292,18 +299,105 @@
     "editMilestone": "Edit milestone",
     "completed": "Completed",
     "pending": "Pending",
+    "typical": "Typical",
+    "recordBtn": "Record",
     "photoUpload": "Memory Photo",
     "customTitleLabel": "Milestone Title",
     "customDescLabel": "Description (optional)",
-    "customIconLabel": "Icon / Emoji"
+    "customIconLabel": "Icon / Emoji",
+    "items": {
+      "first-smile": {
+        "title": "First conscious smile",
+        "desc": "Reacts to familiar faces and voices with an affectionate smile."
+      },
+      "hold-head": {
+        "title": "Hold head steady",
+        "desc": "Holds head steady and upright when lying on tummy."
+      },
+      "roll-over": {
+        "title": "Roll tummy to back",
+        "desc": "First coordinated rolling movements around own axis."
+      },
+      "first-solid-food": {
+        "title": "First solid foods",
+        "desc": "First spoons of purée or complementary foods."
+      },
+      "sit-alone": {
+        "title": "Sit unsupported",
+        "desc": "Can sit steadily without assistance and without toppling over."
+      },
+      "crawl": {
+        "title": "Crawling / Scooting",
+        "desc": "Explores the world moving on all fours."
+      },
+      "pincer-grasp": {
+        "title": "Pincer grasp",
+        "desc": "Picks up small objects using thumb and index finger."
+      },
+      "pull-to-stand": {
+        "title": "Pull to stand",
+        "desc": "Pulls up to standing position using furniture or rails."
+      },
+      "wave-bye": {
+        "title": "Wave & Clap",
+        "desc": "Waves 'bye-bye' or claps hands excitedly."
+      },
+      "first-steps": {
+        "title": "First independent steps",
+        "desc": "The first brave steps completely unsupported!"
+      },
+      "first-words": {
+        "title": "First words (e.g. Mama, Dada)",
+        "desc": "Uses specific words purposefully for people or objects."
+      },
+      "stack-blocks": {
+        "title": "Stack building blocks",
+        "desc": "Successfully stacks several blocks on top of each other."
+      },
+      "drink-cup": {
+        "title": "Drink from cup independently",
+        "desc": "Drinks from a regular cup without help."
+      },
+      "run": {
+        "title": "Running steadily",
+        "desc": "Runs smoothly across the room or playground."
+      },
+      "two-word-sentences": {
+        "title": "Two-word sentences",
+        "desc": "Combines words meaningfully (e.g., 'more milk', 'big dog')."
+      },
+      "spoon-eating": {
+        "title": "Eat with spoon independently",
+        "desc": "Brings spoon to mouth securely without spilling much."
+      },
+      "stairs-climbing": {
+        "title": "Climb stairs",
+        "desc": "Walks up stairs while holding onto the railing."
+      },
+      "kick-ball": {
+        "title": "Kick a ball",
+        "desc": "Kicks a ball forward while standing without losing balance."
+      },
+      "draw-lines": {
+        "title": "First scribbles & lines",
+        "desc": "Holds crayons and draws lines on paper."
+      },
+      "dress-self": {
+        "title": "Put on simple clothes",
+        "desc": "Puts on or takes off socks, hats, or shoes independently."
+      }
+    }
   },
   "teeth": {
     "title": "Teething Diary",
     "subtitle": "Click on any tooth to record eruption date and notes.",
     "erupted": "Erupted on",
-    "upperJaw": "Upper Jaw",
-    "lowerJaw": "Lower Jaw",
+    "upperJaw": "UPPER JAW (MAXILLA)",
+    "lowerJaw": "LOWER JAW (MANDIBLE)",
     "teethCount": "Teeth erupted",
+    "tooth": "Tooth",
+    "eruptedLabel": "Erupted",
+    "notYet": "Not yet erupted",
     "editTooth": "Edit Tooth Data",
     "markErupted": "Mark as Erupted",
     "removeErupted": "Remove Eruption"
@@ -317,7 +411,64 @@
     "doctor": "Doctor / Clinic",
     "batch": "Batch Number",
     "recordVaccine": "Record Vaccination",
-    "removeVaccine": "Remove Vaccination"
+    "removeVaccine": "Remove Vaccination",
+    "items": {
+      "rotavirus-1": {
+        "name": "Rotavirus (1st dose)",
+        "period": "From 6th week of life",
+        "desc": "Oral vaccination against severe gastrointestinal infections."
+      },
+      "rotavirus-2": {
+        "name": "Rotavirus (2nd dose)",
+        "period": "4 weeks after 1st dose",
+        "desc": "2nd part of oral rotavirus vaccination."
+      },
+      "6fach-1": {
+        "name": "6-in-1 Vaccine (1st dose)",
+        "period": "2nd month of life",
+        "desc": "Diphtheria, Tetanus, Pertussis, Polio, Hib, Hepatitis B."
+      },
+      "pneumokokken-1": {
+        "name": "Pneumococcal (1st dose)",
+        "period": "2nd month of life",
+        "desc": "Protection against severe pneumonia, meningitis, and ear infections."
+      },
+      "6fach-2": {
+        "name": "6-in-1 Vaccine (2nd dose)",
+        "period": "4th month of life",
+        "desc": "2nd primary immunization (DTaP-IPV-Hib-HepB)."
+      },
+      "pneumokokken-2": {
+        "name": "Pneumococcal (2nd dose)",
+        "period": "4th month of life",
+        "desc": "2nd dose of pneumococcal vaccine."
+      },
+      "6fach-3": {
+        "name": "6-in-1 Vaccine (3rd dose / Completion)",
+        "period": "11th–14th month of life",
+        "desc": "Completion of primary 6-in-1 immunization."
+      },
+      "pneumokokken-3": {
+        "name": "Pneumococcal (3rd dose / Completion)",
+        "period": "11th–14th month of life",
+        "desc": "Completion of primary pneumococcal immunization."
+      },
+      "meningokokken-c": {
+        "name": "Meningococcal C",
+        "period": "12th month of life",
+        "desc": "Protection against meningitis caused by Meningococcal type C."
+      },
+      "mmrv-1": {
+        "name": "MMRV (1st dose)",
+        "period": "11th–14th month of life",
+        "desc": "Measles, Mumps, Rubella, and Varicella (Chickenpox)."
+      },
+      "mmrv-2": {
+        "name": "MMRV (2nd dose / Completion)",
+        "period": "15th–23rd month of life",
+        "desc": "2nd dose for complete protection against MMR & Chickenpox."
+      }
+    }
   },
   "uCheckups": {
     "title": "Well-child Checkups (U1-U9)",
@@ -326,7 +477,49 @@
     "addCheckup": "Record checkup",
     "dueNow": "Due now!",
     "recordedOn": "Recorded on {{date}}",
-    "pending": "Pending"
+    "pending": "Pending",
+    "items": {
+      "U1": {
+        "period": "Right after birth",
+        "desc": "First vital signs, Apgar score, Vitamin K"
+      },
+      "U2": {
+        "period": "3rd to 10th day of life",
+        "desc": "Full body examination, hearing screening, metabolic screening"
+      },
+      "U3": {
+        "period": "4th to 5th week of life",
+        "desc": "Hip ultrasound, motor skills check, and weight gain monitoring"
+      },
+      "U4": {
+        "period": "3rd to 4th month of life",
+        "desc": "Mobility, vision and hearing development, vaccination consultation"
+      },
+      "U5": {
+        "period": "6th to 7th month of life",
+        "desc": "Targeted grasping, rolling over, active mobility"
+      },
+      "U6": {
+        "period": "10th to 12th month of life",
+        "desc": "Crawling, sitting unsupported, first words, language comprehension"
+      },
+      "U7": {
+        "period": "21st to 24th month of life",
+        "desc": "Two-word sentences, walking, language and behavioral development"
+      },
+      "U7a": {
+        "period": "34th to 36th month of life",
+        "desc": "Vision check, dentition, 3-word sentences, social interaction"
+      },
+      "U8": {
+        "period": "46th to 48th month of life",
+        "desc": "Fine motor skills, pronunciation, independence"
+      },
+      "U9": {
+        "period": "60th to 64th month of life",
+        "desc": "Preschool checkup, school readiness assessment"
+      }
+    }
   },
   "errors": {
     "unauthorized": "Unauthorized. Please log in.",

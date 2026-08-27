@@ -267,9 +267,16 @@
     "medication": "Medikamente",
     "symptoms": "Symptome",
     "tempHistory": "Temperaturverlauf",
+    "tempCurve": "Fieberkurve",
+    "historyTitle": "Verlauf",
+    "entriesCount": "Einträge",
     "symptomOverview": "Häufige Symptome",
     "entries": "Einträge",
-    "noEntries": "Noch keine Gesundheitseinträge vorhanden.",
+    "noEntries": "Noch keine Krankheits- oder Fiebereinträge vorhanden.",
+    "exportPdf": "Arztbericht exportieren",
+    "fever": "Fieber",
+    "elevatedTemp": "Erhöhte Temperatur",
+    "normal": "Normal",
     "feverWarning": "Erhöhte Temperatur / Fieber",
     "commonSymptoms": {
       "runnyNose": "Schnupfen",
@@ -292,18 +299,105 @@
     "editMilestone": "Meilenstein bearbeiten",
     "completed": "Erreicht",
     "pending": "Ausstehend",
+    "typical": "Typisch",
+    "recordBtn": "Festhalten",
     "photoUpload": "Erinnerungsfoto",
     "customTitleLabel": "Titel des Meilensteins",
     "customDescLabel": "Beschreibung (optional)",
-    "customIconLabel": "Icon / Emoji"
+    "customIconLabel": "Icon / Emoji",
+    "items": {
+      "first-smile": {
+        "title": "Erstes bewusstes Lächeln",
+        "desc": "Reagiert auf Gesichter und Stimmen mit einem liebevollen Lächeln."
+      },
+      "hold-head": {
+        "title": "Kopf sicher halten",
+        "desc": "Hält in Bauchlage das Köpfchen stabil und aufrecht."
+      },
+      "roll-over": {
+        "title": "Vom Bauch auf den Rücken drehen",
+        "desc": "Erste koordinierte Drehbewegungen um die eigene Achse."
+      },
+      "first-solid-food": {
+        "title": "Erster Brei / Beikoststart",
+        "desc": "Die ersten Löffelchen Pastinake, Karotte oder Kürbisbrei."
+      },
+      "sit-alone": {
+        "title": "Freies Sitzen",
+        "desc": "Kann ohne Unterstützung und ohne Umkippen stabil sitzen."
+      },
+      "crawl": {
+        "title": "Krabbeln / Robben",
+        "desc": "Entdeckt die Welt auf allen Vieren."
+      },
+      "pincer-grasp": {
+        "title": "Pinzettengriff",
+        "desc": "Greift gezielt kleine Gegenstände mit Daumen und Zeigefinger."
+      },
+      "pull-to-stand": {
+        "title": "Hochziehen in den Stand",
+        "desc": "Zieht sich an Möbeln oder Gittern selbstständig auf die Beine."
+      },
+      "wave-bye": {
+        "title": "Winken & Klatschen",
+        "desc": "Macht 'Winke-Winke' oder klatscht begeistert in die Händchen."
+      },
+      "first-steps": {
+        "title": "Erste freie Schritte",
+        "desc": "Die ersten mutigen Schritte ganz ohne Festhalten!"
+      },
+      "first-words": {
+        "title": "Erste Worte (z.B. Mama, Papa)",
+        "desc": "Verwendet gezielt Wörter für bestimmte Personen oder Dinge."
+      },
+      "stack-blocks": {
+        "title": "Turm aus Bauklötzen bauen",
+        "desc": "Stapelt erfolgreich mehrere Klötze übereinander."
+      },
+      "drink-cup": {
+        "title": "Selbstständig aus Becher trinken",
+        "desc": "Trinkt ohne fremde Hilfe aus einem normalen Becher."
+      },
+      "run": {
+        "title": "Sicheres Rennen & Laufen",
+        "desc": "Flitzt sicher durch die Wohnung oder über den Spielplatz."
+      },
+      "two-word-sentences": {
+        "title": "Zwei-Wort-Sätze",
+        "desc": "Kombiniert Wörter sinnvoll (z.B. 'Auto fahren', 'Mehr Milch')."
+      },
+      "spoon-eating": {
+        "title": "Selbstständig mit Löffel essen",
+        "desc": "Führt den Löffel sicher zum Mund ohne viel zu verschütten."
+      },
+      "stairs-climbing": {
+        "title": "Treppen steigen",
+        "desc": "Steigt Treppenstufen sicher mit Festhalten hinauf."
+      },
+      "kick-ball": {
+        "title": "Ball kicken",
+        "desc": "Tritt im Stehen gezielt gegen einen Ball ohne umzukippen."
+      },
+      "draw-lines": {
+        "title": "Erste Kritzeleien & Striche",
+        "desc": "Hält Stifte fest und zeichnet erste Linien auf Papier."
+      },
+      "dress-self": {
+        "title": "Einfache Kleidung selbst anziehen",
+        "desc": "Zieht Socken, Mütze oder Schuhe selbstständig an/aus."
+      }
+    }
   },
   "teeth": {
     "title": "Zahnungs-Tagebuch",
     "subtitle": "Klicken Sie auf einen Zahn, um den Durchbruch mit Datum und Notiz zu vermerken.",
     "erupted": "Durchgebrochen am",
-    "upperJaw": "Oberkiefer",
-    "lowerJaw": "Unterkiefer",
+    "upperJaw": "OBERKIEFER (MAXILLA)",
+    "lowerJaw": "UNTERKIEFER (MANDIBULA)",
     "teethCount": "Zähne durchgebrochen",
+    "tooth": "Zahn",
+    "eruptedLabel": "Durchgebrochen",
+    "notYet": "Noch nicht da",
     "editTooth": "Zahndaten bearbeiten",
     "markErupted": "Als durchgebrochen markieren",
     "removeErupted": "Durchbruch entfernen"
@@ -317,16 +411,115 @@
     "doctor": "Arzt / Praxis",
     "batch": "Chargennummer",
     "recordVaccine": "Impfung eintragen",
-    "removeVaccine": "Impfung entfernen"
+    "removeVaccine": "Impfung entfernen",
+    "items": {
+      "rotavirus-1": {
+        "name": "Rotaviren (1. Dosis)",
+        "period": "Ab 6. Lebenswoche",
+        "desc": "Schluckimpfung gegen schwere Magen-Darm-Infektionen."
+      },
+      "rotavirus-2": {
+        "name": "Rotaviren (2. Dosis)",
+        "period": "Im Abstand von 4 Wochen",
+        "desc": "2. Teil der Schluckimpfung."
+      },
+      "6fach-1": {
+        "name": "6-fach-Impfung (1. Dosis)",
+        "period": "Im 2. Lebensmonat",
+        "desc": "Tetanus, Diphtherie, Pertussis (Keuchhusten), Hib, Polio (Kinderlähmung), Hepatitis B."
+      },
+      "pneumokokken-1": {
+        "name": "Pneumokokken (1. Dosis)",
+        "period": "Im 2. Lebensmonat",
+        "desc": "Schutz vor schwerer Lungen-, Hirnhaut- und Mittelohrentzündung."
+      },
+      "6fach-2": {
+        "name": "6-fach-Impfung (2. Dosis)",
+        "period": "Im 4. Lebensmonat",
+        "desc": "2. Grundimmunisierung (Tetanus, Diphtherie, Pertussis, Hib, Polio, Hep B)."
+      },
+      "pneumokokken-2": {
+        "name": "Pneumokokken (2. Dosis)",
+        "period": "Im 4. Lebensmonat",
+        "desc": "2. Dosis Pneumokokken."
+      },
+      "6fach-3": {
+        "name": "6-fach-Impfung (3. Dosis / Abschluss)",
+        "period": "Im 11.–14. Lebensmonat",
+        "desc": "Abschluss der Grundimmunisierung."
+      },
+      "pneumokokken-3": {
+        "name": "Pneumokokken (3. Dosis / Abschluss)",
+        "period": "Im 11.–14. Lebensmonat",
+        "desc": "Abschluss der Pneumokokken-Grundimmunisierung."
+      },
+      "meningokokken-c": {
+        "name": "Meningokokken C",
+        "period": "Im 12. Lebensmonat",
+        "desc": "Schutz vor Hirnhautentzündung durch Meningokokken Typ C."
+      },
+      "mmrv-1": {
+        "name": "MMRV (1. Dosis)",
+        "period": "Im 11.–14. Lebensmonat",
+        "desc": "Masern, Mumps, Röteln und Varizellen (Windpocken)."
+      },
+      "mmrv-2": {
+        "name": "MMRV (2. Dosis / Abschluss)",
+        "period": "Im 15.–23. Lebensmonat",
+        "desc": "2. Impfung für vollständigen Schutz gegen MMR & Windpocken."
+      }
+    }
   },
   "uCheckups": {
-    "title": "U-Untersuchungen (Gelbes Heft)",
+    "title": "U-Untersuchungen (U1-U9)",
     "subtitle": "Offizieller deutscher Vorsorgeplan U1 bis U9.",
     "completed": "Untersuchungen dokumentiert",
     "addCheckup": "Untersuchung eintragen",
     "dueNow": "Jetzt fällig!",
     "recordedOn": "Am {{date}} erfasst",
-    "pending": "Ausstehend"
+    "pending": "Ausstehend",
+    "items": {
+      "U1": {
+        "period": "Direkt nach der Geburt",
+        "desc": "Erste Lebenszeichen, Apgar-Test, Vitamin K"
+      },
+      "U2": {
+        "period": "3. bis 10. Lebenstag",
+        "desc": "Ganzkörper-Untersuchung, Hörtest, Blutprobe auf Stoffwechselkrankheiten"
+      },
+      "U3": {
+        "period": "4. bis 5. Lebenswoche",
+        "desc": "Hüftsonographie, Kontrolle der Motorik und Gewichtszunahme"
+      },
+      "U4": {
+        "period": "3. bis 4. Lebensmonat",
+        "desc": "Bewegungsfähigkeit, Seh- und Hörvermögen, Impfberatung"
+      },
+      "U5": {
+        "period": "6. bis 7. Lebensmonat",
+        "desc": "Gezieltes Greifen, Drehen, Beweglichkeit"
+      },
+      "U6": {
+        "period": "10. bis 12. Lebensmonat",
+        "desc": "Krabbeln, freies Sitzen, erste Worte, Sprachverständnis"
+      },
+      "U7": {
+        "period": "21. bis 24. Lebensmonat",
+        "desc": "Zwei-Wort-Sätze, Laufen, Sprach- und Verhaltensentwicklung"
+      },
+      "U7a": {
+        "period": "34. bis 36. Lebensmonat",
+        "desc": "Sehtest, Gebiss, 3-Wort-Sätze, Sozialverhalten"
+      },
+      "U8": {
+        "period": "46. bis 48. Lebensmonat",
+        "desc": "Feinmotorik, Aussprache, Selbstständigkeit"
+      },
+      "U9": {
+        "period": "60. bis 64. Lebensmonat",
+        "desc": "Vorschuluntersuchung, Vorbereitung auf den Schuleintritt"
+      }
+    }
   },
   "errors": {
     "unauthorized": "Nicht autorisiert. Bitte melden Sie sich an.",

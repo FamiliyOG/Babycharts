@@ -214,11 +214,11 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
         <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-2">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-200 border border-cyan-400 shadow-xs" />
-            <span>Durchgebrochen</span>
+            <span>{t('teeth.eruptedLabel') || 'Durchgebrochen'}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-600" />
-            <span>Noch nicht da</span>
+            <span>{t('teeth.notYet') || 'Noch nicht da'}</span>
           </span>
         </div>
       </div>
@@ -245,17 +245,21 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
 
         {hoveredTooth && (
           <div className="text-xs bg-slate-950 border border-cyan-500/40 rounded-xl px-3 py-1.5 text-cyan-200 animate-fadeIn">
-            <span className="font-bold">Zahn {hoveredTooth.short}: </span>
+            <span className="font-bold">
+              {t('teeth.tooth')} {hoveredTooth.short}:{' '}
+            </span>
             <span>{hoveredTooth.name} </span>
-            <span className="text-slate-400 font-mono">(ca. {hoveredTooth.avgMonths} Monate)</span>
+            <span className="text-slate-400 font-mono">
+              (ca. {hoveredTooth.avgMonths} {t('growth.monthsUnit') || 'M.'})
+            </span>
           </div>
         )}
       </div>
 
       {/* Realistic Dental Arch (Upper & Lower) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto py-2">
-        {renderSvgArch(upperTeeth, 'Oberkiefer (Maxilla)', true)}
-        {renderSvgArch(lowerTeeth, 'Unterkiefer (Mandibula)', false)}
+        {renderSvgArch(upperTeeth, t('teeth.upperJaw') || 'Oberkiefer (Maxilla)', true)}
+        {renderSvgArch(lowerTeeth, t('teeth.lowerJaw') || 'Unterkiefer (Mandibula)', false)}
       </div>
 
       {/* Tooth Details Modal */}

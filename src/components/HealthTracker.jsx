@@ -204,18 +204,18 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
     if (temp === null || temp === undefined) return null;
     if (temp >= 38.5) {
       return {
-        label: 'Fieber',
+        label: t('health.fever') || 'Fieber',
         badgeClass: 'bg-rose-950/80 text-rose-300 border-rose-800/40',
       };
     }
     if (temp >= 37.5) {
       return {
-        label: 'Erhöhte Temperatur',
+        label: t('health.elevatedTemp') || 'Erhöhte Temperatur',
         badgeClass: 'bg-amber-950/80 text-amber-300 border-amber-800/40',
       };
     }
     return {
-      label: 'Normal',
+      label: t('health.normal') || 'Normal',
       badgeClass: 'bg-emerald-950/80 text-emerald-300 border-emerald-800/40',
     };
   };
@@ -278,7 +278,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
               <Thermometer className="w-4 h-4 text-rose-400" />
-              <span>Fieberkurve</span>
+              <span>{t('health.tempCurve')}</span>
             </h4>
             <div className="flex items-center gap-2 text-[10px]">
               <span className="flex items-center gap-1 text-emerald-400">
@@ -301,19 +301,23 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
       {/* Health History List */}
       <div className="space-y-3">
         <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-          Verlauf ({healthLog.length} Einträge)
+          {t('health.historyTitle')} ({healthLog.length} {t('health.entriesCount')})
         </h4>
 
         {healthLog.length === 0 ? (
           <div className="text-center py-8 text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800/60">
-            Noch keine Krankheits- oder Fiebereinträge vorhanden.
+            {t('health.noEntries')}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {sortedDesc.map((entry) => {
               const d = new Date(entry.dateTime);
-              const dateStr = d.toLocaleDateString('de-DE');
-              const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} Uhr`;
+              const dateStr = d.toLocaleDateString(undefined, {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              });
+              const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
               const tempBadge = getTempBadge(entry.temperature);
 
               return (
@@ -326,7 +330,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
                       <div className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
                         <span>
-                          {dateStr} um {timeStr}
+                          {dateStr} ({timeStr})
                         </span>
                       </div>
 

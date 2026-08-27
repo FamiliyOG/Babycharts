@@ -252,10 +252,15 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                       {m.icon || '⭐'}
                     </span>
                     <div>
-                      <h4 className="font-bold text-xs text-slate-200">{m.title}</h4>
+                      <h4 className="font-bold text-xs text-slate-200">
+                        {t(`milestones.items.${m.id}.title`) !== `milestones.items.${m.id}.title`
+                          ? t(`milestones.items.${m.id}.title`)
+                          : m.title}
+                      </h4>
                       {m.avgAgeMonths && !isDone && (
                         <span className="text-[10px] text-slate-500 font-medium">
-                          Typisch: ca. {m.avgAgeMonths} Monate
+                          {t('milestones.typical') || 'Typisch'}: ca. {m.avgAgeMonths}{' '}
+                          {t('growth.monthsUnit') || 'M.'}
                         </span>
                       )}
                     </div>
@@ -263,13 +268,15 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
 
                   {isDone && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-950/90 text-amber-300 border border-amber-800/60 shrink-0">
-                      <Check className="w-3 h-3" /> Erreicht
+                      <Check className="w-3 h-3" /> {t('milestones.completed')}
                     </span>
                   )}
                 </div>
 
                 <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
-                  {m.description || 'Ein wundervoller Meilenstein.'}
+                  {t(`milestones.items.${m.id}.desc`) !== `milestones.items.${m.id}.desc`
+                    ? t(`milestones.items.${m.id}.desc`)
+                    : m.description || t('milestones.subtitle')}
                 </p>
 
                 {/* Achieved Card Content (Photo, Date, Notes) */}
@@ -280,17 +287,15 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                         {failedImageUrls[entry.photo] ? (
                           <div className="w-full rounded-2xl border border-dashed border-slate-700 bg-slate-900/80 p-4 text-center space-y-2">
                             <Camera className="w-6 h-6 text-slate-500 mx-auto" />
-                            <p className="text-xs text-slate-400">
-                              Foto konnte nicht geladen werden.
-                            </p>
+                            <p className="text-xs text-slate-400">{t('milestones.photoUpload')}</p>
                             {canEdit && (
                               <button
                                 type="button"
                                 onClick={() => openEditModal(m)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                               >
                                 <Camera className="w-3.5 h-3.5" />
-                                <span>Foto neu hochladen</span>
+                                <span>{t('profileModal.photoLabel')}</span>
                               </button>
                             )}
                           </div>
@@ -305,7 +310,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                                 notes: entry.notes,
                               })
                             }
-                            title="Foto vergrößern"
+                            title={t('common.search') || 'Foto vergrößern'}
                             className="w-full rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950 block group cursor-pointer relative"
                           >
                             <img
@@ -317,7 +322,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                             <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
-                              🔍 Vergrößern
+                              🔍 {t('common.search') || 'Vergrößern'}
                             </div>
                           </button>
                         )}
@@ -327,7 +332,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     <div className="text-[11px] bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 text-slate-300 space-y-1">
                       <div className="flex items-center gap-1.5 font-semibold text-amber-300">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{new Date(entry.date).toLocaleDateString('de-DE')}</span>
+                        <span>{new Date(entry.date).toLocaleDateString(undefined)}</span>
                       </div>
                       {entry.notes && (
                         <p className="text-[11px] text-slate-300 italic pt-0.5">„{entry.notes}“</p>
@@ -344,8 +349,8 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     <button
                       type="button"
                       onClick={() => handleDeleteCustomMilestone(m.id)}
-                      className="p-1 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
-                      title="Eigenen Meilenstein löschen"
+                      className="p-1 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                      title={t('common.delete')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -356,7 +361,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                   <button
                     type="button"
                     onClick={() => openEditModal(m)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                       isDone
                         ? 'bg-slate-800 hover:bg-slate-700 text-slate-200'
                         : 'bg-amber-600 hover:bg-amber-500 text-white shadow-xs'
@@ -365,12 +370,12 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     {isDone ? (
                       <>
                         <Edit2 className="w-3 h-3" />
-                        <span>Bearbeiten</span>
+                        <span>{t('common.edit')}</span>
                       </>
                     ) : (
                       <>
                         <Plus className="w-3 h-3" />
-                        <span>Festhalten</span>
+                        <span>{t('milestones.recordBtn') || 'Festhalten'}</span>
                       </>
                     )}
                   </button>

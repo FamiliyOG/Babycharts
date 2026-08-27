@@ -74,7 +74,7 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
             cardStyle =
               'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800/60 text-emerald-950 dark:text-emerald-200 shadow-xs';
             const formattedDate = entry.date
-              ? new Date(entry.date).toLocaleDateString('de-DE', {
+              ? new Date(entry.date).toLocaleDateString(undefined, {
                   day: '2-digit',
                   month: '2-digit',
                   year: 'numeric',
@@ -100,6 +100,15 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
               'bg-slate-100/50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/50 text-slate-400 opacity-65';
           }
 
+          const periodText =
+            t(`uCheckups.items.${u.id}.period`) !== `uCheckups.items.${u.id}.period`
+              ? t(`uCheckups.items.${u.id}.period`)
+              : u.periodText;
+          const descText =
+            t(`uCheckups.items.${u.id}.desc`) !== `uCheckups.items.${u.id}.desc`
+              ? t(`uCheckups.items.${u.id}.desc`)
+              : u.description;
+
           return (
             <div
               key={u.id}
@@ -113,10 +122,10 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
                   {icon}
                 </div>
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                  {u.periodText}
+                  {periodText}
                 </div>
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug line-clamp-3">
-                  {u.description}
+                  {descText}
                 </div>
               </div>
 

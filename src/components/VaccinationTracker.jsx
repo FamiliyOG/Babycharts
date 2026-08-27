@@ -87,6 +87,19 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
           const record = vaccinations[vax.id];
           const isDone = record?.completed;
 
+          const vaxName =
+            t(`vaccinations.items.${vax.id}.name`) !== `vaccinations.items.${vax.id}.name`
+              ? t(`vaccinations.items.${vax.id}.name`)
+              : vax.name;
+          const vaxPeriod =
+            t(`vaccinations.items.${vax.id}.period`) !== `vaccinations.items.${vax.id}.period`
+              ? t(`vaccinations.items.${vax.id}.period`)
+              : vax.periodText;
+          const vaxDesc =
+            t(`vaccinations.items.${vax.id}.desc`) !== `vaccinations.items.${vax.id}.desc`
+              ? t(`vaccinations.items.${vax.id}.desc`)
+              : vax.description;
+
           return (
             <div
               key={vax.id}
@@ -98,28 +111,36 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div className="font-semibold text-xs text-slate-200">{vax.name}</div>
+                  <div className="font-semibold text-xs text-slate-200">{vaxName}</div>
                   {isDone ? (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 shrink-0">
                       <Check className="w-3 h-3" /> {t('vaccinations.completed')}
                     </span>
                   ) : (
                     <span className="text-[10px] text-slate-400 font-medium shrink-0">
-                      {vax.periodText}
+                      {vaxPeriod}
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-400 mb-2 leading-relaxed">{vax.description}</p>
+                <p className="text-[11px] text-slate-400 mb-2 leading-relaxed">{vaxDesc}</p>
               </div>
 
               {isDone && (
                 <div className="text-[11px] text-emerald-200/80 bg-emerald-950/40 border border-emerald-800/30 rounded-xl p-2 mb-2 space-y-0.5">
                   <div className="flex items-center gap-1 font-medium">
                     <Calendar className="w-3 h-3 text-emerald-400" />
-                    <span>{new Date(record.date).toLocaleDateString('de-DE')}</span>
+                    <span>{new Date(record.date).toLocaleDateString(undefined)}</span>
                   </div>
-                  {record.doctor && <div>Arzt/Praxis: {record.doctor}</div>}
-                  {record.batch && <div>Charge: {record.batch}</div>}
+                  {record.doctor && (
+                    <div>
+                      {t('vaccinations.doctor')}: {record.doctor}
+                    </div>
+                  )}
+                  {record.batch && (
+                    <div>
+                      {t('vaccinations.batch')}: {record.batch}
+                    </div>
+                  )}
                   {record.notes && <div className="italic text-[10px]">„{record.notes}“</div>}
                 </div>
               )}
@@ -129,7 +150,7 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                   <button
                     type="button"
                     onClick={() => openEntryModal(vax)}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-xl text-[11px] font-semibold transition-all ${
+                    className={`flex items-center gap-1 px-3 py-1 rounded-xl text-[11px] font-semibold transition-all cursor-pointer ${
                       isDone
                         ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                         : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs'
@@ -138,12 +159,12 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                     {isDone ? (
                       <>
                         <Edit2 className="w-3 h-3" />
-                        <span>Bearbeiten</span>
+                        <span>{t('common.edit')}</span>
                       </>
                     ) : (
                       <>
                         <Plus className="w-3 h-3" />
-                        <span>Eintragen</span>
+                        <span>{t('common.add')}</span>
                       </>
                     )}
                   </button>

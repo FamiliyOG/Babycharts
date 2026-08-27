@@ -495,14 +495,15 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
     }
 
     const issuer = 'BabyCharts';
+    const accountLabel = user.name || user.email;
     const secret = speakeasy.generateSecret({
-      name: `${issuer}:${user.email}`,
+      name: `${issuer} (${accountLabel})`,
       issuer,
       length: 20,
     });
 
-    // Generate standard otpauth URL explicitly formatted to avoid app parsing quirks: otpauth://totp/BabyCharts:user@email?secret=...&issuer=BabyCharts
-    const otpAuthUrl = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(user.email)}?secret=${secret.base32}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
+    // Formatted strictly as: otpauth://totp/BabyCharts:Sebastian%20Haupt?secret=...&issuer=BabyCharts
+    const otpAuthUrl = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountLabel)}?secret=${secret.base32}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
     const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
 
     // Save temporary secret to user with a 15-minute expiration (Issue BC-033)

@@ -12,11 +12,13 @@ describe('Profile CRUD & Measurement Security Test Suite (BC-084)', () => {
     const userSecret = getTestCred();
 
     // Register User
-    const regRes = await request(app).post('/api/auth/register').send({
-      name: 'Profile Parent',
-      email,
-      ['pass' + 'word']: userSecret,
-    });
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Profile Parent',
+        email,
+        ['pass' + 'word']: userSecret,
+      });
     expect(regRes.status).toBe(201);
     const token = regRes.body.token;
     const familyId = regRes.body.family.id;
@@ -88,11 +90,13 @@ describe('Profile CRUD & Measurement Security Test Suite (BC-084)', () => {
 
   it('rejects profile creation without child id or name', async () => {
     const email = `${getRand('prof_val')}@example.com`;
-    const regRes = await request(app).post('/api/auth/register').send({
-      name: 'Validation User',
-      email,
-      ['pass' + 'word']: getTestCred(),
-    });
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Validation User',
+        email,
+        ['pass' + 'word']: getTestCred(),
+      });
     const token = regRes.body.token;
 
     const invalidRes = await request(app)

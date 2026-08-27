@@ -10,11 +10,13 @@ describe('Import & Backup-Restore Integration Test Suite (BC-085, BC-086)', () =
 
   it('validates backup JSON structure and exports child profile data faithfully', async () => {
     const email = `${getRand('backup_user')}@example.com`;
-    const regRes = await request(app).post('/api/auth/register').send({
-      name: 'Backup Parent',
-      email,
-      ['pass' + 'word']: getTestCred(),
-    });
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Backup Parent',
+        email,
+        ['pass' + 'word']: getTestCred(),
+      });
     const token = regRes.body.token;
     const familyId = regRes.body.family.id;
 
@@ -58,11 +60,13 @@ describe('Import & Backup-Restore Integration Test Suite (BC-085, BC-086)', () =
 
   it('restores profile from JSON backup data and updates database cleanly', async () => {
     const email = `${getRand('restore_user')}@example.com`;
-    const regRes = await request(app).post('/api/auth/register').send({
-      name: 'Restore Parent',
-      email,
-      ['pass' + 'word']: getTestCred(),
-    });
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Restore Parent',
+        email,
+        ['pass' + 'word']: getTestCred(),
+      });
     const token = regRes.body.token;
     const familyId = regRes.body.family.id;
 

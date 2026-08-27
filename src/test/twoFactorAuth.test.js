@@ -15,11 +15,13 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     const userSecret = getTestCred();
 
     // 1. Register User
-    const regRes = await request(app).post('/api/auth/register').send({
-      name: '2FA User',
-      email,
-      ['pass' + 'word']: userSecret,
-    });
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: '2FA User',
+        email,
+        ['pass' + 'word']: userSecret,
+      });
     expect(regRes.status).toBe(201);
     const token = regRes.body.token;
 
@@ -52,10 +54,12 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     expect(enableRes.body.recoveryCodes).toHaveLength(8);
 
     // 5. Login requires 2FA challenge
-    const loginChallenge = await request(app).post('/api/auth/login').send({
-      email,
-      ['pass' + 'word']: userSecret,
-    });
+    const loginChallenge = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email,
+        ['pass' + 'word']: userSecret,
+      });
     expect(loginChallenge.status).toBe(200);
     expect(loginChallenge.body.requires2FA).toBe(true);
 
@@ -64,11 +68,13 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
       secret: tempSecret,
       encoding: 'base32',
     });
-    const loginSuccess = await request(app).post('/api/auth/login').send({
-      email,
-      ['pass' + 'word']: userSecret,
-      totpCode: freshTotp,
-    });
+    const loginSuccess = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email,
+        ['pass' + 'word']: userSecret,
+        totpCode: freshTotp,
+      });
     expect(loginSuccess.status).toBe(200);
     expect(loginSuccess.body.token).toBeDefined();
     expect(loginSuccess.body.user.twoFactorEnabled).toBe(true);
@@ -82,11 +88,13 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     const recoveryCode = 'AAAA-1111';
 
     // Register user
-    await request(app).post('/api/auth/register').send({
-      name: 'Recovery Code User',
-      email,
-      ['pass' + 'word']: userSecret,
-    });
+    await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Recovery Code User',
+        email,
+        ['pass' + 'word']: userSecret,
+      });
 
     // Directly set 2FA and recovery codes in DB
     const db = readDb();
@@ -97,11 +105,13 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     writeDb(db);
 
     // Login using the recovery code
-    const loginRes = await request(app).post('/api/auth/login').send({
-      email,
-      ['pass' + 'word']: userSecret,
-      totpCode: recoveryCode,
-    });
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email,
+        ['pass' + 'word']: userSecret,
+        totpCode: recoveryCode,
+      });
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.token).toBeDefined();
 
@@ -116,11 +126,13 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     const email = `${getRand('2fa_wrong')}@example.com`;
     const userSecret = getTestCred();
 
-    const regRes = await request(app).post('/api/auth/register').send({
-      name: 'Wrong 2FA User',
-      email,
-      ['pass' + 'word']: userSecret,
-    });
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'Wrong 2FA User',
+        email,
+        ['pass' + 'word']: userSecret,
+      });
     const token = regRes.body.token;
 
     await request(app).post('/api/auth/2fa/setup').set('Authorization', `Bearer ${token}`);

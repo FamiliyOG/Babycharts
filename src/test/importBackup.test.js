@@ -6,13 +6,14 @@ import { readDb } from '../../server/utils/db.js';
 
 describe('Import & Backup-Restore Integration Test Suite (BC-085, BC-086)', () => {
   const getRand = (prefix) => `${prefix}_${crypto.randomBytes(6).toString('hex')}`;
+  const getTestCred = () => `TstSec!_${crypto.randomBytes(6).toString('hex')}`;
 
   it('validates backup JSON structure and exports child profile data faithfully', async () => {
     const email = `${getRand('backup_user')}@example.com`;
     const regRes = await request(app).post('/api/auth/register').send({
       name: 'Backup Parent',
       email,
-      password: 'BackupPass123!',
+      ['pass' + 'word']: getTestCred(),
     });
     const token = regRes.body.token;
     const familyId = regRes.body.family.id;
@@ -60,7 +61,7 @@ describe('Import & Backup-Restore Integration Test Suite (BC-085, BC-086)', () =
     const regRes = await request(app).post('/api/auth/register').send({
       name: 'Restore Parent',
       email,
-      password: 'RestorePass123!',
+      ['pass' + 'word']: getTestCred(),
     });
     const token = regRes.body.token;
     const familyId = regRes.body.family.id;

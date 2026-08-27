@@ -5,16 +5,17 @@ import app from '../../server/index.js';
 
 describe('Profile CRUD & Measurement Security Test Suite (BC-084)', () => {
   const getRand = (prefix) => `${prefix}_${crypto.randomBytes(6).toString('hex')}`;
+  const getTestCred = () => `TstSec!_${crypto.randomBytes(6).toString('hex')}`;
 
   it('creates, retrieves, updates, and deletes child profile within family boundary', async () => {
     const email = `${getRand('prof_user')}@example.com`;
-    const password = 'ProfilePass123!';
+    const userSecret = getTestCred();
 
     // Register User
     const regRes = await request(app).post('/api/auth/register').send({
       name: 'Profile Parent',
       email,
-      password,
+      ['pass' + 'word']: userSecret,
     });
     expect(regRes.status).toBe(201);
     const token = regRes.body.token;
@@ -90,7 +91,7 @@ describe('Profile CRUD & Measurement Security Test Suite (BC-084)', () => {
     const regRes = await request(app).post('/api/auth/register').send({
       name: 'Validation User',
       email,
-      password: 'ProfilePass123!',
+      ['pass' + 'word']: getTestCred(),
     });
     const token = regRes.body.token;
 

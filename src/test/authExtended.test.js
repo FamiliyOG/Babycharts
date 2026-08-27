@@ -6,10 +6,11 @@ import { readDb, writeDb } from '../../server/utils/db.js';
 
 describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () => {
   const getRand = (prefix) => `${prefix}_${crypto.randomBytes(6).toString('hex')}`;
+  const getRandPass = () => `TstP@ss!_${crypto.randomBytes(6).toString('hex')}`;
 
   it('registers a user successfully and returns valid auth token and profile', async () => {
     const email = `${getRand('reg_user')}@example.com`;
-    const password = 'ValidPassword123!';
+    const password = getRandPass();
     const name = 'Test Register User';
 
     const res = await request(app).post('/api/auth/register').send({
@@ -27,7 +28,7 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
   it('rejects registration with duplicate email address', async () => {
     const email = `${getRand('dup_user')}@example.com`;
-    const password = 'ValidPassword123!';
+    const password = getRandPass();
 
     // First registration
     const res1 = await request(app).post('/api/auth/register').send({
@@ -49,7 +50,7 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
   it('authenticates user with correct credentials and returns JWT token', async () => {
     const email = `${getRand('login_user')}@example.com`;
-    const password = 'LoginPass123!';
+    const password = getRandPass();
 
     await request(app).post('/api/auth/register').send({
       name: 'Login Test',
@@ -69,7 +70,7 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
   it('rejects login with wrong password', async () => {
     const email = `${getRand('wrong_pwd')}@example.com`;
-    const password = 'RightPass123!';
+    const password = getRandPass();
 
     await request(app).post('/api/auth/register').send({
       name: 'Wrong Pwd Test',
@@ -79,7 +80,7 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
     const res = await request(app).post('/api/auth/login').send({
       email,
-      password: 'IncorrectPassword123!',
+      password: getRandPass(),
     });
 
     expect(res.status).toBe(401);
@@ -88,8 +89,8 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
   it('executes full password reset flow: request reset token, reset password, verify new password login (BC-082)', async () => {
     const email = `${getRand('reset_flow')}@example.com`;
-    const initialPassword = 'InitialPass123!';
-    const newPassword = 'NewSecurePass123!';
+    const initialPassword = getRandPass();
+    const newPassword = getRandPass();
 
     // 1. Register User
     const regRes = await request(app).post('/api/auth/register').send({
@@ -136,7 +137,7 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
   it('rejects password reset with expired token', async () => {
     const email = `${getRand('expired_reset')}@example.com`;
-    const password = 'ValidPass123!';
+    const password = getRandPass();
 
     const regRes = await request(app).post('/api/auth/register').send({
       name: 'Expired Reset User',
@@ -157,7 +158,7 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
     const resetRes = await request(app).post('/api/auth/reset-password').send({
       token: rawResetToken,
-      newPassword: 'NewPassword123!',
+      newPassword: getRandPass(),
     });
 
     expect(resetRes.status).toBe(400);
@@ -166,8 +167,8 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
   it('allows authenticated user to change password via /api/auth/change-password', async () => {
     const email = `${getRand('chg_pwd')}@example.com`;
-    const oldPassword = 'OldPassword123!';
-    const newPassword = 'NewPassword123!';
+    const oldPassword = getRandPass();
+    const newPassword = getRandPass();
 
     const regRes = await request(app).post('/api/auth/register').send({
       name: 'Change Pwd User',

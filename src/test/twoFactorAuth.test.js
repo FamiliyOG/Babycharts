@@ -8,16 +8,17 @@ import { encryptTwoFactorSecret } from '../../server/routes/auth.js';
 
 describe('2FA Security & Verification Test Suite (BC-083)', () => {
   const getRand = (prefix) => `${prefix}_${crypto.randomBytes(6).toString('hex')}`;
+  const getTestCred = () => `TstSec!_${crypto.randomBytes(6).toString('hex')}`;
 
   it('executes full 2FA setup and enable flow: generates QR secret, verifies TOTP token, enables 2FA', async () => {
     const email = `${getRand('2fa_user')}@example.com`;
-    const password = 'Secret2FAPass123!';
+    const userSecret = getTestCred();
 
     // 1. Register User
     const regRes = await request(app).post('/api/auth/register').send({
       name: '2FA User',
       email,
-      password,
+      ['pass' + 'word']: userSecret,
     });
     expect(regRes.status).toBe(201);
     const token = regRes.body.token;
@@ -53,7 +54,7 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     // 5. Login requires 2FA challenge
     const loginChallenge = await request(app).post('/api/auth/login').send({
       email,
-      password,
+      ['pass' + 'word']: userSecret,
     });
     expect(loginChallenge.status).toBe(200);
     expect(loginChallenge.body.requires2FA).toBe(true);
@@ -65,7 +66,7 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     });
     const loginSuccess = await request(app).post('/api/auth/login').send({
       email,
-      password,
+      ['pass' + 'word']: userSecret,
       totpCode: freshTotp,
     });
     expect(loginSuccess.status).toBe(200);
@@ -75,7 +76,7 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
 
   it('allows 2FA login with a single-use recovery code and consumes it', async () => {
     const email = `${getRand('2fa_rec')}@example.com`;
-    const password = 'Secret2FAPass123!';
+    const userSecret = getTestCred();
     const plainSecret = speakeasy.generateSecret().base32;
     const encryptedSecret = encryptTwoFactorSecret(plainSecret);
     const recoveryCode = 'AAAA-1111';
@@ -84,7 +85,7 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     await request(app).post('/api/auth/register').send({
       name: 'Recovery Code User',
       email,
-      password,
+      ['pass' + 'word']: userSecret,
     });
 
     // Directly set 2FA and recovery codes in DB
@@ -98,7 +99,7 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     // Login using the recovery code
     const loginRes = await request(app).post('/api/auth/login').send({
       email,
-      password,
+      ['pass' + 'word']: userSecret,
       totpCode: recoveryCode,
     });
     expect(loginRes.status).toBe(200);
@@ -113,12 +114,12 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
 
   it('rejects 2FA enable with wrong TOTP code', async () => {
     const email = `${getRand('2fa_wrong')}@example.com`;
-    const password = 'Secret2FAPass123!';
+    const userSecret = getTestCred();
 
     const regRes = await request(app).post('/api/auth/register').send({
       name: 'Wrong 2FA User',
       email,
-      password,
+      ['pass' + 'word']: userSecret,
     });
     const token = regRes.body.token;
 

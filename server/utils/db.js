@@ -184,6 +184,12 @@ function initSchema() {
     if (!columns.some((c) => c.name === 'tokenVersion')) {
       sqlite.exec('ALTER TABLE users ADD COLUMN tokenVersion INTEGER DEFAULT 0');
     }
+    if (!columns.some((c) => c.name === 'passwordResetTokenHash')) {
+      sqlite.exec('ALTER TABLE users ADD COLUMN passwordResetTokenHash TEXT');
+    }
+    if (!columns.some((c) => c.name === 'passwordResetExpires')) {
+      sqlite.exec('ALTER TABLE users ADD COLUMN passwordResetExpires INTEGER');
+    }
   } catch (err) {
     console.warn('[DB] Migration notice:', err.message);
   }
@@ -229,8 +235,18 @@ export function logSecurityEvent({
 
 function insertUsers(users = []) {
   const insertUser = sqlite.prepare(`
-    INSERT OR REPLACE INTO users (id, email, password, name, avatar, isDev, role, twoFactorSecret, tempTwoFactorSecret, createdAt, updatedAt)
-    VALUES (@id, @email, @password, @name, @avatar, @isDev, @role, @twoFactorSecret, @tempTwoFactorSecret, @createdAt, @updatedAt)
+    INSERT OR REPLACE INTO users (
+      id, email, password, name, avatar, isDev, role,
+      twoFactorSecret, tempTwoFactorSecret, tempTwoFactorExpires,
+      recoveryCodes, tokenVersion, passwordResetTokenHash, passwordResetExpires,
+      createdAt, updatedAt
+    )
+    VALUES (
+      @id, @email, @password, @name, @avatar, @isDev, @role,
+      @twoFactorSecret, @tempTwoFactorSecret, @tempTwoFactorExpires,
+      @recoveryCodes, @tokenVersion, @passwordResetTokenHash, @passwordResetExpires,
+      @createdAt, @updatedAt
+    )
   `);
   for (const u of users) {
     insertUser.run({
@@ -243,6 +259,13 @@ function insertUsers(users = []) {
       role: u.role || 'user',
       twoFactorSecret: u.twoFactorSecret || null,
       tempTwoFactorSecret: u.tempTwoFactorSecret || null,
+      tempTwoFactorExpires: u.tempTwoFactorExpires || null,
+      recoveryCodes: Array.isArray(u.recoveryCodes)
+        ? JSON.stringify(u.recoveryCodes)
+        : u.recoveryCodes || null,
+      tokenVersion: u.tokenVersion || 0,
+      passwordResetTokenHash: u.passwordResetTokenHash || null,
+      passwordResetExpires: u.passwordResetExpires || null,
       createdAt: u.createdAt || new Date().toISOString(),
       updatedAt: u.updatedAt || null,
     });
@@ -443,10 +466,21 @@ export function readDb() {
   const users = sqlite
     .prepare('SELECT * FROM users')
     .all()
-    .map((u) => ({
-      ...u,
-      isDev: Boolean(u.isDev),
-    }));
+    .map((u) => {
+      let parsedRecoveryCodes = [];
+      if (u.recoveryCodes) {
+        try {
+          parsedRecoveryCodes = JSON.parse(u.recoveryCodes);
+        } catch {
+          parsedRecoveryCodes = [];
+        }
+      }
+      return {
+        ...u,
+        isDev: Boolean(u.isDev),
+        recoveryCodes: parsedRecoveryCodes,
+      };
+    });
 
   const families = sqlite
     .prepare('SELECT * FROM families')

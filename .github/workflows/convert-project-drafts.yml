@@ -1,0 +1,237 @@
+name: Convert ready project drafts to issues
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: convert-project-drafts
+  cancel-in-progress: false
+
+env:
+  PROJECT_OWNER: FamiliyOG
+  TARGET_REPOSITORY: FamiliyOG/Babycharts
+  STATUS_FIELD_NAME: Status
+  READY_STATUS: Ready for Issue
+
+jobs:
+  convert-drafts:
+    name: Convert Draft Issues
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate configuration
+        env:
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${PROJECT_NUMBER}" ]]; then
+            echo "::error::Repository variable PROJECT_NUMBER is not configured."
+            exit 1
+          fi
+
+          if [[ -z "${PROJECT_TOKEN}" ]]; then
+            echo "::error::Repository secret PROJECT_TOKEN is not configured."
+            exit 1
+          fi
+
+      - name: Convert drafts with Ready for Issue status
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OWNER="${PROJECT_OWNER}"
+          REPO_FULL="${TARGET_REPOSITORY}"
+          REPO_OWNER="${REPO_FULL%%/*}"
+          REPO_NAME="${REPO_FULL#*/}"
+
+          REPOSITORY_ID="$(
+            gh api graphql \
+              -f owner="${REPO_OWNER}" \
+              -f name="${REPO_NAME}" \
+              -f query='
+                query($owner:String!, $name:String!) {
+                  repository(owner:$owner, name:$name) {
+                    id
+                  }
+                }
+              ' \
+              --jq '.data.repository.id'
+          )"
+
+          AFTER=""
+          converted=0
+
+          while true; do
+
+            if [[ -z "${AFTER}" ]]; then
+              RESPONSE="$(
+                gh api graphql \
+                  -F number="${PROJECT_NUMBER}" \
+                  -f login="${OWNER}" \
+                  -f query='
+                    query($login:String!, $number:Int!) {
+                      organization(login:$login) {
+                        projectV2(number:$number) {
+                          title
+                          items(first:100) {
+                            nodes {
+                              id
+                              content {
+                                __typename
+                                ... on DraftIssue {
+                                  title
+                                }
+                              }
+                              fieldValues(first:50) {
+                                nodes {
+                                  __typename
+                                  ... on ProjectV2ItemFieldSingleSelectValue {
+                                    name
+                                    field {
+                                      ... on ProjectV2SingleSelectField {
+                                        name
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                            pageInfo {
+                              hasNextPage
+                              endCursor
+                            }
+                          }
+                        }
+                      }
+                    }
+                  '
+              )"
+            else
+              RESPONSE="$(
+                gh api graphql \
+                  -F number="${PROJECT_NUMBER}" \
+                  -f login="${OWNER}" \
+                  -f after="${AFTER}" \
+                  -f query='
+                    query($login:String!, $number:Int!, $after:String!) {
+                      organization(login:$login) {
+                        projectV2(number:$number) {
+                          title
+                          items(first:100, after:$after) {
+                            nodes {
+                              id
+                              content {
+                                __typename
+                                ... on DraftIssue {
+                                  title
+                                }
+                              }
+                              fieldValues(first:50) {
+                                nodes {
+                                  __typename
+                                  ... on ProjectV2ItemFieldSingleSelectValue {
+                                    name
+                                    field {
+                                      ... on ProjectV2SingleSelectField {
+                                        name
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                            pageInfo {
+                              hasNextPage
+                              endCursor
+                            }
+                          }
+                        }
+                      }
+                    }
+                  '
+              )"
+            fi
+
+            mapfile -t ITEMS < <(
+              jq -r \
+                --arg field "${STATUS_FIELD_NAME}" \
+                --arg status "${READY_STATUS}" '
+                  .data.organization.projectV2.items.nodes[]
+                  | select(.content.__typename == "DraftIssue")
+                  | select(
+                      any(
+                        .fieldValues.nodes[]?;
+                        .__typename == "ProjectV2ItemFieldSingleSelectValue"
+                        and .field.name == $field
+                        and .name == $status
+                      )
+                    )
+                  | [.id, (.content.title // "Untitled draft")]
+                  | @tsv
+                ' <<<"${RESPONSE}"
+            )
+
+            for ITEM in "${ITEMS[@]}"; do
+              ITEM_ID="${ITEM%%$'\t'*}"
+              TITLE="${ITEM#*$'\t'}"
+
+              echo "Converting: ${TITLE}"
+
+              gh api graphql \
+                -f itemId="${ITEM_ID}" \
+                -f repositoryId="${REPOSITORY_ID}" \
+                -f query='
+                  mutation($itemId:ID!, $repositoryId:ID!) {
+                    convertProjectV2DraftIssueItemToIssue(
+                      input: {
+                        itemId: $itemId
+                        repositoryId: $repositoryId
+                      }
+                    ) {
+                      item {
+                        content {
+                          ... on Issue {
+                            number
+                            title
+                            url
+                          }
+                        }
+                      }
+                    }
+                  }
+                ' \
+                --jq '.data.convertProjectV2DraftIssueItemToIssue.item.content |
+                "Created issue #\(.number): \(.title) — \(.url)"'
+
+              converted=$((converted + 1))
+            done
+
+            HAS_NEXT="$(
+              jq -r \
+                '.data.organization.projectV2.items.pageInfo.hasNextPage' \
+                <<<"${RESPONSE}"
+            )"
+
+            AFTER="$(
+              jq -r \
+                '.data.organization.projectV2.items.pageInfo.endCursor // empty' \
+                <<<"${RESPONSE}"
+            )"
+
+            if [[ "${HAS_NEXT}" != "true" ]]; then
+              break
+            fi
+
+          done
+
+          echo "Converted ${converted} Draft Issue(s)."

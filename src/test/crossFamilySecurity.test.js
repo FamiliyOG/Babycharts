@@ -5,18 +5,22 @@ import app from '../../server/index.js';
 import { JWT_SECRET } from '../../server/middleware/auth.js';
 import { readDb, writeDb } from '../../server/utils/db.js';
 
+import bcrypt from 'bcryptjs';
+
 describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
+  const dummyHash = bcrypt.hashSync('test-fixture-secret', 4);
+
   const userA = {
     id: 'sec-user-a',
     name: 'User A',
     email: 'a@test.com',
-    password: '$2a$10$abcdefghijklmnopqrstuvwxyz1234567890',
+    password: dummyHash,
   };
   const userB = {
     id: 'sec-user-b',
     name: 'User B',
     email: 'b@test.com',
-    password: '$2a$10$abcdefghijklmnopqrstuvwxyz1234567890',
+    password: dummyHash,
   };
 
   const tokenA = jwt.sign({ id: userA.id, email: userA.email, name: userA.name }, JWT_SECRET, {

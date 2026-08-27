@@ -424,7 +424,7 @@ export default function GrowthChart({ activeChild }) {
   const yBounds = getYBounds(metric, highestVal);
 
   const childColor = isGirl ? '#ec4899' : '#06b6d4';
-  const legendItems = createLegendItems(activeChild.name, childColor, isGirl);
+  const legendItems = createLegendItems(activeChild.name, childColor, isGirl, t);
 
   const toggleDatasetHidden = (itemKey) => {
     setHiddenDatasets((prev) => ({ ...prev, [itemKey]: !prev[itemKey] }));

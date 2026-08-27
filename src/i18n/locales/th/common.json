@@ -251,7 +251,12 @@
     "zoomOut": "ซูมออก",
     "latestValue": "ค่าล่าสุด:",
     "whoBand": "ช่วงเปอร์เซ็นไทล์ WHO (P3 - P97)",
-    "measurementCount": "ครั้งที่วัด"
+    "measurementCount": "ครั้งที่วัด",
+    "birth": "แรกเกิด",
+    "monthsUnit": "ด.",
+    "yearsUnit": "ปี",
+    "ageLabel": "อายุ",
+    "xAxisTitle": "อายุ (เดือน / ปี)"
   },
   "health": {
     "title": "บันทึกสุขภาพและอาการ",

@@ -251,7 +251,12 @@
     "zoomOut": "Zoom out",
     "latestValue": "Latest value:",
     "whoBand": "WHO Percentile Band (P3 - P97)",
-    "measurementCount": "Measurements"
+    "measurementCount": "Measurements",
+    "birth": "Birth",
+    "monthsUnit": "mo.",
+    "yearsUnit": "yr.",
+    "ageLabel": "Age",
+    "xAxisTitle": "Age (Months / Years)"
   },
   "health": {
     "title": "Health & Symptom Tracker",

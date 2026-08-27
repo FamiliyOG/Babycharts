@@ -257,6 +257,7 @@ function PdfExportDropdown({
   onExportCsv,
   isMobile = false,
 }) {
+  const { t } = useTranslation();
   const { dialogRef } = useModalDismissal(isOpen, onToggle);
 
   return (
@@ -265,9 +266,9 @@ function PdfExportDropdown({
         <button
           type="button"
           onClick={onToggle}
-          title="Berichte, Termine & Daten exportieren"
-          aria-label="Export Format auswählen"
-          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-800 active:scale-95 flex items-center justify-center transition-colors"
+          title={t('header.exportReport') || 'Exportieren'}
+          aria-label={t('header.exportReport') || 'Exportieren'}
+          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-800 active:scale-95 flex items-center justify-center transition-colors cursor-pointer"
         >
           <Download className="w-4 h-4" />
         </button>
@@ -275,19 +276,19 @@ function PdfExportDropdown({
         <button
           type="button"
           onClick={onToggle}
-          title="Berichte, Termine & Daten exportieren"
-          aria-label="Export Format auswählen"
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-slate-400"
+          title={t('header.exportReport') || 'Exportieren'}
+          aria-label={t('header.exportReport') || 'Exportieren'}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 transition-all hover:border-slate-400 cursor-pointer"
         >
           <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Exportieren</span>
+          <span>{t('common.export') || 'Exportieren'}</span>
         </button>
       )}
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 animate-fadeIn text-xs text-slate-800 dark:text-slate-100">
           <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            PDF-Dokumente
+            {t('header.exportReport') || 'PDF-Dokumente'}
           </div>
 
           <button
@@ -296,13 +297,13 @@ function PdfExportDropdown({
               onToggle();
               onManualPdfExport('a4');
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left cursor-pointer"
           >
             <FileText className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
             <div>
               <div className="font-semibold text-slate-900 dark:text-slate-100">DIN A4 Bericht</div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                Kurven, Tabellen &amp; Perzentilen
+                {t('growth.subtitle')}
               </div>
             </div>
           </button>
@@ -313,7 +314,7 @@ function PdfExportDropdown({
               onToggle();
               onManualPdfExport('a5');
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left mt-0.5"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left mt-0.5 cursor-pointer"
           >
             <span className="text-base leading-none shrink-0">📒</span>
             <div>
@@ -321,7 +322,7 @@ function PdfExportDropdown({
                 DIN A5 U-Heft Einleger
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                Passend für gelbes U-Heft
+                {t('uCheckups.subtitle')}
               </div>
             </div>
           </button>
@@ -329,7 +330,7 @@ function PdfExportDropdown({
           <div className="my-1.5 border-t border-slate-200 dark:border-slate-800/80" />
 
           <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Kalender &amp; Tabellen
+            {t('header.calendar') || 'Kalender & Tabellen'}
           </div>
 
           {onExportCalendar && (
@@ -339,15 +340,15 @@ function PdfExportDropdown({
                 onToggle();
                 onExportCalendar();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left cursor-pointer"
             >
               <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <div>
                 <div className="font-semibold text-slate-900 dark:text-slate-100">
-                  Kalender-Export (.ics)
+                  {t('header.calendar') || 'Kalender-Export (.ics)'}
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                  Für Apple, Google &amp; Outlook
+                  Apple, Google, Outlook
                 </div>
               </div>
             </button>
@@ -360,7 +361,7 @@ function PdfExportDropdown({
                 onToggle();
                 onExportCsv();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left mt-0.5"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left mt-0.5 cursor-pointer"
             >
               <Table className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <div>
@@ -368,7 +369,7 @@ function PdfExportDropdown({
                   Excel / CSV Export
                 </div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                  Rohdaten für Tabellenkalkulation
+                  {t('exportImport.exportDesc')}
                 </div>
               </div>
             </button>
@@ -768,6 +769,7 @@ export default function Header({
     logout,
     updateUserProfile,
   } = useAuth();
+  const { t } = useTranslation();
   const { isDark, setTheme } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPdfMenuOpen, setIsPdfMenuOpen] = useState(false);
@@ -811,7 +813,7 @@ export default function Header({
                   )}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
-                  Wachstum &amp; Vergleichskurven
+                  {t('app.subtitle') || 'Wachstum & Vergleichskurven'}
                 </p>
               </div>
             </div>
@@ -857,14 +859,14 @@ export default function Header({
                     <button
                       type="button"
                       onClick={onOpenAddMeasurement}
-                      className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-lg transition-all active:scale-95 ${
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shadow-lg transition-all active:scale-95 cursor-pointer ${
                         isGirl
                           ? 'bg-linear-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white shadow-rose-950/60'
                           : 'bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-950/60'
                       }`}
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Messwert eintragen</span>
+                      <span>{t('measurements.addTitle') || 'Messwert eintragen'}</span>
                     </button>
                   )}
 

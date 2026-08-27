@@ -251,7 +251,12 @@
     "zoomOut": "Rauszoomen",
     "latestValue": "Aktueller Wert:",
     "whoBand": "WHO-Perzentilenbereich (P3 - P97)",
-    "measurementCount": "Messungen"
+    "measurementCount": "Messungen",
+    "birth": "Geburt",
+    "monthsUnit": "M.",
+    "yearsUnit": "J.",
+    "ageLabel": "Alter",
+    "xAxisTitle": "Alter (Monate / Jahre)"
   },
   "health": {
     "title": "Gesundheits- & Symptomtagebuch",

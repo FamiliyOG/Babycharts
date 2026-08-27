@@ -226,18 +226,13 @@ function buildChartData({
 
 const DEFAULT_Y_BOUNDS = { min: 0, max: null };
 
-function getXAxisStepSize(maxAgeMonths) {
-  if (maxAgeMonths <= 12) return 1;
-  if (maxAgeMonths <= 24) return 2;
-  return 6;
-}
-
 function buildChartOptions(
   metric,
   maxAgeMonths,
   isDark = true,
   yBounds = DEFAULT_Y_BOUNDS,
-  metricTitles = {}
+  metricTitles = {},
+  t = (k) => k
 ) {
   const gridColor = isDark ? 'rgba(51, 65, 85, 0.3)' : 'rgba(203, 213, 225, 0.6)';
   const tickColor = isDark ? '#94a3b8' : '#64748b';
@@ -273,12 +268,14 @@ function buildChartOptions(
         callbacks: {
           title: (items) => {
             if (!items.length) return '';
-            const month = items[0].parsed.x;
+            const month = Math.round(items[0].parsed.x * 10) / 10;
             const years = Math.floor(month / 12);
-            const remainingMonths = month % 12;
-            if (years === 0) return `Alter: ${month} Monate`;
-            if (remainingMonths === 0) return `Alter: ${years} Jahre`;
-            return `Alter: ${years} J. ${remainingMonths} M.`;
+            const remainingMonths = Math.round((month % 12) * 10) / 10;
+            if (years === 0)
+              return `${t('growth.ageLabel') || 'Alter'}: ${month} ${t('growth.monthsUnit') || 'M.'}`;
+            if (remainingMonths === 0)
+              return `${t('growth.ageLabel') || 'Alter'}: ${years} ${t('growth.yearsUnit') || 'J.'}`;
+            return `${t('growth.ageLabel') || 'Alter'}: ${years} ${t('growth.yearsUnit') || 'J.'} ${remainingMonths} ${t('growth.monthsUnit') || 'M.'}`;
           },
           label: (context) => {
             const label = context.dataset.label || '';
@@ -325,16 +322,20 @@ function buildChartOptions(
         ticks: {
           color: tickColor,
           font: { size: 11 },
-          stepSize: getXAxisStepSize(maxAgeMonths),
+          autoSkip: true,
+          maxTicksLimit: 12,
           callback: (val) => {
-            if (val === 0) return 'Geburt';
-            if (val % 12 === 0) return `${val / 12} J.`;
-            return `${val} M.`;
+            const num = Number(val);
+            if (num <= 0.05) return t('growth.birth') || 'Geburt';
+            const rounded = Math.round(num * 10) / 10;
+            if (rounded % 12 === 0) return `${rounded / 12} ${t('growth.yearsUnit') || 'J.'}`;
+            if (Number.isInteger(rounded)) return `${rounded} ${t('growth.monthsUnit') || 'M.'}`;
+            return `${rounded.toFixed(1)} ${t('growth.monthsUnit') || 'M.'}`;
           },
         },
         title: {
           display: true,
-          text: 'Alter (Monate / Jahre)',
+          text: t('growth.xAxisTitle') || 'Alter (Monate / Jahre)',
           color: titleColor,
           font: { size: 11, weight: '600' },
         },
@@ -458,7 +459,7 @@ export default function GrowthChart({ activeChild }) {
     childColor,
     isDark,
   });
-  const options = buildChartOptions(metric, maxAgeMonths, isDark, yBounds, METRIC_TITLES);
+  const options = buildChartOptions(metric, maxAgeMonths, isDark, yBounds, METRIC_TITLES, t);
 
   const getMetricButtonClass = (targetMetric) => {
     const isSelected = metric === targetMetric;

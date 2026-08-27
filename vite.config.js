@@ -36,9 +36,11 @@ function stripNonStandardCssPlugin() {
 export default defineConfig({
   plugins: [stripNonStandardCssPlugin(), react(), tailwindcss()],
   test: {
-    environment: 'node',
+    environment: 'jsdom',
     globals: true,
+    setupFiles: ['./src/test/setup.js'],
     fileParallelism: false,
+    exclude: ['e2e/**', '**/node_modules/**', '**/dist/**'],
   },
   build: {
     rollupOptions: {

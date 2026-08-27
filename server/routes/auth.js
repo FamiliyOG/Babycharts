@@ -73,6 +73,7 @@ export const loginLimiter = rateLimit({
   max: 10, // max 10 failed/successful attempts per IP in 15 mins
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Zu viele Anmeldeversuche. Bitte warten Sie 15 Minuten.' },
 });
 
@@ -81,6 +82,7 @@ export const registerLimiter = rateLimit({
   max: 5, // max 5 account creations per IP per hour
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: {
     error: 'Zu viele Registrierungen von dieser IP. Bitte versuchen Sie es später erneut.',
   },
@@ -91,6 +93,7 @@ export const twoFactorLimiter = rateLimit({
   max: 10, // max 10 2FA verify attempts per 10 mins
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Zu viele 2FA-Versuche. Bitte warten Sie einige Minuten.' },
 });
 
@@ -99,6 +102,7 @@ export const passwordResetLimiter = rateLimit({
   max: 5, // max 5 password reset requests per IP per hour
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Zu viele Passwort-Anfragen. Bitte warten Sie eine Stunde.' },
 });
 

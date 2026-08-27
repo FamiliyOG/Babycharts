@@ -5,7 +5,14 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'server/data/**'],
+    ignores: [
+      'dist/**',
+      'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
+      'node_modules/**',
+      'server/data/**',
+    ],
   },
   js.configs.recommended,
   {

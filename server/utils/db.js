@@ -99,6 +99,7 @@ function initSchema() {
       avatar TEXT,
       notes TEXT,
       schedule TEXT,
+      vaccinations TEXT,
       teeth TEXT,
       milestones TEXT,
       customMilestones TEXT,
@@ -202,8 +203,10 @@ function initSchema() {
     if (!inviteColumns.some((c) => c.name === 'maxUses')) {
       sqlite.exec('ALTER TABLE invites ADD COLUMN maxUses INTEGER DEFAULT 1');
     }
-    if (!inviteColumns.some((c) => c.name === 'usesCount')) {
-      sqlite.exec('ALTER TABLE invites ADD COLUMN usesCount INTEGER DEFAULT 0');
+    // Auto-migrate profiles table if vaccinations column is missing
+    const profileColumns = sqlite.prepare('PRAGMA table_info(profiles)').all();
+    if (!profileColumns.some((c) => c.name === 'vaccinations')) {
+      sqlite.exec('ALTER TABLE profiles ADD COLUMN vaccinations TEXT');
     }
   } catch (err) {
     console.warn('[DB] Migration notice:', err.message);
@@ -396,8 +399,8 @@ function insertProfileHealthLogs(profileId, healthLogs = []) {
 
 function insertProfiles(profiles = []) {
   const insertProfile = sqlite.prepare(`
-    INSERT OR REPLACE INTO profiles (id, familyId, name, birthdate, gender, avatar, notes, schedule, teeth, milestones, customMilestones, createdAt, updatedAt)
-    VALUES (@id, @familyId, @name, @birthdate, @gender, @avatar, @notes, @schedule, @teeth, @milestones, @customMilestones, @createdAt, @updatedAt)
+    INSERT OR REPLACE INTO profiles (id, familyId, name, birthdate, gender, avatar, notes, schedule, vaccinations, teeth, milestones, customMilestones, createdAt, updatedAt)
+    VALUES (@id, @familyId, @name, @birthdate, @gender, @avatar, @notes, @schedule, @vaccinations, @teeth, @milestones, @customMilestones, @createdAt, @updatedAt)
   `);
 
   for (const p of profiles) {
@@ -410,6 +413,7 @@ function insertProfiles(profiles = []) {
       avatar: p.avatar || null,
       notes: p.notes || null,
       schedule: p.schedule ? JSON.stringify(p.schedule) : null,
+      vaccinations: p.vaccinations ? JSON.stringify(p.vaccinations) : null,
       teeth: p.teeth ? JSON.stringify(p.teeth) : null,
       milestones: p.milestones ? JSON.stringify(p.milestones) : null,
       customMilestones: p.customMilestones ? JSON.stringify(p.customMilestones) : null,
@@ -449,11 +453,13 @@ function migrateFromJsonIfNeeded() {
       console.log('[DB] Migrating legacy db.json into SQLite...');
 
       const insertTransaction = sqlite.transaction(() => {
-        insertUsers(parsed.users);
-        insertFamilies(parsed.families);
-        insertInvites(parsed.invites, parsed.usedInvites);
-        insertProfiles(parsed.profiles);
-        if (parsed.settings) insertSettings(parsed.settings);
+        if (Array.isArray(parsed.users)) insertUsers(parsed.users);
+        if (Array.isArray(parsed.families)) insertFamilies(parsed.families);
+        if (Array.isArray(parsed.invites)) insertInvites(parsed.invites, parsed.usedInvites || []);
+        if (Array.isArray(parsed.profiles)) insertProfiles(parsed.profiles);
+        if (parsed.settings && typeof parsed.settings === 'object') {
+          insertSettings(parsed.settings);
+        }
       });
 
       insertTransaction();
@@ -530,6 +536,7 @@ export function readDb() {
       schedule: p.schedule
         ? JSON.parse(p.schedule)
         : { enabled: false, frequency: 'daily', intervalDays: 7, lastExportAt: null },
+      vaccinations: p.vaccinations ? JSON.parse(p.vaccinations) : {},
       teeth: p.teeth ? JSON.parse(p.teeth) : {},
       milestones: p.milestones ? JSON.parse(p.milestones) : {},
       customMilestones: p.customMilestones ? JSON.parse(p.customMilestones) : [],

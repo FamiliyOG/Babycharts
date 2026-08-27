@@ -23,6 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 
+# Test coverage & artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
 # BabyCharts server – generated files and secrets
 server/data/*.db
 server/data/*.db-wal

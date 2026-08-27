@@ -5,10 +5,28 @@
 
 import crypto from 'node:crypto';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { readDb, writeDb } from '../utils/db.js';
 import { requireAuth, getUserFamilyRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// ── Rate Limiters for Invitations ───────────────────────────────────────────
+export const inviteCreateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // max 20 invites created per 15 min per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Einladungen erstellt. Bitte warten Sie einige Minuten.' },
+});
+
+export const inviteJoinLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // max 15 join attempts per 15 min per IP (prevents brute-forcing codes)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Einlöseversuche. Bitte warten Sie 15 Minuten.' },
+});
 
 /**
  * Helper to generate a guaranteed unique random 6-character alphanumeric invite code (e.g. "K7M9P2")
@@ -168,7 +186,7 @@ router.post('/', requireAuth, (req, res) => {
  * POST /api/families/:familyId/invites
  * Creates an invite code for members (role: 'editor' or 'viewer')
  */
-router.post('/:familyId/invites', requireAuth, (req, res) => {
+router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) => {
   const { familyId } = req.params;
   const { role = 'editor' } = req.body;
 
@@ -246,7 +264,7 @@ router.delete('/:familyId/invites/:code', requireAuth, (req, res) => {
  * POST /api/families/join
  * Joins a family using an invite code
  */
-router.post('/join', requireAuth, (req, res) => {
+router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
   const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
   if (!code) {
     return res.status(400).json({ error: 'Einladungscode ist erforderlich.' });

@@ -3,20 +3,144 @@
  * User Registration, Login and Profile endpoints
  */
 
+import crypto from 'node:crypto';
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
-import { readDb, writeDb } from '../utils/db.js';
-import { requireAuth, JWT_SECRET, getUserFamilyRole } from '../middleware/auth.js';
+import rateLimit from 'express-rate-limit';
+import { readDb, writeDb, logSecurityEvent } from '../utils/db.js';
+import { requireAuth, JWT_SECRET, JWT_EXPIRES_IN, getUserFamilyRole } from '../middleware/auth.js';
+import { sendPasswordResetEmail } from '../utils/mailer.js';
 
 const router = express.Router();
 
+/**
+ * Encrypts a 2FA TOTP secret using AES-256-GCM (Issue BC-032)
+ */
+export function encryptTwoFactorSecret(plainSecret) {
+  if (!plainSecret) return null;
+  const key = crypto.createHash('sha256').update(JWT_SECRET).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(plainSecret, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`;
+}
+
+/**
+ * Decrypts an AES-256-GCM encrypted 2FA TOTP secret (or returns plaintext if legacy)
+ */
+export function decryptTwoFactorSecret(encryptedSecret) {
+  if (!encryptedSecret) return null;
+  if (!encryptedSecret.includes(':')) {
+    return encryptedSecret; // Legacy fallback
+  }
+  try {
+    const [ivHex, tagHex, dataHex] = encryptedSecret.split(':');
+    const key = crypto.createHash('sha256').update(JWT_SECRET).digest();
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(tagHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(dataHex, 'hex')),
+      decipher.final(),
+    ]);
+    return decrypted.toString('utf8');
+  } catch (err) {
+    console.error('[Auth] Decrypt 2FA secret error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Generates 8 random 8-character alphanumeric 2FA recovery codes (Issue BC-031)
+ */
+export function generateRecoveryCodes(count = 8) {
+  const codes = [];
+  for (let i = 0; i < count; i++) {
+    const raw = crypto.randomBytes(4).toString('hex').toUpperCase();
+    codes.push(`${raw.slice(0, 4)}-${raw.slice(4)}`);
+  }
+  return codes;
+}
+
+// ── Rate Limiters to prevent Brute-Force & Credential Stuffing ───────────────
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // max 10 failed/successful attempts per IP in 15 mins
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anmeldeversuche. Bitte warten Sie 15 Minuten.' },
+});
+
+export const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // max 5 account creations per IP per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Zu viele Registrierungen von dieser IP. Bitte versuchen Sie es später erneut.',
+  },
+});
+
+export const twoFactorLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 10, // max 10 2FA verify attempts per 10 mins
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele 2FA-Versuche. Bitte warten Sie einige Minuten.' },
+});
+
+export const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // max 5 password reset requests per IP per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Passwort-Anfragen. Bitte warten Sie eine Stunde.' },
+});
+
+/**
+ * Validates password strength:
+ * - Minimum 8 characters
+ * - At least 1 lowercase letter
+ * - At least 1 uppercase letter
+ * - At least 1 digit
+ */
+export function validatePasswordPolicy(password) {
+  if (typeof password !== 'string') {
+    return { valid: false, error: 'Passwort muss eine Zeichenkette sein.' };
+  }
+  if (password.length < 8) {
+    return { valid: false, error: 'Passwort muss mindestens 8 Zeichen lang sein.' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: 'Passwort muss mindestens einen Kleinbuchstaben enthalten.' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: 'Passwort muss mindestens einen Großbuchstaben enthalten.' };
+  }
+  if (!/\d/.test(password)) {
+    return { valid: false, error: 'Passwort muss mindestens eine Zahl enthalten.' };
+  }
+  return { valid: true };
+}
+
 function createToken(user) {
-  return jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, {
-    expiresIn: '30d',
-  });
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      tokenVersion: user.tokenVersion || 0,
+    },
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRES_IN,
+    }
+  );
 }
 
 function formatUserPayload(user) {
@@ -98,7 +222,7 @@ function createInitialFamily(db, userId, userName, requestedFamilyName) {
  * POST /api/auth/register
  * Registers a new user and automatically creates their first family (e.g. "Familie <Name>")
  */
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   try {
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
@@ -107,6 +231,11 @@ router.post('/register', async (req, res) => {
 
     if (!rawEmail || !rawPassword || !rawName) {
       return res.status(400).json({ error: 'Name, E-Mail und Passwort sind erforderlich.' });
+    }
+
+    const policyCheck = validatePasswordPolicy(rawPassword);
+    if (!policyCheck.valid) {
+      return res.status(400).json({ error: policyCheck.error });
     }
 
     const normalizedEmail = rawEmail.toLowerCase();
@@ -165,7 +294,7 @@ router.post('/register', async (req, res) => {
  * POST /api/auth/login
  * Authenticates user and returns JWT + user families
  */
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
@@ -193,22 +322,44 @@ router.post('/login', async (req, res) => {
       if (!rawTotp) {
         return res.status(200).json({
           requires2FA: true,
-          message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code ein.',
+          message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',
         });
       }
 
-      const verified = speakeasy.totp.verify({
-        secret: user.twoFactorSecret,
-        encoding: 'base32',
-        token: rawTotp,
-        window: 2,
-      });
+      const decryptedSecret = decryptTwoFactorSecret(user.twoFactorSecret);
+      let verified = false;
+
+      if (decryptedSecret) {
+        verified = speakeasy.totp.verify({
+          secret: decryptedSecret,
+          encoding: 'base32',
+          token: rawTotp,
+          window: 2,
+        });
+      }
+
+      // Check recovery codes fallback (Issue BC-031)
+      if (!verified && user.recoveryCodes?.length > 0) {
+        const normalizedInput = rawTotp.toUpperCase();
+        const codeIndex = user.recoveryCodes.findIndex((c) => c.toUpperCase() === normalizedInput);
+        if (codeIndex !== -1) {
+          verified = true;
+          // Consume one-time recovery code
+          user.recoveryCodes.splice(codeIndex, 1);
+          writeDb(db);
+          console.log(
+            `\x1b[32m[2FA RECOVERY ${new Date().toISOString()}]\x1b[0m Recovery code consumed for user: ${user.email} (${user.recoveryCodes.length} remaining)`
+          );
+        }
+      }
 
       if (!verified) {
         console.warn(
           `\x1b[33m[2FA LOGIN ${new Date().toISOString()}]\x1b[0m 2FA login verification failed for user: ${user.email}`
         );
-        return res.status(400).json({ error: 'Ungültiger 2FA-Code. Bitte erneut versuchen.' });
+        return res
+          .status(400)
+          .json({ error: 'Ungültiger 2FA-Code oder Recovery-Code. Bitte erneut versuchen.' });
       }
     }
 
@@ -351,17 +502,24 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
 
     const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url);
 
-    // Save temporary secret to user pending verification
+    // Save temporary secret to user with a 15-minute expiration (Issue BC-033)
     user.tempTwoFactorSecret = secret.base32;
+    user.tempTwoFactorExpires = Date.now() + 15 * 60 * 1000; // 15 min expiration
     writeDb(db);
 
-    console.log(
-      `\x1b[36m[2FA SETUP ${new Date().toISOString()}]\x1b[0m 2FA initialization started for user: ${user.email}`
-    );
+    logSecurityEvent({
+      event: '2FA_SETUP_INITIATED',
+      userId: user.id,
+      email: user.email,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'success',
+    });
 
     return res.json({
       secret: secret.base32,
       qrCode: qrCodeDataUrl,
+      expiresAt: new Date(user.tempTwoFactorExpires).toISOString(),
     });
   } catch (err) {
     console.error(
@@ -376,7 +534,7 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
  * POST /api/auth/2fa/verify
  * Verifies code and confirms permanent 2FA activation
  */
-router.post('/2fa/verify', requireAuth, (req, res) => {
+router.post('/2fa/verify', requireAuth, twoFactorLimiter, (req, res) => {
   try {
     const rawTotp =
       typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
@@ -387,10 +545,27 @@ router.post('/2fa/verify', requireAuth, (req, res) => {
     const db = readDb();
     const user = db.users.find((u) => u.id === req.user.id);
     if (!user?.tempTwoFactorSecret) {
-      console.warn(
-        `\x1b[33m[2FA VERIFY ${new Date().toISOString()}]\x1b[0m Verification attempt failed: No pending 2FA setup found for user ${req.user.email}`
-      );
       return res.status(400).json({ error: 'Keine 2FA-Einrichtung aktiv.' });
+    }
+
+    // Check if temporary 2FA setup secret has expired (Issue BC-033)
+    if (user.tempTwoFactorExpires && Date.now() > user.tempTwoFactorExpires) {
+      delete user.tempTwoFactorSecret;
+      delete user.tempTwoFactorExpires;
+      writeDb(db);
+
+      logSecurityEvent({
+        event: '2FA_VERIFY_EXPIRED',
+        userId: user.id,
+        email: user.email,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        status: 'failed',
+      });
+
+      return res.status(400).json({
+        error: 'Die 2FA-Einrichtung ist abgelaufen (Gültigkeit 15 Min). Bitte erneut starten.',
+      });
     }
 
     // Verify token with a wider time drift window (window: 2 allows ±60s clock drift between phone and server)
@@ -402,23 +577,41 @@ router.post('/2fa/verify', requireAuth, (req, res) => {
     });
 
     if (!verified) {
-      console.warn(
-        `\x1b[33m[2FA VERIFY ${new Date().toISOString()}]\x1b[0m Invalid TOTP code entered for user ${user.email} (token length: ${rawTotp.length})`
-      );
+      logSecurityEvent({
+        event: '2FA_VERIFY_FAILED',
+        userId: user.id,
+        email: user.email,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        status: 'failed',
+      });
       return res.status(400).json({ error: 'Ungültiger Code. Bitte prüfen Sie Ihre App.' });
     }
 
-    user.twoFactorSecret = user.tempTwoFactorSecret;
+    // Encrypt secret with AES-256-GCM before saving permanently to database (Issue BC-032)
+    user.twoFactorSecret = encryptTwoFactorSecret(user.tempTwoFactorSecret);
     delete user.tempTwoFactorSecret;
+    delete user.tempTwoFactorExpires;
+
+    // Generate 8 2FA recovery codes (Issue BC-031)
+    const recoveryCodes = generateRecoveryCodes(8);
+    user.recoveryCodes = recoveryCodes;
+
     writeDb(db);
 
-    console.log(
-      `\x1b[32m[2FA SUCCESS ${new Date().toISOString()}]\x1b[0m 2FA successfully activated for user: ${user.email}`
-    );
+    logSecurityEvent({
+      event: '2FA_ENABLED',
+      userId: user.id,
+      email: user.email,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'success',
+    });
 
     return res.json({
       message: 'Zwei-Faktor-Authentifizierung erfolgreich aktiviert!',
       user: formatUserPayload(user),
+      recoveryCodes, // Provided to user to save/print
     });
   } catch (err) {
     console.error(
@@ -453,6 +646,7 @@ router.post('/2fa/disable', requireAuth, async (req, res) => {
 
     delete user.twoFactorSecret;
     delete user.tempTwoFactorSecret;
+    delete user.recoveryCodes;
     writeDb(db);
 
     return res.json({
@@ -462,6 +656,169 @@ router.post('/2fa/disable', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[Auth] 2FA Disable error:', err);
     return res.status(500).json({ error: 'Fehler beim Deaktivieren von 2FA.' });
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Initiates password reset flow by creating a secure 1-hour reset token.
+ * Stores only a SHA-256 hash in the database so that database leaks cannot reveal valid reset tokens.
+ */
+router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
+  try {
+    const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    if (!rawEmail) {
+      return res.status(400).json({ error: 'E-Mail-Adresse ist erforderlich.' });
+    }
+
+    const normalizedEmail = rawEmail.toLowerCase();
+    const db = readDb();
+    const user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
+
+    // Generic response prevents account enumeration attacks
+    if (!user) {
+      return res.json({
+        message:
+          'Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Reset-Code bereitgestellt.',
+      });
+    }
+
+    // Cryptographically secure random token (32 bytes = 64 hex chars)
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresInMs = 60 * 60 * 1000; // 1 hour expiration
+    const expiresAt = Date.now() + expiresInMs;
+
+    user.passwordResetTokenHash = tokenHash;
+    user.passwordResetExpires = expiresAt;
+    delete user.passwordResetToken; // Clean up any old plaintext field
+    writeDb(db);
+
+    console.log(
+      `\x1b[36m[PASSWORD RESET ${new Date().toISOString()}]\x1b[0m Secure reset token generated for user: ${user.email} (expires in 1h)`
+    );
+
+    // Send email via SMTP in background (fire-and-forget / non-blocking)
+    sendPasswordResetEmail(user.email, rawToken, user.name).catch((err) =>
+      console.error('[Auth] Error sending reset email:', err)
+    );
+
+    return res.json({
+      message:
+        'Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Reset-Code bereitgestellt.',
+      resetToken: rawToken, // Returned directly for client/self-hosted notification
+      expiresAt: new Date(expiresAt).toISOString(),
+    });
+  } catch (err) {
+    console.error('[Auth] Forgot password error:', err);
+    return res.status(500).json({ error: 'Fehler beim Zurücksetzen des Passworts.' });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Resets password using a valid raw reset token.
+ * Verifies SHA-256 hash match, checks expiration timestamp, and enforces password policy.
+ */
+router.post('/reset-password', passwordResetLimiter, async (req, res) => {
+  try {
+    const { token, newPassword } = req.body || {};
+    if (!token || typeof token !== 'string' || !newPassword) {
+      return res.status(400).json({ error: 'Token und neues Passwort sind erforderlich.' });
+    }
+
+    const policyCheck = validatePasswordPolicy(newPassword);
+    if (!policyCheck.valid) {
+      return res.status(400).json({ error: policyCheck.error });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+    const db = readDb();
+    const user = db.users.find((u) => u.passwordResetTokenHash === tokenHash);
+
+    if (!user) {
+      return res.status(400).json({ error: 'Reset-Token ungültig oder bereits verwendet.' });
+    }
+
+    // Check expiration timestamp (Issue BC-023)
+    if (!user.passwordResetExpires || Date.now() > user.passwordResetExpires) {
+      delete user.passwordResetTokenHash;
+      delete user.passwordResetExpires;
+      writeDb(db);
+      return res
+        .status(400)
+        .json({ error: 'Der Reset-Token ist abgelaufen. Bitte fordern Sie einen neuen an.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.tokenVersion = (user.tokenVersion || 0) + 1; // Invalidate all prior sessions (Issue BC-028)
+    delete user.passwordResetTokenHash;
+    delete user.passwordResetExpires;
+    delete user.passwordResetToken;
+    writeDb(db);
+
+    console.log(
+      `\x1b[32m[PASSWORD RESET SUCCESS ${new Date().toISOString()}]\x1b[0m Password successfully reset for user: ${user.email} (all previous sessions revoked)`
+    );
+
+    return res.json({ message: 'Passwort erfolgreich geändert. Sie können sich nun anmelden.' });
+  } catch (err) {
+    console.error('[Auth] Reset password error:', err);
+    return res.status(500).json({ error: 'Fehler beim Ändern des Passworts.' });
+  }
+});
+
+/**
+ * POST /api/auth/change-password
+ * Allows authenticated user to update their password.
+ * Optionally logs out all other devices / sessions by bumping tokenVersion (Issue BC-029).
+ */
+router.post('/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword, logoutAllDevices = true } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Aktuelles und neues Passwort sind erforderlich.' });
+    }
+
+    const policyCheck = validatePasswordPolicy(newPassword);
+    if (!policyCheck.valid) {
+      return res.status(400).json({ error: policyCheck.error });
+    }
+
+    const db = readDb();
+    const user = db.users.find((u) => u.id === req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Benutzerkonto nicht gefunden.' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Das aktuelle Passwort ist nicht korrekt.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    if (logoutAllDevices) {
+      user.tokenVersion = (user.tokenVersion || 0) + 1;
+    }
+
+    writeDb(db);
+
+    // Generate fresh token for the current session
+    const newToken = createToken(user);
+
+    return res.json({
+      message: logoutAllDevices
+        ? 'Passwort erfolgreich geändert. Alle anderen Geräte wurden abgemeldet.'
+        : 'Passwort erfolgreich geändert.',
+      token: newToken,
+      user: formatUserPayload(user),
+    });
+  } catch (err) {
+    console.error('[Auth] Change password error:', err);
+    return res.status(500).json({ error: 'Fehler beim Ändern des Passworts.' });
   }
 });
 

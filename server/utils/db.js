@@ -155,6 +155,18 @@ function initSchema() {
       FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE,
       FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      timestamp TEXT NOT NULL,
+      event TEXT NOT NULL,
+      userId TEXT,
+      email TEXT,
+      ip TEXT,
+      userAgent TEXT,
+      status TEXT NOT NULL,
+      details TEXT
+    );
   `);
 
   // Auto-migrate users table if tempTwoFactorSecret column is missing
@@ -163,8 +175,55 @@ function initSchema() {
     if (!columns.some((c) => c.name === 'tempTwoFactorSecret')) {
       sqlite.exec('ALTER TABLE users ADD COLUMN tempTwoFactorSecret TEXT');
     }
+    if (!columns.some((c) => c.name === 'tempTwoFactorExpires')) {
+      sqlite.exec('ALTER TABLE users ADD COLUMN tempTwoFactorExpires INTEGER');
+    }
+    if (!columns.some((c) => c.name === 'recoveryCodes')) {
+      sqlite.exec('ALTER TABLE users ADD COLUMN recoveryCodes TEXT');
+    }
+    if (!columns.some((c) => c.name === 'tokenVersion')) {
+      sqlite.exec('ALTER TABLE users ADD COLUMN tokenVersion INTEGER DEFAULT 0');
+    }
   } catch (err) {
-    console.warn('[DB] Migration tempTwoFactorSecret notice:', err.message);
+    console.warn('[DB] Migration notice:', err.message);
+  }
+}
+
+/**
+ * Records a security audit event in SQLite audit_logs table (Issue BC-034)
+ */
+export function logSecurityEvent({
+  event,
+  userId = null,
+  email = null,
+  ip = null,
+  userAgent = null,
+  status = 'success',
+  details = null,
+}) {
+  try {
+    const id = `audit-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const timestamp = new Date().toISOString();
+    sqlite
+      .prepare(
+        `
+      INSERT INTO audit_logs (id, timestamp, event, userId, email, ip, userAgent, status, details)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+      )
+      .run(
+        id,
+        timestamp,
+        event,
+        userId,
+        email,
+        ip,
+        typeof userAgent === 'string' ? userAgent.substring(0, 255) : null,
+        status,
+        typeof details === 'object' ? JSON.stringify(details) : details
+      );
+  } catch (err) {
+    console.error('[Audit Log] Failed to record security event:', err.message);
   }
 }
 

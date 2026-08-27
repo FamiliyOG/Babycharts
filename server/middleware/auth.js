@@ -31,6 +31,7 @@ function getOrCreateJwtSecret() {
 }
 
 export const JWT_SECRET = getOrCreateJwtSecret();
+export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
 
 /**
  * Middleware: Requires a valid JWT bearer token.
@@ -50,6 +51,16 @@ export function requireAuth(req, res, next) {
 
     if (!user) {
       return res.status(401).json({ error: 'Benutzerkonto nicht gefunden.' });
+    }
+
+    // Invalidate sessions if password was changed or sessions revoked (Issues BC-028, BC-029)
+    const currentTokenVersion = user.tokenVersion || 0;
+    const tokenVersionInJwt = decoded.tokenVersion || 0;
+    if (tokenVersionInJwt < currentTokenVersion) {
+      return res.status(401).json({
+        error:
+          'Ihre Sitzung ist abgelaufen, da das Passwort geändert wurde. Bitte erneut anmelden.',
+      });
     }
 
     req.user = { id: user.id, email: user.email, name: user.name };

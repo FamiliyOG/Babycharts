@@ -21,6 +21,7 @@ import { readDb, writeDb, createDbBackup } from './utils/db.js';
 import { rescheduleAll, setAppUrl } from './scheduler.js';
 
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 
 import profilesRouter from './routes/profiles.js';
 import settingsRouter from './routes/settings.js';
@@ -39,6 +40,43 @@ const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 // ── Express setup ────────────────────────────────────────────────────────────
 const app = express();
 app.disable('x-powered-by');
+
+// ── HTTP Security Headers (Issues BC-035, BC-036, BC-037, BC-038) ────────────
+app.use(
+  helmet({
+    // BC-036: Strict Content Security Policy configured for SPA, PWA, Chart.js & fonts
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: ["'self'", 'ws:', 'wss:'],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'self'"],
+        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+      },
+    },
+    // BC-037: Strict Referrer-Policy
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin',
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+
+// BC-038: Permissions-Policy header (disables microphone, camera, geolocation, payment)
+app.use((req, res, next) => {
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=(), vr=(), accelerometer=(), gyroscope=()'
+  );
+  next();
+});
 
 // Global Rate Limiter to prevent brute-force / resource allocation exhaustion (1000 reqs / 15 min per IP)
 const globalLimiter = rateLimit({

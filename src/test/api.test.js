@@ -19,4 +19,87 @@ describe('Server API Endpoints (Supertest)', () => {
     const res = await request(app).post('/api/profiles').send({ id: 'test-1', name: 'Test' });
     expect(res.status).toBe(401);
   });
+
+  it('POST /api/auth/login returns 400 for empty body', async () => {
+    const res = await request(app).post('/api/auth/login').send({});
+    expect(res.status).toBe(400);
+    expect(res.body?.error).toContain('E-Mail und Passwort sind erforderlich');
+  });
+
+  it('POST /api/auth/register returns 400 for weak password', async () => {
+    const res = await request(app).post('/api/auth/register').send({
+      name: 'Test',
+      email: 'weak-pass@example.com',
+      password: 'weak',
+    });
+    expect(res.status).toBe(400);
+    expect(res.body?.error).toContain('mindestens 8 Zeichen');
+  });
+
+  it('POST /api/auth/forgot-password handles email request cleanly', async () => {
+    const res = await request(app).post('/api/auth/forgot-password').send({
+      email: 'nonexistent@example.com',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body?.message).toContain('Wenn ein Konto');
+  });
+
+  it('POST /api/auth/reset-password rejects invalid or unhashed token', async () => {
+    const res = await request(app).post('/api/auth/reset-password').send({
+      token: 'invalid-token-12345',
+      newPassword: 'ValidPassword123!',
+    });
+    expect(res.status).toBe(400);
+    expect(res.body?.error).toContain('ungültig');
+  });
+
+  it('POST /api/auth/change-password without auth token returns 401', async () => {
+    const res = await request(app).post('/api/auth/change-password').send({
+      currentPassword: 'OldPassword123!',
+      newPassword: 'NewPassword123!',
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('2FA helper: encrypts, decrypts secret and generates 8 recovery codes', async () => {
+    const { encryptTwoFactorSecret, decryptTwoFactorSecret, generateRecoveryCodes } =
+      await import('../../server/routes/auth.js');
+    const plainSecret = 'JBSWY3DPEHPK3PXP';
+    const encrypted = encryptTwoFactorSecret(plainSecret);
+    expect(encrypted).toContain(':');
+    expect(encrypted).not.toBe(plainSecret);
+
+    const decrypted = decryptTwoFactorSecret(encrypted);
+    expect(decrypted).toBe(plainSecret);
+
+    const codes = generateRecoveryCodes(8);
+    expect(codes).toHaveLength(8);
+    expect(codes[0]).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+  });
+
+  it('HTTP Security Headers: Helmet sets CSP, Referrer-Policy, Permissions-Policy & X-Content-Type-Options', async () => {
+    const res = await request(app).get('/api/settings');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['content-security-policy']).toBeDefined();
+    expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+    expect(res.headers['permissions-policy']).toContain('camera=()');
+    expect(res.headers['permissions-policy']).toContain('microphone=()');
+  });
+
+  it('Audit Log helper: records security events cleanly', async () => {
+    const { logSecurityEvent, sqlite } = await import('../../server/utils/db.js');
+    logSecurityEvent({
+      event: 'TEST_SECURITY_EVENT',
+      email: 'audit-test@example.com',
+      status: 'success',
+      details: { test: true },
+    });
+
+    const row = sqlite
+      .prepare('SELECT * FROM audit_logs WHERE event = ?')
+      .get('TEST_SECURITY_EVENT');
+    expect(row).toBeDefined();
+    expect(row.email).toBe('audit-test@example.com');
+    expect(row.status).toBe('success');
+  });
 });

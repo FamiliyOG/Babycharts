@@ -416,7 +416,7 @@ router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
 
   db.usedInvites = db.usedInvites || [];
   db.usedInvites.push({
-    code: `${normalizedCode}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    code: `${normalizedCode}-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
     familyId: family.id,
     usedBy: req.user.id,
     usedAt: new Date().toISOString(),
@@ -434,6 +434,15 @@ router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
     },
   });
 });
+
+/**
+ * Helper to get user-friendly role label
+ */
+function getRoleLabel(role) {
+  if (role === 'admin') return 'Administrator';
+  if (role === 'editor') return 'Elternteil';
+  return 'Besucher';
+}
 
 /**
  * PUT /api/families/:familyId/members/:userId
@@ -494,7 +503,7 @@ router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
   );
 
   return res.json({
-    message: `Rolle erfolgreich auf "${role === 'admin' ? 'Administrator' : role === 'editor' ? 'Elternteil' : 'Besucher'}" geändert.`,
+    message: `Rolle erfolgreich auf "${getRoleLabel(role)}" geändert.`,
     member,
   });
 });

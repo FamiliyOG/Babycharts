@@ -36,64 +36,84 @@ export default function AuthModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const handleLoginSubmit = async () => {
+    const res = await login(email, password, totpCode);
+    if (res.requires2FA) {
+      setRequires2FA(true);
+      return;
+    }
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    setRequires2FA(false);
+    setTotpCode('');
+    onClose();
+  };
+
+  const handleRegisterSubmit = async () => {
+    const res = await register({
+      name,
+      email,
+      password,
+      familyName: familyName || undefined,
+      inviteCode: inviteCode || undefined,
+    });
+    if (!res.ok) {
+      setError(res.error);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleForgotSubmit = async () => {
+    const res = await forgotPassword(email);
+    if (res.ok) {
+      if (res.data?.resetToken) {
+        setResetToken(res.data.resetToken);
+        setSuccess('Reset-Token generiert! Sie können nun Ihr neues Passwort festlegen.');
+        setMode('reset');
+      } else {
+        setSuccess(
+          res.data?.message ||
+            'Wenn ein Konto mit dieser E-Mail existiert, wurde eine Anleitung gesendet.'
+        );
+      }
+    } else {
+      setError(res.error || 'Fehler beim Anfordern des Passwort-Resets.');
+    }
+  };
+
+  const handleResetSubmit = async () => {
+    const res = await resetPassword(resetToken, newPassword);
+    if (res.ok) {
+      setSuccess('Passwort erfolgreich geändert! Bitte melden Sie sich an.');
+      setMode('login');
+      setPassword('');
+    } else {
+      setError(res.error || 'Fehler beim Zurücksetzen des Passworts.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     setLoading(true);
 
-    if (mode === 'login') {
-      const res = await login(email, password, totpCode);
-      if (res.requires2FA) {
-        setRequires2FA(true);
-      } else if (!res.ok) {
-        setError(res.error);
-      } else {
-        setRequires2FA(false);
-        setTotpCode('');
-        onClose();
+    try {
+      if (mode === 'login') {
+        await handleLoginSubmit();
+      } else if (mode === 'register') {
+        await handleRegisterSubmit();
+      } else if (mode === 'forgot') {
+        await handleForgotSubmit();
+      } else if (mode === 'reset') {
+        await handleResetSubmit();
       }
-    } else if (mode === 'register') {
-      const res = await register({
-        name,
-        email,
-        password,
-        familyName: familyName || undefined,
-        inviteCode: inviteCode || undefined,
-      });
-      if (!res.ok) {
-        setError(res.error);
-      } else {
-        onClose();
-      }
-    } else if (mode === 'forgot') {
-      const res = await forgotPassword(email);
-      if (res.ok) {
-        if (res.data?.resetToken) {
-          // Selfhosted mode: direct reset token provided
-          setResetToken(res.data.resetToken);
-          setSuccess('Reset-Token generiert! Sie können nun Ihr neues Passwort festlegen.');
-          setMode('reset');
-        } else {
-          setSuccess(
-            res.data?.message ||
-              'Wenn ein Konto mit dieser E-Mail existiert, wurde eine Anleitung gesendet.'
-          );
-        }
-      } else {
-        setError(res.error || 'Fehler beim Anfordern des Passwort-Resets.');
-      }
-    } else if (mode === 'reset') {
-      const res = await resetPassword(resetToken, newPassword);
-      if (res.ok) {
-        setSuccess('Passwort erfolgreich geändert! Bitte melden Sie sich an.');
-        setMode('login');
-        setPassword('');
-      } else {
-        setError(res.error || 'Fehler beim Zurücksetzen des Passworts.');
-      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -279,7 +299,7 @@ export default function AuthModal({ isOpen, onClose }) {
                     minLength={8}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder={t('auth.passwordPlaceholder')}
+                    placeholder={t('auth.pwdHint')}
                     className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
@@ -344,7 +364,7 @@ export default function AuthModal({ isOpen, onClose }) {
                     minLength={mode === 'register' ? 8 : undefined}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('auth.passwordPlaceholder')}
+                    placeholder={t('auth.pwdHint')}
                     className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                   />
                 </div>

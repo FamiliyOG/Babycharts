@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { X, Scale, HeartPulse, Sparkles, Syringe, Plus, ClipboardList } from 'lucide-react';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 
@@ -29,6 +30,7 @@ export default function QuickAddModal({
   onOpenTeeth,
   onOpenUCheckups,
 }) {
+  const { t } = useTranslation();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
 
   if (!isOpen || !activeChild) return null;
@@ -36,8 +38,8 @@ export default function QuickAddModal({
   const quickActions = [
     {
       id: 'measurement',
-      title: 'Messwert eintragen',
-      desc: 'Gewicht, Größe & Kopfumfang',
+      title: t('measurements.addTitle'),
+      desc: `${t('growth.weight')}, ${t('growth.length')} & ${t('growth.headCircumference')}`,
       icon: Scale,
       gradient: 'from-cyan-500 to-blue-600',
       shadow: 'shadow-cyan-950',
@@ -48,8 +50,8 @@ export default function QuickAddModal({
     },
     {
       id: 'health',
-      title: 'Fieber & Medikamente',
-      desc: 'Temperatur, Zäpfchen, Symptome',
+      title: t('health.addEntry'),
+      desc: `${t('health.temperature')}, ${t('health.medication')}`,
       icon: HeartPulse,
       gradient: 'from-rose-500 to-pink-600',
       shadow: 'shadow-rose-950',
@@ -60,8 +62,8 @@ export default function QuickAddModal({
     },
     {
       id: 'vaccine',
-      title: 'Impfung dokumentieren',
-      desc: 'STIKO Impfpass Eintrag',
+      title: t('vaccinations.recordVaccine'),
+      desc: t('vaccinations.title'),
       icon: Syringe,
       gradient: 'from-emerald-500 to-teal-600',
       shadow: 'shadow-emerald-950',
@@ -72,8 +74,8 @@ export default function QuickAddModal({
     },
     {
       id: 'milestone',
-      title: 'Meilenstein festhalten',
-      desc: 'Erstes Lächeln, Krabbeln, Worte',
+      title: t('milestones.addCustom'),
+      desc: t('milestones.title'),
       icon: Sparkles,
       gradient: 'from-amber-500 to-orange-600',
       shadow: 'shadow-amber-950',
@@ -84,8 +86,8 @@ export default function QuickAddModal({
     },
     {
       id: 'tooth',
-      title: 'Milchzahn markieren',
-      desc: 'Zahndurchbruch im Kieferschema',
+      title: t('teeth.markErupted'),
+      desc: t('teeth.title'),
       icon: ToothIcon,
       gradient: 'from-sky-500 to-indigo-600',
       shadow: 'shadow-sky-950',
@@ -96,8 +98,8 @@ export default function QuickAddModal({
     },
     {
       id: 'ucheckup',
-      title: 'U-Untersuchung eintragen',
-      desc: 'U1 bis U9 Vorsorgeplan',
+      title: t('uCheckups.addCheckup'),
+      desc: t('uCheckups.title'),
       icon: ClipboardList,
       gradient: 'from-blue-500 to-indigo-600',
       shadow: 'shadow-blue-950',
@@ -118,7 +120,7 @@ export default function QuickAddModal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Schließen"
+          aria-label={t('common.close')}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-white p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X className="w-5 h-5" />
@@ -128,10 +130,10 @@ export default function QuickAddModal({
           <div className="inline-flex p-3 rounded-2xl bg-cyan-950/80 border border-cyan-800/50 text-cyan-400 mb-2 shadow-lg shadow-cyan-950/60">
             <Plus className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-bold text-slate-100">
-            Schnelleintrag für {activeChild.name}
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+            {t('common.add')}: {activeChild.name}
           </h2>
-          <p className="text-xs text-slate-400">Was möchten Sie jetzt dokumentieren?</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('profileModal.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

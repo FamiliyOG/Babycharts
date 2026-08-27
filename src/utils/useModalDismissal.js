@@ -29,6 +29,8 @@ export function useModalDismissal(isOpen, onClose) {
 
     const handleClickOutside = (e) => {
       if (!isReady) return;
+      // If the clicked element is no longer connected to the DOM (e.g. replaced by React during state change), ignore the click
+      if (e.target && !e.target.isConnected) return;
       // Only dismiss if the click happened directly on the backdrop container outside dialogRef
       if (dialogRef.current && !dialogRef.current.contains(e.target)) {
         onClose();

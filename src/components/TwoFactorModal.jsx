@@ -153,20 +153,28 @@ export default function TwoFactorModal({ isOpen, onClose }) {
               {isEnabled ? (
                 <button
                   type="button"
-                  onClick={() => {
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     setError(null);
                     setStep('disable');
                   }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 transition-all"
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 transition-all cursor-pointer"
                 >
                   Deaktivieren
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={handleStartSetup}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleStartSetup();
+                  }}
                   disabled={loading}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-950 transition-all"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-950 transition-all cursor-pointer"
                 >
                   {loading ? 'Laden...' : 'Jetzt aktivieren'}
                 </button>
@@ -328,8 +336,13 @@ export default function TwoFactorModal({ isOpen, onClose }) {
             <div className="flex gap-2 pt-2 border-t border-slate-800">
               <button
                 type="button"
-                onClick={() => setStep('initial')}
-                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setStep('initial');
+                }}
+                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
               >
                 Abbrechen
               </button>

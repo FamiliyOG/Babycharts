@@ -10,6 +10,8 @@ import {
   Edit2,
   Camera,
   LogOut,
+  Crown,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
@@ -19,6 +21,7 @@ import {
   createFamilyInvite,
   deleteFamilyInvite,
   updateFamilyMemberRole,
+  transferFamilyOwnership,
   removeFamilyMember,
   leaveFamily,
   deleteFamily,
@@ -41,6 +44,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
 
   const [familyData, setFamilyData] = useState(null);
   const [inviteRole, setInviteRole] = useState('editor'); // 'editor' | 'viewer'
+  const [inviteExpiresIn, setInviteExpiresIn] = useState('48'); // '24' | '48' | '168' | '720'
   const [generatedInvite, setGeneratedInvite] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -123,10 +127,27 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
 
   const handleCreateInvite = async () => {
     if (!activeFamily?.id) return;
-    const res = await createFamilyInvite(activeFamily.id, inviteRole);
+    const res = await createFamilyInvite(activeFamily.id, inviteRole, Number(inviteExpiresIn));
     if (res.ok) {
       setGeneratedInvite(res.data);
       loadFamily();
+    }
+  };
+
+  const handleTransferOwnership = async (newOwnerId, memberName) => {
+    if (!activeFamily?.id) return;
+    const confirmed = window.confirm(
+      `Möchten Sie die INHABERSCHAFT der Familie "${activeFamily.name}" wirklich an ${memberName} übertragen?\n\nSie bleiben weiterhin Administrator, sind jedoch nicht mehr der Hauptinhaber.`
+    );
+    if (!confirmed) return;
+
+    const res = await transferFamilyOwnership(activeFamily.id, newOwnerId);
+    if (res.ok) {
+      setStatusMessage(`Inhaberschaft erfolgreich an ${memberName} übertragen.`);
+      await refreshUser(activeFamily.id);
+      loadFamily();
+    } else {
+      setStatusMessage(res.error || 'Fehler bei der Übertragung der Inhaberschaft.');
     }
   };
 
@@ -452,6 +473,18 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {/* Owner Transfer Button (Visible only to the current owner on other members, BC-044) */}
+                      {activeFamily?.isOwner && !isCurrentUser && (
+                        <button
+                          type="button"
+                          onClick={() => handleTransferOwnership(member.userId, member.name)}
+                          className="p-1 rounded-lg text-amber-500 hover:text-amber-400 hover:bg-amber-950/40 transition-colors cursor-pointer"
+                          title="Inhaberschaft an dieses Mitglied übertragen"
+                        >
+                          <Crown className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
                       {isAdmin && !isCurrentUser && member.userId !== familyData.ownerId ? (
                         <select
                           value={member.role}
@@ -491,7 +524,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* Invite Generator (Admins & Editors) */}
+        {/* Invite Generator (Admins & Editors, BC-045, BC-046) */}
         {userRole !== 'viewer' && (
           <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xs">
             <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -515,10 +548,23 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                 <option value="viewer">👁️ Besucher (Nur Lesezugriff)</option>
               </select>
 
+              <select
+                id="invite-expiry-select"
+                aria-label="Gültigkeitsdauer auswählen"
+                value={inviteExpiresIn}
+                onChange={(e) => setInviteExpiresIn(e.target.value)}
+                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
+              >
+                <option value="24">⏱️ Gültig für 24 Stunden</option>
+                <option value="48">⏱️ Gültig für 48 Stunden (Standard)</option>
+                <option value="168">⏱️ Gültig für 7 Tage</option>
+                <option value="720">⏱️ Gültig für 30 Tage</option>
+              </select>
+
               <button
                 type="button"
                 onClick={handleCreateInvite}
-                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 shrink-0"
+                className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
               >
                 Code generieren
               </button>
@@ -569,6 +615,12 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                         <span className="text-[10px] text-slate-400">
                           ({inv.role === 'editor' ? 'Elternteil' : 'Besucher'})
                         </span>
+                        {inv.expiresAt && (
+                          <span className="text-[9px] text-slate-500 flex items-center gap-0.5">
+                            <Clock className="w-2.5 h-2.5" />
+                            <span>{new Date(inv.expiresAt).toLocaleDateString('de-DE')}</span>
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         <button

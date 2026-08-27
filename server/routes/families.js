@@ -183,12 +183,78 @@ router.post('/', requireAuth, (req, res) => {
 });
 
 /**
+ * POST /api/families/:familyId/transfer-ownership
+ * Transfers family ownership to another member (owner only, BC-044)
+ */
+router.post('/:familyId/transfer-ownership', requireAuth, (req, res) => {
+  const { familyId } = req.params;
+  const { newOwnerId } = req.body || {};
+
+  if (!newOwnerId || typeof newOwnerId !== 'string') {
+    return res.status(400).json({ error: 'newOwnerId ist erforderlich.' });
+  }
+
+  const db = readDb();
+  const family = db.families.find((f) => f.id === familyId);
+
+  if (!family) {
+    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  }
+
+  // Only the current owner can transfer ownership
+  if (family.ownerId !== req.user.id) {
+    return res
+      .status(403)
+      .json({ error: 'Nur der aktuelle Inhaber darf die Inhaberschaft übertragen.' });
+  }
+
+  if (newOwnerId === req.user.id) {
+    return res.status(400).json({ error: 'Sie sind bereits der Inhaber dieser Familie.' });
+  }
+
+  const targetMember = (family.members || []).find((m) => m.userId === newOwnerId);
+  if (!targetMember) {
+    return res
+      .status(404)
+      .json({ error: 'Der neue Inhaber muss bereits Mitglied dieser Familie sein.' });
+  }
+
+  const previousOwnerId = family.ownerId;
+  family.ownerId = newOwnerId;
+  targetMember.role = 'admin'; // New owner is guaranteed admin
+
+  // Previous owner remains an admin member
+  const prevOwnerMember = (family.members || []).find((m) => m.userId === previousOwnerId);
+  if (prevOwnerMember) {
+    prevOwnerMember.role = 'admin';
+  } else {
+    family.members.push({
+      userId: previousOwnerId,
+      role: 'admin',
+      joinedAt: new Date().toISOString(),
+    });
+  }
+
+  writeDb(db);
+
+  console.log(
+    `\x1b[35m[OWNER TRANSFER ${new Date().toISOString()}]\x1b[0m Family ${family.name} (${family.id}) ownership transferred from ${previousOwnerId} to ${newOwnerId}`
+  );
+
+  return res.json({
+    message: 'Inhaberschaft der Familie erfolgreich übertragen.',
+    family,
+  });
+});
+
+/**
  * POST /api/families/:familyId/invites
- * Creates an invite code for members (role: 'editor' or 'viewer')
+ * Creates an invite code for members with configurable expiration time (BC-045, BC-046)
+ * Supports expiresInHours: 1, 24, 48, 168 (7 days), 720 (30 days), defaults to 48 hours.
  */
 router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) => {
   const { familyId } = req.params;
-  const { role = 'editor' } = req.body;
+  const { role = 'editor', expiresInHours = 48 } = req.body;
 
   const db = readDb();
   const family = db.families.find((f) => f.id === familyId);
@@ -207,6 +273,12 @@ router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) =
     return res.status(403).json({ error: 'Betrachter dürfen keine Einladungen erstellen.' });
   }
 
+  // Validate and constrain expiration time (minimum 1 hour, maximum 720 hours = 30 days)
+  const parsedHours = Number.parseInt(expiresInHours, 10);
+  const validHours =
+    !Number.isNaN(parsedHours) && parsedHours >= 1 && parsedHours <= 720 ? parsedHours : 48;
+  const expiresAt = new Date(Date.now() + validHours * 60 * 60 * 1000).toISOString();
+
   const inviteCode = generateInviteCode(db.invites);
   const newInvite = {
     code: inviteCode,
@@ -216,6 +288,7 @@ router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) =
     createdByName: req.user.name,
     role: role === 'viewer' ? 'viewer' : 'editor',
     createdAt: new Date().toISOString(),
+    expiresAt,
   };
 
   db.invites.push(newInvite);
@@ -262,7 +335,7 @@ router.delete('/:familyId/invites/:code', requireAuth, (req, res) => {
 
 /**
  * POST /api/families/join
- * Joins a family using an invite code
+ * Joins a family using an invite code (enforces single-use and expiration timestamp, BC-045)
  */
 router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
   const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
@@ -276,6 +349,16 @@ router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
 
   if (!invite) {
     return res.status(404).json({ error: 'Ungültiger oder abgelaufener Einladungscode.' });
+  }
+
+  // BC-045: Check if invite code has expired
+  if (invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now()) {
+    // Clean up expired code from DB
+    db.invites = db.invites.filter((inv) => inv.code !== normalizedCode);
+    writeDb(db);
+    return res
+      .status(400)
+      .json({ error: 'Dieser Einladungscode ist abgelaufen. Bitte fordern Sie einen neuen an.' });
   }
 
   const family = db.families.find((f) => f.id === invite.familyId);

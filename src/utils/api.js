@@ -161,10 +161,17 @@ export async function updateFamily(familyId, updates) {
   });
 }
 
-export async function createFamilyInvite(familyId, role = 'editor') {
+export async function createFamilyInvite(familyId, role = 'editor', expiresInHours = 48) {
   return safeFetch(`${BASE}/families/${familyId}/invites`, {
     method: 'POST',
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role, expiresInHours }),
+  });
+}
+
+export async function transferFamilyOwnership(familyId, newOwnerId) {
+  return safeFetch(`${BASE}/families/${familyId}/transfer-ownership`, {
+    method: 'POST',
+    body: JSON.stringify({ newOwnerId }),
   });
 }
 

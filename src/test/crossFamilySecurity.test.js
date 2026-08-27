@@ -193,4 +193,49 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
     expect(resMemberLeave.status).toBe(200);
     expect(resMemberLeave.body?.message).toContain('erfolgreich verlassen');
   });
+
+  it('handles owner transfer and invite expiration (BC-044, BC-045, BC-046)', async () => {
+    const db = readDb();
+    const fam = db.families.find((f) => f.id === familyA.id);
+
+    // 1. Re-add User B as editor
+    fam.members.push({ userId: userB.id, role: 'editor', joinedAt: new Date().toISOString() });
+    writeDb(db);
+
+    // 2. Transfer ownership from User A to User B (BC-044)
+    const resTransfer = await request(app)
+      .post(`/api/families/${familyA.id}/transfer-ownership`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ newOwnerId: userB.id });
+    expect(resTransfer.status).toBe(200);
+    expect(resTransfer.body?.family?.ownerId).toBe(userB.id);
+
+    // 3. User A is now not the owner, so User A cannot transfer ownership again
+    const resTransferFail = await request(app)
+      .post(`/api/families/${familyA.id}/transfer-ownership`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ newOwnerId: userA.id });
+    expect(resTransferFail.status).toBe(403);
+
+    // 4. Create an invite with 24 hours expiry (BC-046)
+    const resInvite = await request(app)
+      .post(`/api/families/${familyA.id}/invites`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ role: 'editor', expiresInHours: 24 });
+    expect(resInvite.status).toBe(201);
+    expect(resInvite.body?.expiresAt).toBeDefined();
+
+    // 5. Test expired invite code rejection (BC-045)
+    const dbAfter = readDb();
+    const inv = dbAfter.invites.find((i) => i.code === resInvite.body.code);
+    inv.expiresAt = new Date(Date.now() - 1000 * 60).toISOString(); // expired 1 min ago
+    writeDb(dbAfter);
+
+    const resJoinExpired = await request(app)
+      .post('/api/families/join')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ code: resInvite.body.code });
+    expect(resJoinExpired.status).toBe(400);
+    expect(resJoinExpired.body?.error).toContain('abgelaufen');
+  });
 });

@@ -1,15 +1,14 @@
-/**
- * src/utils/doctorPdfGenerator.js
- * Generates an acute 72-hour Pediatrician / Emergency PDF summary
- * (Fever course, administered medications with timestamps, symptoms, and child vitals)
- */
-
 import jsPDF from 'jspdf';
+import i18n from '../i18n/index.js';
 import { calculateAge } from './percentileCalc.js';
 
 export function generateDoctorFeverReport(child) {
   if (!child) return null;
 
+  const t = (key) => {
+    const val = i18n.t(key);
+    return typeof val === 'string' ? val : '';
+  };
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -41,15 +40,15 @@ export function generateDoctorFeverReport(child) {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('KINDERARZT-AKUTBERICHT (Fieber & Verlauf)', 15, 20);
+  doc.text(t('pdfReports.doctorTitle') || 'KINDERARZT-AKUTBERICHT (Fieber & Verlauf)', 15, 20);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(
-    `Erstellt am: ${now.toLocaleDateString('de-DE')} um ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`,
-    15,
-    28
-  );
+  const dateStr = now.toLocaleDateString();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const createdOnText =
+    `${t('pdfReports.createdOn')}: ${dateStr} ${t('pdfReports.atTime')} ${timeStr} ${t('pdfReports.oclock')}`.trim();
+  doc.text(createdOnText, 15, 28);
 
   // ── Child Demographics Card ────────────────────────────────────────────────
   doc.setFillColor(248, 250, 252);
@@ -59,19 +58,20 @@ export function generateDoctorFeverReport(child) {
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('PATIENTENDATEN', 15, 45);
+  doc.text(t('pdfReports.patientData') || 'PATIENTENDATEN', 15, 45);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text(`Name: ${child.name}`, 15, 53);
-  doc.text(
-    `Geschlecht: ${child.gender === 'girl' ? 'Weiblich (Mädchen)' : 'Männlich (Junge)'}`,
-    15,
-    60
-  );
+  doc.text(`${t('pdfReports.child')}: ${String(child.name)}`, 15, 53);
+  const genderLabel = String(child.gender === 'girl' ? t('pdfReports.girl') : t('pdfReports.boy'));
+  doc.text(`${t('pdfReports.gender')}: ${genderLabel}`, 15, 60);
 
-  doc.text(`Geburtsdatum: ${child.birthdate || 'Unbekannt'}`, 105, 53);
-  doc.text(`Aktuelles Alter: ${age.text}`, 105, 60);
+  doc.text(
+    `${t('pdfReports.birthdate')}: ${String(child.birthdate || t('pdfReports.unknown'))}`,
+    105,
+    53
+  );
+  doc.text(`${t('pdfReports.currentAge')}: ${String(age.text)}`, 105, 60);
 
   // ── Latest Status Summary ──────────────────────────────────────────────────
   const latestWithTemp = recentLogs.find((l) => l.temperature !== null);
@@ -84,27 +84,27 @@ export function generateDoctorFeverReport(child) {
   doc.setTextColor(...accentRed);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('AKTUELLE VITALWERTE & LETZTE MEDIKATION', 15, 77);
+  doc.text(t('pdfReports.latestVitalValues') || 'AKTUELLE VITALWERTE & LETZTE MEDIKATION', 15, 77);
 
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
 
   const lastTempStr = latestWithTemp
-    ? `${latestWithTemp.temperature} °C (${new Date(latestWithTemp.dateTime).toLocaleString('de-DE')})`
-    : 'Keine Messung';
-  doc.text(`Letzte gemessene Temperatur: ${lastTempStr}`, 15, 84);
+    ? `${latestWithTemp.temperature} °C (${new Date(latestWithTemp.dateTime).toLocaleString()})`
+    : String(t('pdfReports.noTemp'));
+  doc.text(`${t('pdfReports.lastMeasuredTemp')}: ${lastTempStr}`, 15, 84);
 
   const lastMedStr = latestMed
-    ? `${latestMed.medication} (${new Date(latestMed.dateTime).toLocaleString('de-DE')})`
-    : 'Keines dokumentiert';
-  doc.text(`Letztes Medikament: ${lastMedStr}`, 15, 90);
+    ? `${latestMed.medication} (${new Date(latestMed.dateTime).toLocaleString()})`
+    : String(t('pdfReports.noMed'));
+  doc.text(`${t('pdfReports.lastMedication')}: ${lastMedStr}`, 15, 90);
 
   // ── 72h Table Log ──────────────────────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(15, 23, 42);
-  doc.text('VERLAUFSPROTOKOLL (Letzte 72 Stunden)', 10, 103);
+  doc.text(t('pdfReports.historyLog') || 'VERLAUFSPROTOKOLL (Letzte 72 Stunden)', 10, 103);
 
   // Table Headers
   let y = 110;
@@ -115,16 +115,20 @@ export function generateDoctorFeverReport(child) {
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text('Datum / Uhrzeit', 13, y + 5.5);
-  doc.text('Temperatur', 55, y + 5.5);
-  doc.text('Medikament / Dosis', 85, y + 5.5);
-  doc.text('Symptome & Notizen', 135, y + 5.5);
+  doc.text(t('pdfReports.dateTime') || 'Datum / Uhrzeit', 13, y + 5.5);
+  doc.text(t('pdfReports.temperature') || 'Temperatur', 55, y + 5.5);
+  doc.text(t('pdfReports.medicationDose') || 'Medikament / Dosis', 85, y + 5.5);
+  doc.text(t('pdfReports.symptomsNotes') || 'Symptome & Notizen', 135, y + 5.5);
 
   y += 8;
 
   if (recentLogs.length === 0) {
     doc.setFont('helvetica', 'italic');
-    doc.text('Keine Einträge im angegebenen Zeitraum vorhanden.', 15, y + 8);
+    doc.text(
+      t('pdfReports.noEntries') || 'Keine Einträge im angegebenen Zeitraum vorhanden.',
+      15,
+      y + 8
+    );
   } else {
     recentLogs.forEach((entry, idx) => {
       if (y > 270) {
@@ -133,7 +137,7 @@ export function generateDoctorFeverReport(child) {
       }
 
       const d = new Date(entry.dateTime);
-      const dateFormatted = `${d.toLocaleDateString('de-DE')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      const dateFormatted = `${d.toLocaleDateString()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
       // Alternate row background
       if (idx % 2 === 1) {
@@ -168,7 +172,10 @@ export function generateDoctorFeverReport(child) {
       doc.setFont('helvetica', 'normal');
       doc.text(entry.medication ? entry.medication.substring(0, 28) : '—', 85, y + 6.5);
 
-      const symptomStr = [...(entry.symptoms || []), entry.notes ? `Hinweis: ${entry.notes}` : '']
+      const symptomStr = [
+        ...(entry.symptoms || []),
+        entry.notes ? `${t('common.notes')}: ${entry.notes}` : '',
+      ]
         .filter(Boolean)
         .join(', ');
 
@@ -182,12 +189,13 @@ export function generateDoctorFeverReport(child) {
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184);
   doc.text(
-    'Generiert mit BabyCharts – Alle Angaben ohne Gewähr. Dient als Vorlage für das ärztliche Anamnesegespräch.',
+    t('pdfReports.disclaimer') ||
+      'Generiert mit BabyCharts – Alle Angaben ohne Gewähr. Dient als Vorlage für das ärztliche Anamnesegespräch.',
     10,
     285
   );
 
   const cleanName = child.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-  doc.save(`BabyCharts_Kinderarzt_Bericht_${cleanName}.pdf`);
+  doc.save(`BabyCharts_Doctor_Report_${cleanName}.pdf`);
   return true;
 }

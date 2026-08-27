@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { calculateAge, calculateBMI, estimatePercentile } from '../utils/percentileCalc.js';
 
 export default function ReportPrintPage() {
@@ -64,7 +65,9 @@ export default function ReportPrintPage() {
 
   if (!child) {
     return (
-      <div style={{ padding: 32, fontFamily: 'sans-serif', color: '#64748b' }}>Lade Bericht…</div>
+      <div style={{ padding: 32, fontFamily: 'sans-serif', color: '#64748b' }}>
+        Report wird generiert...
+      </div>
     );
   }
 
@@ -72,14 +75,13 @@ export default function ReportPrintPage() {
 }
 
 function ReportContent({ child }) {
+  const { t } = useTranslation();
   const isGirl = child.gender === 'girl';
-  const measurements = child.measurements || [];
   const ageInfo = calculateAge(child.birthdate);
-
-  const sorted = [...measurements].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-  const latest = sorted[0] || null;
+  const measurements = (child.measurements || [])
+    .slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const latest = measurements[0] || null;
 
   const weightPct = latest?.weight
     ? estimatePercentile(latest.weight, child.gender, 'weight', ageInfo.monthsDecimal)
@@ -92,12 +94,12 @@ function ReportContent({ child }) {
     ? estimatePercentile(bmiVal, child.gender, 'bmi', ageInfo.monthsDecimal)
     : null;
 
-  const nowStr = new Date().toLocaleString('de-DE');
+  const nowStr = new Date().toLocaleString();
   const accentColor = isGirl ? '#e11d48' : '#0891b2';
 
   const formatWeight = (kg) => {
     if (!kg) return '—';
-    return `${Math.round(kg * 1000).toLocaleString('de-DE')} g`;
+    return `${Math.round(kg * 1000).toLocaleString()} g`;
   };
 
   return (
@@ -134,14 +136,14 @@ function ReportContent({ child }) {
               color: '#0f172a',
             }}
           >
-            BABYCHARTS WACHSTUMSBERICHT
+            {t('pdfReports.growthTitle')}
           </h1>
           <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>
-            WHO-Wachstumskurven &amp; Perzentilen-Protokoll — Automatisch generiert
+            {t('pdfReports.growthSubtitle')}
           </p>
         </div>
         <div style={{ textAlign: 'right', fontSize: 11, color: '#64748b' }}>
-          <div>Exportdatum</div>
+          <div>{t('pdfReports.exportDate')}</div>
           <div style={{ fontWeight: 700, color: '#1e293b', fontSize: 13 }}>{nowStr}</div>
           <div
             style={{
@@ -154,7 +156,7 @@ function ReportContent({ child }) {
               fontWeight: 700,
             }}
           >
-            SERVER-EXPORT
+            {t('pdfReports.autoExport')}
           </div>
         </div>
       </div>
@@ -303,24 +305,30 @@ function ReportContent({ child }) {
             marginBottom: 12,
           }}
         >
-          Messwert-Protokoll ({sorted.length} Einträge)
+          {t('growth.history')} ({measurements.length} {t('growth.measurementCount')})
         </h2>
         <table
           style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', textAlign: 'left' }}
         >
           <thead>
             <tr style={{ background: '#f1f5f9', color: '#334155', fontWeight: 700, fontSize: 11 }}>
-              {['Datum', 'U-Heft', 'Gewicht', 'Größe', 'Kopfumfang', 'BMI', 'Bemerkungen'].map(
-                (h) => (
-                  <th key={h} style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>
-                    {h}
-                  </th>
-                )
-              )}
+              {[
+                t('common.date'),
+                t('pdfReports.checkup'),
+                t('pdfReports.weight'),
+                t('pdfReports.length'),
+                t('pdfReports.head'),
+                t('pdfReports.bmi'),
+                t('common.notes'),
+              ].map((h) => (
+                <th key={h} style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {sorted.map((m, i) => {
+            {measurements.map((m, i) => {
               const bmi = calculateBMI(m.weight, m.length);
               return (
                 <tr

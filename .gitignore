@@ -28,6 +28,7 @@ coverage/
 playwright-report/
 test-results/
 blob-report/
+*.pdf
 
 # BabyCharts server – generated files and secrets
 server/data/*.db

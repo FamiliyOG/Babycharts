@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import i18n from '../i18n/index.js';
 import {
   Chart,
   CategoryScale,
@@ -195,19 +196,37 @@ function drawPdfHeader(doc, marginLeft, marginTop, contentWidth, pageWidth, nowS
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(255, 255, 255);
-  doc.text('BABYCHARTS WACHSTUMSBERICHT', marginLeft + 5, marginTop + 9);
+  doc.text(
+    i18n.t('pdfReports.growthTitle') || 'BABYCHARTS WACHSTUMSBERICHT',
+    marginLeft + 5,
+    marginTop + 9
+  );
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(148, 163, 184);
-  doc.text('WHO-Wachstumskurven & Protokoll', marginLeft + 5, marginTop + 15);
+  doc.text(
+    i18n.t('pdfReports.growthSubtitle') || 'WHO-Wachstumskurven & Protokoll',
+    marginLeft + 5,
+    marginTop + 15
+  );
 
   doc.setFontSize(8);
   doc.setTextColor(203, 213, 225);
-  doc.text(`Export: ${nowStr}`, pageWidth - marginLeft - 5, marginTop + 9, { align: 'right' });
-  doc.text(`Status: ${statusLabel}`, pageWidth - marginLeft - 5, marginTop + 15, {
-    align: 'right',
-  });
+  doc.text(
+    `${i18n.t('pdfReports.exportDate')}: ${nowStr}`,
+    pageWidth - marginLeft - 5,
+    marginTop + 9,
+    { align: 'right' }
+  );
+  doc.text(
+    `${i18n.t('pdfReports.status')}: ${statusLabel}`,
+    pageWidth - marginLeft - 5,
+    marginTop + 15,
+    {
+      align: 'right',
+    }
+  );
 
   return marginTop + 28;
 }
@@ -223,23 +242,51 @@ function drawChildInfoBox(doc, childMeta, layout) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
-  doc.text(`Kind: ${childName}`, marginLeft + 5, y + 8);
+  doc.text(`${i18n.t('pdfReports.child')}: ${childName}`, marginLeft + 5, y + 8);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
-  // Use plain ASCII gender text — jsPDF Helvetica does not support Unicode symbols
-  doc.text(`Geschlecht: ${isGirl ? 'Maedchen' : 'Junge'}`, marginLeft + 5, y + 14);
+  const genderText = isGirl
+    ? i18n.t('pdfReports.girl') || 'Maedchen'
+    : i18n.t('pdfReports.boy') || 'Junge';
+  doc.text(`${i18n.t('pdfReports.gender')}: ${genderText}`, marginLeft + 5, y + 14);
 
   if (activeChild) {
-    // Format birthdate from YYYY-MM-DD to DD.MM.YYYY
-    const [yr, mo, dy] = (activeChild.birthdate || '').split('-');
-    const formattedBirth = yr && mo && dy ? `${dy}.${mo}.${yr}` : activeChild.birthdate || '-';
-    doc.text(`Geburtsdatum: ${formattedBirth}`, marginLeft + 90, y + 8);
-    doc.text(`Aktuelles Alter: ${ageInfoText}`, marginLeft + 90, y + 14);
+    // Format birthdate from YYYY-MM-DD
+    const formattedBirth = activeChild.birthdate
+      ? new Date(activeChild.birthdate).toLocaleDateString()
+      : '-';
+    doc.text(`${i18n.t('pdfReports.birthdate')}: ${formattedBirth}`, marginLeft + 90, y + 8);
+    doc.text(`${i18n.t('pdfReports.currentAge')}: ${ageInfoText}`, marginLeft + 90, y + 14);
   }
 
   return y + 26;
+}
+
+function drawSingleMeasurementCard(doc, x, y, width, height, config) {
+  const { title, titleColor, fill, stroke, valText, pctVal } = config;
+  doc.setFillColor(...fill);
+  doc.setDrawColor(...stroke);
+  doc.roundedRect(x, y, width, height, 1.5, 1.5, 'FD');
+
+  doc.setFontSize(7);
+  doc.setTextColor(...titleColor);
+  doc.text(title, x + 3, y + 5);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text(valText, x + 3, y + 11);
+
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...titleColor);
+  const pctStr =
+    pctVal !== null && pctVal !== undefined
+      ? `~${pctVal}. ${String(i18n.t('pdfReports.percentile'))}`
+      : '—';
+  doc.text(pctStr, x + 3, y + 15.5);
 }
 
 function drawLatestMeasurementCards(
@@ -254,98 +301,80 @@ function drawLatestMeasurementCards(
   if (!latest) return y;
 
   const formattedLatestDate = latest.date
-    ? new Date(latest.date).toLocaleDateString('de-DE', {
+    ? new Date(latest.date).toLocaleDateString([], {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
       })
     : '';
-  doc.text(`Letzte Messung (${formattedLatestDate})`, marginLeft, y);
+  doc.text(`${i18n.t('pdfReports.latestMeasurement')} (${formattedLatestDate})`, marginLeft, y);
   y += 4;
 
   const cardWidth = (contentWidth - 9) / 4;
   const cardHeight = 18;
   const weightGrams = latest.weight ? Math.round(latest.weight * 1000) : null;
   const weightPct = latest.weight
-    ? estimatePercentile(latest.weight, gender, 'weight', ageMonthsDecimal)
+    ? estimatePercentile(latest.weight, gender, 'weight', ageMonthsDecimal)?.percentile
     : null;
   const lengthPct = latest.length
-    ? estimatePercentile(latest.length, gender, 'length', ageMonthsDecimal)
+    ? estimatePercentile(latest.length, gender, 'length', ageMonthsDecimal)?.percentile
+    : null;
+  const headPct = latest.headCircumference
+    ? estimatePercentile(latest.headCircumference, gender, 'headCircumference', ageMonthsDecimal)
+        ?.percentile
     : null;
   const bmiVal = calculateBMI(latest.weight, latest.length);
+  const bmiPct = bmiVal
+    ? estimatePercentile(bmiVal, gender, 'bmi', ageMonthsDecimal)?.percentile
+    : null;
 
   // Card 1: Weight
-  doc.setFillColor(236, 254, 255);
-  doc.setDrawColor(165, 243, 252);
-  doc.roundedRect(marginLeft, y, cardWidth, cardHeight, 1.5, 1.5, 'FD');
-  doc.setFontSize(7);
-  doc.setTextColor(8, 145, 178);
-  doc.text('GEWICHT', marginLeft + 3, y + 5);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(22, 78, 99);
-  doc.text(weightGrams ? `${weightGrams.toLocaleString('de-DE')} g` : '-', marginLeft + 3, y + 11);
-  if (weightPct) {
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`~ ${weightPct.percentile} %`, marginLeft + 3, y + 15);
-  }
+  drawSingleMeasurementCard(doc, marginLeft, y, cardWidth, cardHeight, {
+    title: String(i18n.t('pdfReports.weight')).toUpperCase(),
+    titleColor: [8, 145, 178],
+    fill: [236, 254, 255],
+    stroke: [165, 243, 252],
+    valText: weightGrams ? `${weightGrams.toLocaleString()} g` : '—',
+    pctVal: weightPct,
+  });
 
   // Card 2: Length
-  const x2 = marginLeft + cardWidth + 3;
-  doc.setFillColor(236, 253, 245);
-  doc.setDrawColor(167, 243, 208);
-  doc.roundedRect(x2, y, cardWidth, cardHeight, 1.5, 1.5, 'FD');
-  doc.setFontSize(7);
-  doc.setTextColor(5, 150, 105);
-  doc.text('GROESSE', x2 + 3, y + 5);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(6, 78, 59);
-  doc.text(latest.length ? `${latest.length} cm` : '-', x2 + 3, y + 11);
-  if (lengthPct) {
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`~ ${lengthPct.percentile} %`, x2 + 3, y + 15);
-  }
+  const card2X = marginLeft + cardWidth + 3;
+  drawSingleMeasurementCard(doc, card2X, y, cardWidth, cardHeight, {
+    title: String(i18n.t('pdfReports.length')).toUpperCase(),
+    titleColor: [22, 163, 74],
+    fill: [240, 253, 244],
+    stroke: [187, 247, 208],
+    valText: latest.length ? `${latest.length} cm` : '—',
+    pctVal: lengthPct,
+  });
 
   // Card 3: Head
-  const x3 = x2 + cardWidth + 3;
-  doc.setFillColor(255, 251, 235);
-  doc.setDrawColor(253, 230, 138);
-  doc.roundedRect(x3, y, cardWidth, cardHeight, 1.5, 1.5, 'FD');
-  doc.setFontSize(7);
-  doc.setTextColor(217, 119, 6);
-  doc.text('KOPFUMFANG', x3 + 3, y + 5);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(120, 53, 15);
-  doc.text(latest.headCircumference ? `${latest.headCircumference} cm` : '-', x3 + 3, y + 11);
+  const card3X = card2X + cardWidth + 3;
+  drawSingleMeasurementCard(doc, card3X, y, cardWidth, cardHeight, {
+    title: String(i18n.t('pdfReports.head')).toUpperCase(),
+    titleColor: [217, 119, 6],
+    fill: [254, 243, 199],
+    stroke: [253, 230, 138],
+    valText: latest.headCircumference ? `${latest.headCircumference} cm` : '—',
+    pctVal: headPct,
+  });
 
   // Card 4: BMI
-  const x4 = x3 + cardWidth + 3;
-  doc.setFillColor(250, 245, 255);
-  doc.setDrawColor(233, 213, 255);
-  doc.roundedRect(x4, y, cardWidth, cardHeight, 1.5, 1.5, 'FD');
-  doc.setFontSize(7);
-  doc.setTextColor(147, 51, 234);
-  doc.text('BMI', x4 + 3, y + 5);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(88, 28, 135);
-  doc.text(bmiVal ? `${bmiVal}` : '-', x4 + 3, y + 11);
+  const card4X = card3X + cardWidth + 3;
+  drawSingleMeasurementCard(doc, card4X, y, cardWidth, cardHeight, {
+    title: String(i18n.t('pdfReports.bmi')).toUpperCase(),
+    titleColor: [192, 38, 211],
+    fill: [253, 244, 255],
+    stroke: [245, 208, 254],
+    valText: bmiVal ? `${bmiVal}` : '—',
+    pctVal: bmiPct,
+  });
 
-  return y + 24;
+  return y + cardHeight + 8;
 }
 
-function drawChartSection(doc, base64, title, layout) {
-  const { marginLeft, y: startY, contentWidth, pageHeight, marginTop } = layout;
-  let y = startY;
-  const chartH = 54; // mm height for each chart in PDF
-  if (y + chartH + 12 > pageHeight - 15) {
-    doc.addPage();
-    y = marginTop;
-  }
+function drawChartSection(doc, marginLeft, y, contentWidth, title, base64, chartH = 48) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(30, 41, 59);
@@ -371,7 +400,7 @@ function drawMeasurementTable(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
-  doc.text(`Messwert-Protokoll (${sortedMeasurements.length} Eintraege)`, marginLeft, y);
+  doc.text(`${i18n.t('growth.history')} (${sortedMeasurements.length})`, marginLeft, y);
   y += 4;
 
   doc.setFillColor(241, 245, 249);
@@ -380,13 +409,13 @@ function drawMeasurementTable(
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(51, 65, 85);
-  doc.text('Datum', marginLeft + 3, y + 5);
-  doc.text('U-Heft', marginLeft + 28, y + 5);
-  doc.text('Gewicht (g)', marginLeft + 50, y + 5);
-  doc.text('Groesse (cm)', marginLeft + 80, y + 5);
-  doc.text('Kopf (cm)', marginLeft + 108, y + 5);
-  doc.text('BMI', marginLeft + 133, y + 5);
-  doc.text('Notizen', marginLeft + 150, y + 5);
+  doc.text(i18n.t('common.date'), marginLeft + 3, y + 5);
+  doc.text(i18n.t('pdfReports.checkup'), marginLeft + 28, y + 5);
+  doc.text(`${i18n.t('pdfReports.weight')} (g)`, marginLeft + 50, y + 5);
+  doc.text(`${i18n.t('pdfReports.length')} (cm)`, marginLeft + 80, y + 5);
+  doc.text(`${i18n.t('pdfReports.head')} (cm)`, marginLeft + 108, y + 5);
+  doc.text(i18n.t('pdfReports.bmi'), marginLeft + 133, y + 5);
+  doc.text(i18n.t('common.notes'), marginLeft + 150, y + 5);
   y += 7;
 
   doc.setFont('helvetica', 'normal');
@@ -403,7 +432,7 @@ function drawMeasurementTable(
 
     doc.setTextColor(15, 23, 42);
     const formattedRowDate = m.date
-      ? new Date(m.date).toLocaleDateString('de-DE', {
+      ? new Date(m.date).toLocaleDateString([], {
           day: '2-digit',
           month: '2-digit',
           year: 'numeric',
@@ -414,7 +443,7 @@ function drawMeasurementTable(
     doc.text(m.checkup || '-', marginLeft + 28, y + 4);
     doc.setTextColor(15, 23, 42);
     doc.text(
-      m.weight ? `${Math.round(m.weight * 1000).toLocaleString('de-DE')} g` : '-',
+      m.weight ? `${Math.round(m.weight * 1000).toLocaleString()} g` : '-',
       marginLeft + 50,
       y + 4
     );
@@ -585,12 +614,16 @@ function drawA5Header(doc, marginLeft, marginTop, contentWidth, isGirl) {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.text('U-HEFT EINLEGER & VORSORGE-PASS', marginLeft + 5, marginTop + 7);
+  doc.text(
+    i18n.t('pdfReports.uHeftTitle') || 'U-HEFT EINLEGER & VORSORGE-PASS',
+    marginLeft + 5,
+    marginTop + 7
+  );
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.text(
-    'Kompakte Entwicklungsübersicht für die U-Untersuchungen',
+    i18n.t('pdfReports.uHeftSubtitle') || 'Kompakte Entwicklungsübersicht für die U-Untersuchungen',
     marginLeft + 5,
     marginTop + 12
   );
@@ -606,12 +639,17 @@ function drawA5ChildBox(doc, marginLeft, y, contentWidth, info) {
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text(`Kind: ${childName} (${isGirl ? 'Mädchen' : 'Junge'})`, marginLeft + 4, y + 6);
+  const genderLabel = isGirl ? i18n.t('pdfReports.girl') : i18n.t('pdfReports.boy');
+  doc.text(`${i18n.t('pdfReports.child')}: ${childName} (${genderLabel})`, marginLeft + 4, y + 6);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
-  doc.text(`Geburtsdatum: ${bDateStr}   |   Aktuelles Alter: ${ageText}`, marginLeft + 4, y + 12);
+  doc.text(
+    `${i18n.t('pdfReports.birthdate')}: ${bDateStr}   |   ${i18n.t('pdfReports.currentAge')}: ${ageText}`,
+    marginLeft + 4,
+    y + 12
+  );
   return y + 23;
 }
 
@@ -625,12 +663,8 @@ function drawA5LatestCard(doc, marginLeft, y, contentWidth, latest, isGirl) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(isGirl ? 159 : 8, isGirl ? 18 : 145, isGirl ? 57 : 178);
-  const mDateStr = new Date(latest.date).toLocaleDateString('de-DE');
-  doc.text(
-    `Letzte Messung vom ${mDateStr} (${latest.checkup || 'Regulär'}):`,
-    marginLeft + 4,
-    y + 5.5
-  );
+  const mDateStr = new Date(latest.date).toLocaleDateString();
+  doc.text(`${i18n.t('pdfReports.latestMeasurement')} (${mDateStr}):`, marginLeft + 4, y + 5.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -639,7 +673,7 @@ function drawA5LatestCard(doc, marginLeft, y, contentWidth, latest, isGirl) {
   const lStr = latest.length ? `${latest.length} cm` : '-';
   const hStr = latest.headCircumference ? `${latest.headCircumference} cm` : '-';
   doc.text(
-    `Gewicht: ${wStr}   |   Körpergröße: ${lStr}   |   Kopfumfang: ${hStr}`,
+    `${i18n.t('pdfReports.weight')}: ${wStr}   |   ${i18n.t('pdfReports.length')}: ${lStr}   |   ${i18n.t('pdfReports.head')}: ${hStr}`,
     marginLeft + 4,
     y + 11.5
   );
@@ -650,7 +684,7 @@ function drawA5UTable(doc, marginLeft, y, contentWidth, sorted) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(15, 23, 42);
-  doc.text('U-Untersuchungen Historie (U1 – U9):', marginLeft, y);
+  doc.text(`${i18n.t('uCheckups.title')} (U1 – U9):`, marginLeft, y);
   y += 4;
 
   doc.setFillColor(226, 232, 240);
@@ -658,12 +692,12 @@ function drawA5UTable(doc, marginLeft, y, contentWidth, sorted) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(51, 65, 85);
-  doc.text('U-Check', marginLeft + 2, y + 4.2);
-  doc.text('Datum', marginLeft + 20, y + 4.2);
-  doc.text('Gewicht', marginLeft + 42, y + 4.2);
-  doc.text('Größe', marginLeft + 62, y + 4.2);
-  doc.text('Kopf', marginLeft + 82, y + 4.2);
-  doc.text('Notizen / Besonderheiten', marginLeft + 98, y + 4.2);
+  doc.text(i18n.t('pdfReports.checkup'), marginLeft + 2, y + 4.2);
+  doc.text(i18n.t('common.date'), marginLeft + 20, y + 4.2);
+  doc.text(i18n.t('pdfReports.weight'), marginLeft + 42, y + 4.2);
+  doc.text(i18n.t('pdfReports.length'), marginLeft + 62, y + 4.2);
+  doc.text(i18n.t('pdfReports.head'), marginLeft + 82, y + 4.2);
+  doc.text(i18n.t('common.notes'), marginLeft + 98, y + 4.2);
   y += 6;
 
   const uList = ['U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'U7a', 'U8', 'U9'];
@@ -682,11 +716,7 @@ function drawA5UTable(doc, marginLeft, y, contentWidth, sorted) {
 
     doc.setTextColor(15, 23, 42);
     doc.text(uName, marginLeft + 2, y + 4);
-    doc.text(
-      match ? new Date(match.date).toLocaleDateString('de-DE') : '-',
-      marginLeft + 20,
-      y + 4
-    );
+    doc.text(match ? new Date(match.date).toLocaleDateString() : '-', marginLeft + 20, y + 4);
     doc.text(match?.weight ? `${Math.round(match.weight * 1000)} g` : '-', marginLeft + 42, y + 4);
     doc.text(match?.length ? `${match.length} cm` : '-', marginLeft + 62, y + 4);
     doc.text(
@@ -713,8 +743,8 @@ function drawA5FooterBox(doc, marginLeft, y, contentWidth, activeChild) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(51, 65, 85);
-  doc.text(`Impfstatus: ${vaxCount} Impfungen dokumentiert`, marginLeft + 4, y + 5);
-  doc.text(`Zahnen: ${teethCount} / 20 Milchzähnen durchgebrochen`, marginLeft + 4, y + 9.5);
+  doc.text(i18n.t('pdfReports.vaxCount', { count: vaxCount }), marginLeft + 4, y + 5);
+  doc.text(i18n.t('pdfReports.teethCount', { count: teethCount }), marginLeft + 4, y + 9.5);
 }
 
 /**

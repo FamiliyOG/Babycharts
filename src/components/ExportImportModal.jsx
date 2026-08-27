@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Upload,
@@ -21,6 +22,7 @@ export default function ExportImportModal({
   onImportProfiles,
   onLoadDemoData,
 }) {
+  const { t } = useTranslation();
   const { isDev } = useAuth();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
   const [importStatus, setImportStatus] = useState(null);
@@ -129,7 +131,7 @@ export default function ExportImportModal({
         </button>
 
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <span>Einstellungen &amp; App</span>
+          <span>{t('exportImport.title')}</span>
         </h2>
 
         {/* PWA Home Screen Installation Card (Mobile only) */}
@@ -213,19 +215,19 @@ export default function ExportImportModal({
           <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
             <div>
               <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                JSON Backup-Datei erstellen
+                {t('exportImport.exportTitle')}
               </div>
               <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                Alle Daten als `.json` Datei sichern
+                {t('exportImport.exportDesc')}
               </div>
             </div>
             <button
               type="button"
               onClick={handleExportJson}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-xs transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-xs transition-colors cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              <span>JSON Export</span>
+              <span>{t('exportImport.exportBtn')}</span>
             </button>
           </div>
 
@@ -233,7 +235,7 @@ export default function ExportImportModal({
           <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
             <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
               <Upload className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-              <span>JSON Backup wiederherstellen</span>
+              <span>{t('exportImport.importTitle')}</span>
             </div>
 
             {/* Hidden native file input */}
@@ -254,7 +256,7 @@ export default function ExportImportModal({
                   onImportProfiles(parsed);
                   setImportStatus({
                     success: true,
-                    text: `✅ Erfolgreich ${parsed.length} Profile aus "${file.name}" importiert!`,
+                    text: `✅ ${t('exportImport.importSuccess')}`,
                   });
                 } catch (err) {
                   setImportStatus({ success: false, text: `❌ Fehler: ${err.message}` });
@@ -271,9 +273,11 @@ export default function ExportImportModal({
             >
               <Upload className="w-6 h-6 text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 mb-1.5 group-hover:scale-110 transition-transform" />
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-300">
-                Backup-Datei (.json) auswählen
+                {t('exportImport.importBtn')}
               </span>
-              <span className="text-[10px] text-slate-500 mt-0.5">oder Datei hierhin ziehen</span>
+              <span className="text-[10px] text-slate-500 mt-0.5">
+                {t('exportImport.importDesc')}
+              </span>
             </label>
 
             {importStatus && (

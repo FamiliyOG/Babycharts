@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { TrendingUp, Syringe, Sparkles, HeartPulse, Plus, ClipboardList } from 'lucide-react';
 
 function ToothIcon({ className }) {
@@ -18,16 +19,18 @@ function ToothIcon({ className }) {
 }
 
 export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) {
+  const { t } = useTranslation();
+
   const leftTabs = [
-    { id: 'growth', label: 'Wachstum', icon: TrendingUp },
-    { id: 'vaccines', label: 'Impfen', icon: Syringe },
-    { id: 'teeth', label: 'Zähne', icon: ToothIcon },
+    { id: 'growth', label: t('nav.growth'), icon: TrendingUp },
+    { id: 'vaccines', label: t('nav.vaccinations'), icon: Syringe },
+    { id: 'teeth', label: t('nav.teeth'), icon: ToothIcon },
   ];
 
   const rightTabs = [
-    { id: 'milestones', label: 'Momente', icon: Sparkles },
-    { id: 'health', label: 'Fieber', icon: HeartPulse },
-    { id: 'ucheckups', label: 'U-Heft', icon: ClipboardList },
+    { id: 'milestones', label: t('nav.milestones'), icon: Sparkles },
+    { id: 'health', label: t('nav.health'), icon: HeartPulse },
+    { id: 'ucheckups', label: t('nav.uCheckups'), icon: ClipboardList },
   ];
 
   return (

@@ -2,16 +2,20 @@
   "app": {
     "title": "BabyCharts",
     "subtitle": "Growth Tracker & Milestones",
-    "offlineNotice": "Offline mode active. Changes are stored locally."
+    "offlineNotice": "Offline mode active. Changes are stored locally.",
+    "welcomeTitle": "Welcome to BabyCharts",
+    "welcomeSubtitle": "Add your first child to start tracking WHO growth charts.",
+    "createFirstChild": "Add New Child",
+    "loadDemoData": "Load Demo Data"
   },
   "nav": {
     "overview": "Overview",
-    "growth": "Growth",
+    "growth": "Growth Charts",
     "milestones": "Milestones",
     "teeth": "Teeth",
     "health": "Health",
     "vaccinations": "Vaccines",
-    "uCheckups": "Checkups",
+    "uCheckups": "Checkups (U1-U9)",
     "family": "Family"
   },
   "roles": {
@@ -39,7 +43,13 @@
     "confirm": "Confirm",
     "notes": "Notes",
     "date": "Date",
-    "actions": "Actions"
+    "actions": "Actions",
+    "unitGram": "g",
+    "unitKg": "kg",
+    "unitCm": "cm",
+    "required": "Required",
+    "yes": "Yes",
+    "no": "No"
   },
   "header": {
     "selectChild": "Select child",
@@ -53,6 +63,73 @@
     "doctorReport": "Export doctor report",
     "calendar": "Export calendar",
     "dataExport": "Export / Import data"
+  },
+  "percentiles": {
+    "noData": "No measurements recorded yet. Click \"+ Record measurement\" above.",
+    "currentStand": "Current Status",
+    "weight": "Weight",
+    "length": "Length",
+    "headCircumference": "Head Circumference",
+    "bmi": "BMI",
+    "age": "Age",
+    "average": "Average",
+    "exactAverage": "Exact Average (50th Percentile)",
+    "normalRange": "Normal Range (15th – 85th Percentile)",
+    "upperRange": "Upper Normal (85th – 97th Percentile)",
+    "lowerRange": "Lower Normal (3rd – 15th Percentile)",
+    "upperEdge": "Upper Boundary (> 97th Percentile)",
+    "lowerEdge": "Lower Boundary (< 3rd Percentile)"
+  },
+  "profileModal": {
+    "createTitle": "Create New Child Profile",
+    "editTitle": "Edit Child Profile",
+    "subtitle": "Record basic and birth measurements for accurate WHO growth charts.",
+    "nameLabel": "Child's Name",
+    "namePlaceholder": "e.g. Mia or Oliver",
+    "genderLabel": "Gender",
+    "boy": "Boy",
+    "girl": "Girl",
+    "birthdateLabel": "Birthdate",
+    "birthDataTitle": "Birth Measurements (U1)",
+    "birthWeightLabel": "Birth Weight (in grams)",
+    "birthWeightPlaceholder": "e.g. 3450",
+    "birthLengthLabel": "Birth Length (in cm)",
+    "birthLengthPlaceholder": "e.g. 51",
+    "birthHeadLabel": "Birth Head Circumference (in cm)",
+    "birthHeadPlaceholder": "e.g. 35",
+    "notesLabel": "Notes / Details",
+    "notesPlaceholder": "e.g. Born 2 weeks early...",
+    "photoLabel": "Change Profile Photo",
+    "deleteChild": "Delete Child Profile",
+    "deleteConfirm": "Are you sure you want to permanently delete this child? All measurements and milestones will be lost."
+  },
+  "measurements": {
+    "addTitle": "Record Measurement",
+    "editTitle": "Edit Measurement",
+    "dateLabel": "Measurement Date",
+    "weightLabel": "Weight (in grams)",
+    "weightPlaceholder": "e.g. 4200",
+    "lengthLabel": "Length (in cm)",
+    "lengthPlaceholder": "e.g. 54.5",
+    "headLabel": "Head Circumference (in cm)",
+    "headPlaceholder": "e.g. 37.0",
+    "checkupLabel": "Associated Checkup (optional)",
+    "checkupNone": "-- No checkup --",
+    "notesPlaceholder": "e.g. Recorded at doctor's clinic...",
+    "tableTitle": "Measurement History",
+    "tableNoData": "No measurements recorded yet.",
+    "deleteConfirm": "Are you sure you want to delete this measurement?"
+  },
+  "exportImport": {
+    "title": "Export & Import Data",
+    "subtitle": "Create JSON backups of your data or restore previously saved backups.",
+    "exportTitle": "Export Backup",
+    "exportDesc": "Download all child profiles, measurements, vaccines, and notes as a JSON file.",
+    "exportBtn": "Download JSON Backup",
+    "importTitle": "Restore Backup",
+    "importDesc": "Select a previously exported JSON backup file.",
+    "importBtn": "Import Backup File",
+    "importSuccess": "Data imported successfully!"
   },
   "auth": {
     "loginTitle": "Welcome back",

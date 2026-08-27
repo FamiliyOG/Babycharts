@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Edit2, Trash2, Calendar, Award, Scale, Ruler, Circle } from 'lucide-react';
 import { calculateAge, calculateBMI, estimatePercentile } from '../utils/percentileCalc.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -8,6 +9,7 @@ export default function MeasurementTable({
   onEditMeasurement,
   onDeleteMeasurement,
 }) {
+  const { t } = useTranslation();
   const { canEdit } = useAuth();
   if (!activeChild) return null;
 
@@ -21,10 +23,7 @@ export default function MeasurementTable({
   if (sortedMeasurements.length === 0) {
     return (
       <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8 text-center text-slate-400">
-        <p className="text-sm">Noch keine Messwerte für {activeChild.name} erfasst.</p>
-        <p className="text-xs text-slate-500 mt-1">
-          Klicken Sie auf "+ Messwert eintragen", um den ersten Wert hinzuzufügen.
-        </p>
+        <p className="text-sm">{t('measurements.tableNoData')}</p>
       </div>
     );
   }
@@ -32,14 +31,14 @@ export default function MeasurementTable({
   const formatWeight = (kg) => {
     if (!kg) return null;
     const grams = Math.round(kg * 1000);
-    return `${grams.toLocaleString('de-DE')} g`;
+    return `${grams.toLocaleString()} g`;
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString('de-DE', {
+      return d.toLocaleDateString(undefined, {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -54,14 +53,11 @@ export default function MeasurementTable({
       <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between">
         <div>
           <h2 className="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">
-            <span>Messwert-Historie</span>
+            <span>{t('measurements.tableTitle')}</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
               {sortedMeasurements.length}
             </span>
           </h2>
-          <p className="text-[11px] sm:text-xs text-slate-400">
-            Chronologische Übersicht aller Messungen
-          </p>
         </div>
       </div>
 
@@ -105,18 +101,18 @@ export default function MeasurementTable({
                       <button
                         type="button"
                         onClick={() => onEditMeasurement(m)}
-                        title="Bearbeiten"
-                        aria-label="Messwert bearbeiten"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/60 active:scale-95"
+                        title={t('common.edit')}
+                        aria-label={t('common.edit')}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/60 active:scale-95 cursor-pointer"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => onDeleteMeasurement(m.id)}
-                        title="Löschen"
-                        aria-label="Messwert löschen"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 bg-slate-800/60 active:scale-95"
+                        title={t('common.delete')}
+                        aria-label={t('common.delete')}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 bg-slate-800/60 active:scale-95 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -130,7 +126,7 @@ export default function MeasurementTable({
                 <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
                   <div className="text-[10px] text-slate-400 font-semibold mb-0.5 flex items-center justify-center gap-1">
                     <Scale className="w-3 h-3 text-cyan-400" />
-                    <span>Gewicht</span>
+                    <span>{t('growth.weight')}</span>
                   </div>
                   <div className="font-bold text-slate-100">{formatWeight(m.weight) || '—'}</div>
                   {weightPct && (
@@ -141,7 +137,7 @@ export default function MeasurementTable({
                 <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
                   <div className="text-[10px] text-slate-400 font-semibold mb-0.5 flex items-center justify-center gap-1">
                     <Ruler className="w-3 h-3 text-emerald-400" />
-                    <span>Größe</span>
+                    <span>{t('growth.length')}</span>
                   </div>
                   <div className="font-bold text-slate-100">
                     {m.length ? `${m.length} cm` : '—'}
@@ -154,7 +150,7 @@ export default function MeasurementTable({
                 <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
                   <div className="text-[10px] text-slate-400 font-semibold mb-0.5 flex items-center justify-center gap-1">
                     <Circle className="w-3 h-3 text-amber-400" />
-                    <span>Kopf</span>
+                    <span>{t('growth.headCircumference')}</span>
                   </div>
                   <div className="font-bold text-slate-100">
                     {m.headCircumference ? `${m.headCircumference} cm` : '—'}
@@ -181,14 +177,16 @@ export default function MeasurementTable({
         <table className="w-full text-left border-collapse text-xs sm:text-sm">
           <thead>
             <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[11px]">
-              <th className="py-3 px-4">Datum &amp; Alter</th>
-              <th className="py-3 px-4">U-Untersuchung</th>
-              <th className="py-3 px-4">Gewicht (g)</th>
-              <th className="py-3 px-4">Größe (cm)</th>
-              <th className="py-3 px-4">Kopfumfang (cm)</th>
-              <th className="py-3 px-4">BMI</th>
-              <th className="py-3 px-4">Notizen</th>
-              <th className="py-3 px-4 text-right">Aktionen</th>
+              <th className="py-3 px-4">
+                {t('common.date')} &amp; {t('percentiles.age')}
+              </th>
+              <th className="py-3 px-4">{t('nav.uCheckups')}</th>
+              <th className="py-3 px-4">{t('growth.weight')} (g)</th>
+              <th className="py-3 px-4">{t('growth.length')} (cm)</th>
+              <th className="py-3 px-4">{t('growth.headCircumference')} (cm)</th>
+              <th className="py-3 px-4">{t('growth.bmi')}</th>
+              <th className="py-3 px-4">{t('common.notes')}</th>
+              <th className="py-3 px-4 text-right">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60 text-slate-200">

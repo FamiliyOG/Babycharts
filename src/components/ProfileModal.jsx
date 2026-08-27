@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Baby,
@@ -36,6 +37,7 @@ export default function ProfileModal({
 }
 
 function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialData }) {
+  const { t } = useTranslation();
   const { dialogRef } = useModalDismissal(true, onClose);
   const [name, setName] = useState(() => initialData?.name || '');
   const [gender, setGender] = useState(() => initialData?.gender || 'boy');
@@ -201,13 +203,9 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-100">
-              {initialData ? 'Profil bearbeiten' : 'Neues Kind anlegen'}
+              {initialData ? t('profileModal.editTitle') : t('profileModal.createTitle')}
             </h2>
-            <p className="text-xs text-slate-400">
-              {initialData
-                ? 'Passen Sie die Daten und das Profilfoto an'
-                : 'Erfassen Sie die Basis- und Geburtsdaten'}
-            </p>
+            <p className="text-xs text-slate-400">{t('profileModal.subtitle')}</p>
           </div>
         </div>
 
@@ -225,7 +223,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
               htmlFor="child-name-input"
               className="block text-xs font-semibold text-slate-300 mb-1"
             >
-              Name des Kindes *
+              {t('profileModal.nameLabel')} *
             </label>
             <div className="relative">
               <User className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -235,7 +233,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="z. B. Matheo, Emma, Noah, Mia..."
+                placeholder={t('profileModal.namePlaceholder')}
                 className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
             </div>
@@ -244,7 +242,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
           {/* Gender selection */}
           <div>
             <span className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Geschlecht (bestimmt die WHO-Perzentilenkurve) *
+              {t('profileModal.genderLabel')} *
             </span>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -270,7 +268,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                   <line x1="14" y1="10" x2="21" y2="3" />
                   <polyline points="15 3 21 3 21 9" />
                 </svg>
-                <span>Junge</span>
+                <span>{t('profileModal.boy')}</span>
                 {gender === 'boy' && <Check className="w-3.5 h-3.5 ml-1 text-cyan-400" />}
               </button>
 
@@ -297,7 +295,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                   <line x1="12" y1="13" x2="12" y2="21" />
                   <line x1="9" y1="17" x2="15" y2="17" />
                 </svg>
-                <span>Mädchen</span>
+                <span>{t('profileModal.girl')}</span>
                 {gender === 'girl' && <Check className="w-3.5 h-3.5 ml-1 text-pink-400" />}
               </button>
             </div>
@@ -309,7 +307,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
               htmlFor="child-birthdate-input"
               className="block text-xs font-semibold text-slate-300 mb-1"
             >
-              Geburtsdatum *
+              {t('profileModal.birthdateLabel')} *
             </label>
             <div className="relative">
               <Calendar className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -327,7 +325,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
           {/* Geburtswerte (optional) */}
           <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
             <span className="block text-xs font-bold text-slate-200 mb-1">
-              Geburtswerte (U1 Erstuntersuchung)
+              {t('profileModal.birthDataTitle')}
             </span>
             <div className="grid grid-cols-3 gap-2 items-start">
               <div className="flex flex-col">
@@ -335,7 +333,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                   htmlFor="birth-weight-input"
                   className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
                 >
-                  Gewicht (in g)
+                  {t('profileModal.birthWeightLabel')}
                 </label>
                 <div className="relative">
                   <Scale className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
@@ -343,7 +341,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                     id="birth-weight-input"
                     type="number"
                     step="1"
-                    placeholder="z. B. 3515"
+                    placeholder={t('profileModal.birthWeightPlaceholder')}
                     value={birthWeightGrams}
                     onChange={(e) => setBirthWeightGrams(e.target.value)}
                     className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
@@ -356,7 +354,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                   htmlFor="birth-length-input"
                   className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
                 >
-                  Größe (in cm)
+                  {t('profileModal.birthLengthLabel')}
                 </label>
                 <div className="relative">
                   <Ruler className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
@@ -364,7 +362,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                     id="birth-length-input"
                     type="number"
                     step="0.1"
-                    placeholder="z. B. 51"
+                    placeholder={t('profileModal.birthLengthPlaceholder')}
                     value={birthLengthCm}
                     onChange={(e) => setBirthLengthCm(e.target.value)}
                     className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
@@ -377,7 +375,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                   htmlFor="birth-head-input"
                   className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
                 >
-                  Kopf (in cm)
+                  {t('profileModal.birthHeadLabel')}
                 </label>
                 <div className="relative">
                   <Circle className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
@@ -385,7 +383,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                     id="birth-head-input"
                     type="number"
                     step="0.1"
-                    placeholder="z. B. 35"
+                    placeholder={t('profileModal.birthHeadPlaceholder')}
                     value={birthHeadCm}
                     onChange={(e) => setBirthHeadCm(e.target.value)}
                     className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
@@ -401,7 +399,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
               htmlFor="child-notes-textarea"
               className="block text-xs font-semibold text-slate-300 mb-1"
             >
-              Bemerkungen / Besonderheiten (optional)
+              {t('profileModal.notesLabel')}
             </label>
             <div className="relative">
               <FileText className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -410,7 +408,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="z. B. Geburtsort, Besonderheiten..."
+                placeholder={t('profileModal.notesPlaceholder')}
                 className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
             </div>
@@ -422,10 +420,10 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
               <button
                 type="button"
                 onClick={handleDelete}
-                className="flex items-center gap-1.5 px-3 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/50 rounded-xl text-xs font-medium transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/50 rounded-xl text-xs font-medium transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Kind löschen</span>
+                <span>{t('profileModal.deleteChild')}</span>
               </button>
             ) : (
               <div />
@@ -435,19 +433,19 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors cursor-pointer"
               >
-                Abbrechen
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
-                className={`px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-lg transition-all ${
+                className={`px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-lg transition-all cursor-pointer ${
                   gender === 'girl'
                     ? 'bg-linear-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 shadow-rose-950'
                     : 'bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-cyan-950'
                 }`}
               >
-                {initialData ? 'Speichern' : 'Kind anlegen'}
+                {initialData ? t('common.save') : t('common.add')}
               </button>
             </div>
           </div>

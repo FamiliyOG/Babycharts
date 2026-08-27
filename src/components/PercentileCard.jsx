@@ -1,13 +1,15 @@
+import { useTranslation } from 'react-i18next';
 import { Scale, Ruler, Circle, Activity, TrendingUp } from 'lucide-react';
 import { estimatePercentile, calculateBMI, calculateAge } from '../utils/percentileCalc.js';
 
 export default function PercentileCard({ activeChild, ageInfo }) {
+  const { t } = useTranslation();
   const measurements = activeChild?.measurements || [];
 
   if (measurements.length === 0 || !activeChild) {
     return (
       <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 text-center text-slate-400">
-        Noch keine Messwerte vorhanden. Klicken Sie oben auf "+ Messwert eintragen".
+        {t('percentiles.noData')}
       </div>
     );
   }
@@ -99,14 +101,14 @@ export default function PercentileCard({ activeChild, ageInfo }) {
   const formatWeight = (kg) => {
     if (!kg) return '—';
     const grams = Math.round(kg * 1000);
-    return `${grams.toLocaleString('de-DE')} g (${kg.toFixed(2).replace('.', ',')} kg)`;
+    return `${grams.toLocaleString()} g (${kg.toFixed(2)} kg)`;
   };
 
   const formatDateLabel = (dateStr) => {
     if (!dateStr) return '';
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' });
     } catch {
       return dateStr;
     }
@@ -114,7 +116,7 @@ export default function PercentileCard({ activeChild, ageInfo }) {
 
   const cards = [
     {
-      title: 'Gewicht',
+      title: t('growth.weight'),
       value: formatWeight(weightStat.value),
       isAverage: weightStat.isAverage,
       count: weightStat.count,
@@ -125,7 +127,7 @@ export default function PercentileCard({ activeChild, ageInfo }) {
       color: 'cyan',
     },
     {
-      title: 'Körpergröße / Länge',
+      title: t('growth.length'),
       value: lengthStat.value ? `${lengthStat.value} cm` : '—',
       isAverage: lengthStat.isAverage,
       count: lengthStat.count,
@@ -136,7 +138,7 @@ export default function PercentileCard({ activeChild, ageInfo }) {
       color: 'emerald',
     },
     {
-      title: 'Kopfumfang',
+      title: t('growth.headCircumference'),
       value: headStat.value ? `${headStat.value} cm` : '—',
       isAverage: headStat.isAverage,
       count: headStat.count,
@@ -147,7 +149,7 @@ export default function PercentileCard({ activeChild, ageInfo }) {
       color: 'amber',
     },
     {
-      title: 'BMI (Körpermasse)',
+      title: t('growth.bmi'),
       value: bmiVal ? `${bmiVal} kg/m²` : '—',
       isAverage: weightStat.isAverage || lengthStat.isAverage,
       count: 0,
@@ -197,17 +199,14 @@ export default function PercentileCard({ activeChild, ageInfo }) {
               {card.isAverage && (
                 <span
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 shadow-xs"
-                  title={`Tagesdurchschnitt aus ${card.count} Messungen`}
+                  title={`Ø ${card.count}x`}
                 >
-                  Ø {card.count}x / Tag
+                  Ø {card.count}x
                 </span>
               )}
               {card.isDifferentDay && (
-                <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-950/60 text-amber-300 border border-amber-800/50 shadow-xs"
-                  title={`Zuletzt gemessen am ${formatDateLabel(card.date)}`}
-                >
-                  vom {formatDateLabel(card.date)}
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-950/60 text-amber-300 border border-amber-800/50 shadow-xs">
+                  {formatDateLabel(card.date)}
                 </span>
               )}
             </div>
@@ -218,12 +217,12 @@ export default function PercentileCard({ activeChild, ageInfo }) {
                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold w-max ${badgeBg}`}
                 >
                   <TrendingUp className="w-3 h-3" />
-                  <span>Vergleich: {pct.percentile} % aller Kinder</span>
+                  <span>P{pct.percentile}</span>
                 </div>
                 <span className="text-[11px] text-slate-400">{pct.statusText}</span>
               </div>
             ) : (
-              <span className="text-[11px] text-slate-500">Keine Daten</span>
+              <span className="text-[11px] text-slate-500">—</span>
             )}
           </div>
         );

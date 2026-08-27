@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Scale, Ruler, Circle, Calendar, FileText, Award } from 'lucide-react';
 import { calculateAge, estimatePercentile } from '../utils/percentileCalc.js';
 import { U_CHECKUPS } from '../data/uCheckups.js';
@@ -26,6 +27,7 @@ export default function MeasurementForm({
 }
 
 function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initialData }) {
+  const { t } = useTranslation();
   const { dialogRef } = useModalDismissal(true, onClose);
   const todayIso = new Date().toISOString().split('T')[0];
 
@@ -109,11 +111,11 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             <Scale className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">
-              {initialData ? 'Messwert bearbeiten' : 'Neuen Messwert eintragen'}
+            <h2 className="text-xl font-bold text-slate-100">
+              {initialData ? t('measurements.editTitle') : t('measurements.addTitle')}
             </h2>
             <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
-              <span>Kind:</span>
+              <span>{t('header.selectChild')}:</span>
               <span className="font-semibold text-slate-200">{activeChild.name}</span>
               <span className="inline-flex items-center gap-1">
                 (
@@ -128,7 +130,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                       <line x1="12" y1="13" x2="12" y2="21" />
                       <line x1="9" y1="17" x2="15" y2="17" />
                     </svg>
-                    <span>Mädchen</span>
+                    <span>{t('profileModal.girl')}</span>
                   </>
                 ) : (
                   <>
@@ -141,7 +143,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                       <line x1="14" y1="10" x2="21" y2="3" />
                       <polyline points="15 3 21 3 21 9" />
                     </svg>
-                    <span>Junge</span>
+                    <span>{t('profileModal.boy')}</span>
                   </>
                 )}
                 )
@@ -158,7 +160,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                 htmlFor="measurement-date-input"
                 className="block text-xs font-semibold text-slate-300 mb-1"
               >
-                Messdatum *
+                {t('measurements.dateLabel')} *
               </label>
               <div className="relative">
                 <Calendar className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -175,7 +177,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
 
             <div>
               <span className="block text-xs font-semibold text-slate-300 mb-1">
-                Berechnetes Alter
+                {t('percentiles.age')}
               </span>
               <div className="py-2 px-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-cyan-300 font-medium">
                 {ageInfo.text}
@@ -191,7 +193,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                 htmlFor="measurement-weight-input"
                 className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
               >
-                Gewicht (in g)
+                {t('measurements.weightLabel')}
               </label>
               <div className="relative">
                 <Scale className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -203,13 +205,13 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                   max="40000"
                   value={weightGrams}
                   onChange={(e) => setWeightGrams(e.target.value)}
-                  placeholder="z. B. 3515"
+                  placeholder={t('measurements.weightPlaceholder')}
                   className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
                 />
               </div>
               {pWeight && (
                 <span className="text-[11px] text-emerald-400 mt-1 block">
-                  ~ {pWeight.percentile}. Perzentile ({weightVal.toFixed(2)} kg)
+                  ~ P{pWeight.percentile} ({weightVal.toFixed(2)} kg)
                 </span>
               )}
             </div>
@@ -220,7 +222,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                 htmlFor="measurement-length-input"
                 className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
               >
-                Größe / Länge (cm)
+                {t('measurements.lengthLabel')}
               </label>
               <div className="relative">
                 <Ruler className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -232,13 +234,13 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                   max="130"
                   value={length}
                   onChange={(e) => setLength(e.target.value)}
-                  placeholder="z. B. 51.5"
+                  placeholder={t('measurements.lengthPlaceholder')}
                   className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
                 />
               </div>
               {pLength && (
                 <span className="text-[11px] text-emerald-400 mt-1 block">
-                  ~ {pLength.percentile}. Perzentile
+                  ~ P{pLength.percentile}
                 </span>
               )}
             </div>
@@ -249,7 +251,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                 htmlFor="measurement-head-input"
                 className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
               >
-                Kopfumfang (cm)
+                {t('measurements.headLabel')}
               </label>
               <div className="relative">
                 <Circle className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -261,13 +263,13 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                   max="60"
                   value={headCircumference}
                   onChange={(e) => setHeadCircumference(e.target.value)}
-                  placeholder="z. B. 35.0"
+                  placeholder={t('measurements.headPlaceholder')}
                   className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
                 />
               </div>
               {pHead && (
                 <span className="text-[11px] text-emerald-400 mt-1 block">
-                  ~ {pHead.percentile}. Perzentile
+                  ~ P{pHead.percentile}
                 </span>
               )}
             </div>
@@ -279,7 +281,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
               htmlFor="measurement-checkup-select"
               className="block text-xs font-semibold text-slate-300 mb-1"
             >
-              U-Untersuchung (optional)
+              {t('measurements.checkupLabel')}
             </label>
             <div className="relative">
               <Award className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -287,9 +289,9 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                 id="measurement-checkup-select"
                 value={checkup}
                 onChange={(e) => setCheckup(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
+                className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 cursor-pointer"
               >
-                <option value="">Keine U-Untersuchung (reguläre Messung)</option>
+                <option value="">{t('measurements.checkupNone')}</option>
                 {U_CHECKUPS.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name} ({u.periodText})
@@ -305,7 +307,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
               htmlFor="measurement-notes-textarea"
               className="block text-xs font-semibold text-slate-300 mb-1"
             >
-              Notizen / Meilensteine (optional)
+              {t('common.notes')}
             </label>
             <div className="relative">
               <FileText className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
@@ -314,7 +316,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="z. B. Erste feste Nahrung probiert, guter Appetit..."
+                placeholder={t('measurements.notesPlaceholder')}
                 className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
               />
             </div>
@@ -325,19 +327,19 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors cursor-pointer"
             >
-              Abbrechen
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
-              className={`px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-lg transition-all ${
+              className={`px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-lg transition-all cursor-pointer ${
                 isGirl
                   ? 'bg-linear-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 shadow-rose-950'
                   : 'bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-cyan-950'
               }`}
             >
-              {initialData ? 'Speichern' : 'Messung speichern'}
+              {initialData ? t('common.save') : t('common.add')}
             </button>
           </div>
         </form>

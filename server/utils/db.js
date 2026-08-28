@@ -572,27 +572,26 @@ export function readDb() {
   };
 }
 
-function syncUsers(users) {
-  if (!Array.isArray(users)) return;
-  const existingUserIds = new Set(users.map((u) => u.id));
-  const allDbUsers = sqlite.prepare('SELECT id FROM users').all();
-  for (const row of allDbUsers) {
-    if (!existingUserIds.has(row.id)) {
-      sqlite.prepare('DELETE FROM users WHERE id = ?').run(row.id);
+function pruneStaleRows(tableName, validItems = []) {
+  const existingIds = new Set(validItems.map((item) => item.id));
+  const currentDbRows = sqlite.prepare(`SELECT id FROM ${tableName}`).all();
+  const deleteStmt = sqlite.prepare(`DELETE FROM ${tableName} WHERE id = ?`);
+  for (const row of currentDbRows) {
+    if (!existingIds.has(row.id)) {
+      deleteStmt.run(row.id);
     }
   }
+}
+
+function syncUsers(users) {
+  if (!Array.isArray(users)) return;
+  pruneStaleRows('users', users);
   insertUsers(users);
 }
 
 function syncFamilies(families) {
   if (!Array.isArray(families)) return;
-  const existingFamilyIds = new Set(families.map((f) => f.id));
-  const allDbFamilies = sqlite.prepare('SELECT id FROM families').all();
-  for (const row of allDbFamilies) {
-    if (!existingFamilyIds.has(row.id)) {
-      sqlite.prepare('DELETE FROM families WHERE id = ?').run(row.id);
-    }
-  }
+  pruneStaleRows('families', families);
   const deleteMembers = sqlite.prepare('DELETE FROM family_members WHERE familyId = ?');
   for (const f of families) {
     deleteMembers.run(f.id);
@@ -602,13 +601,7 @@ function syncFamilies(families) {
 
 function syncProfiles(profiles) {
   if (!Array.isArray(profiles)) return;
-  const existingProfileIds = new Set(profiles.map((p) => p.id));
-  const allDbProfiles = sqlite.prepare('SELECT id FROM profiles').all();
-  for (const row of allDbProfiles) {
-    if (!existingProfileIds.has(row.id)) {
-      sqlite.prepare('DELETE FROM profiles WHERE id = ?').run(row.id);
-    }
-  }
+  pruneStaleRows('profiles', profiles);
   const deleteMeasurements = sqlite.prepare('DELETE FROM measurements WHERE profileId = ?');
   const deleteHealthLogs = sqlite.prepare('DELETE FROM health_logs WHERE profileId = ?');
   for (const p of profiles) {

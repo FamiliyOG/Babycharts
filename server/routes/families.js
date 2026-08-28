@@ -55,9 +55,28 @@ function generateInviteCode(existingInvites = [], usedInvites = []) {
 }
 
 /**
- * PUT /api/families/:familyId
- * Updates family name and avatar/icon (admin only)
+ * Helper to get family and verify member permissions
  */
+export function getFamilyAndCheckAccess(db, familyId, userId, minRole = null) {
+  const family = db.families.find((f) => f.id === familyId);
+  if (!family) {
+    return { error: 'Familie nicht gefunden.', status: 404 };
+  }
+  const userRole = getUserFamilyRole(family, userId);
+  if (!userRole) {
+    return { error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.', status: 403 };
+  }
+  if (minRole === 'editor' && userRole === 'viewer') {
+    return {
+      error: 'Keine ausreichenden Berechtigungen (mindestens Bearbeiter erforderlich).',
+      status: 403,
+    };
+  }
+  if (minRole === 'admin' && userRole !== 'admin') {
+    return { error: 'Nur Administratoren dürfen diese Aktion ausführen.', status: 403 };
+  }
+  return { family, userRole };
+}
 router.put('/:familyId', requireAuth, (req, res) => {
   const { familyId } = req.params;
   const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : null;
@@ -68,18 +87,11 @@ router.put('/:familyId', requireAuth, (req, res) => {
   }
 
   const db = readDb();
-  const family = db.families.find((f) => f.id === familyId);
-
-  if (!family) {
-    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  const access = getFamilyAndCheckAccess(db, familyId, req.user.id, 'editor');
+  if (access.error) {
+    return res.status(access.status).json({ error: access.error });
   }
-
-  const role = getUserFamilyRole(family, req.user.id);
-  if (role !== 'admin' && role !== 'editor') {
-    return res
-      .status(403)
-      .json({ error: 'Nur Administratoren oder Eltern (Editoren) dürfen Familiendetails ändern.' });
-  }
+  const { family, userRole: role } = access;
 
   if (rawName !== null) {
     family.name = rawName;
@@ -109,16 +121,11 @@ router.put('/:familyId', requireAuth, (req, res) => {
 router.get('/:familyId', requireAuth, (req, res) => {
   const { familyId } = req.params;
   const db = readDb();
-  const family = db.families.find((f) => f.id === familyId);
-
-  if (!family) {
-    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  const access = getFamilyAndCheckAccess(db, familyId, req.user.id);
+  if (access.error) {
+    return res.status(access.status).json({ error: access.error });
   }
-
-  const role = getUserFamilyRole(family, req.user.id);
-  if (!role) {
-    return res.status(403).json({ error: 'Kein Zugriff auf diese Familie.' });
-  }
+  const { family, userRole: role } = access;
 
   // Populate member names & emails
   const members = (family.members || []).map((m) => {
@@ -266,21 +273,11 @@ router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) =
   const { role = 'editor', expiresInHours = 48, maxUses = 1 } = req.body;
 
   const db = readDb();
-  const family = db.families.find((f) => f.id === familyId);
-
-  if (!family) {
-    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  const access = getFamilyAndCheckAccess(db, familyId, req.user.id, 'editor');
+  if (access.error) {
+    return res.status(access.status).json({ error: access.error });
   }
-
-  const userRole = getUserFamilyRole(family, req.user.id);
-  if (!userRole) {
-    return res
-      .status(403)
-      .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
-  }
-  if (userRole === 'viewer') {
-    return res.status(403).json({ error: 'Betrachter dürfen keine Einladungen erstellen.' });
-  }
+  const { family } = access;
 
   // Validate and constrain expiration time (minimum 1 hour, maximum 720 hours = 30 days)
   const parsedHours = Number.parseInt(expiresInHours, 10);
@@ -320,20 +317,9 @@ router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) =
 router.delete('/:familyId/invites/:code', requireAuth, (req, res) => {
   const { familyId, code } = req.params;
   const db = readDb();
-  const family = db.families.find((f) => f.id === familyId);
-
-  if (!family) {
-    return res.status(404).json({ error: 'Familie nicht gefunden.' });
-  }
-
-  const userRole = getUserFamilyRole(family, req.user.id);
-  if (!userRole) {
-    return res
-      .status(403)
-      .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
-  }
-  if (userRole === 'viewer') {
-    return res.status(403).json({ error: 'Keine Berechtigung zum Löschen von Einladungen.' });
+  const access = getFamilyAndCheckAccess(db, familyId, req.user.id, 'editor');
+  if (access.error) {
+    return res.status(access.status).json({ error: access.error });
   }
 
   const initialCount = db.invites.length;

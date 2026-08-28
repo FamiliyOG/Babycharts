@@ -357,6 +357,20 @@ function getOrCreateActiveFamily(user, db) {
 }
 
 /**
+ * Helper to format family summary for user payload
+ */
+function formatFamilySummary(family, userId) {
+  if (!family) return null;
+  return {
+    id: family.id,
+    name: family.name,
+    avatar: family.avatar || null,
+    role: getUserFamilyRole(family, userId),
+    isOwner: family.ownerId === userId,
+  };
+}
+
+/**
  * POST /api/auth/login
  * Authenticates user and returns JWT + user families
  */
@@ -406,25 +420,12 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const { activeFamily, userFamilies } = getOrCreateActiveFamily(user, db);
     const token = createToken(user);
-    const userRole = getUserFamilyRole(activeFamily, user.id);
 
     return res.json({
       token,
       user: formatUserPayload(user),
-      family: {
-        id: activeFamily.id,
-        name: activeFamily.name,
-        avatar: activeFamily.avatar || null,
-        role: userRole,
-        isOwner: activeFamily.ownerId === user.id,
-      },
-      families: userFamilies.map((f) => ({
-        id: f.id,
-        name: f.name,
-        avatar: f.avatar || null,
-        role: getUserFamilyRole(f, user.id),
-        isOwner: f.ownerId === user.id,
-      })),
+      family: formatFamilySummary(activeFamily, user.id),
+      families: userFamilies.map((f) => formatFamilySummary(f, user.id)),
     });
   } catch (err) {
     console.error('[Auth] Login error:', err);
@@ -452,22 +453,8 @@ router.get('/me', requireAuth, (req, res) => {
 
   return res.json({
     user: formatUserPayload(user),
-    family: activeFamily
-      ? {
-          id: activeFamily.id,
-          name: activeFamily.name,
-          avatar: activeFamily.avatar || null,
-          role: getUserFamilyRole(activeFamily, user.id),
-          isOwner: activeFamily.ownerId === user.id,
-        }
-      : null,
-    families: userFamilies.map((f) => ({
-      id: f.id,
-      name: f.name,
-      avatar: f.avatar || null,
-      role: getUserFamilyRole(f, user.id),
-      isOwner: f.ownerId === user.id,
-    })),
+    family: formatFamilySummary(activeFamily, user.id),
+    families: userFamilies.map((f) => formatFamilySummary(f, user.id)),
   });
 });
 

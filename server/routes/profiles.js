@@ -138,7 +138,27 @@ router.post('/import', requireAuth, (req, res) => {
   return res.json({ ok: true, count: importedMap.size });
 });
 
-// POST – create single profile (strictly verifies family membership & editor/admin role)
+/** Helper to check family write permission */
+function checkFamilyWritePermission(familyId, userId, db, actionLabel) {
+  if (!familyId) return null;
+  const family = db.families.find((f) => f.id === familyId);
+  if (!family) {
+    return { status: 404, error: 'Familie nicht gefunden.' };
+  }
+  const role = getUserFamilyRole(family, userId);
+  if (!role) {
+    return { status: 403, error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' };
+  }
+  if (role === 'viewer') {
+    return {
+      status: 403,
+      error: `Betrachter dürfen ${actionLabel || 'keine Änderungen vornehmen'}.`,
+    };
+  }
+  return null;
+}
+
+// POST – single profile creation (strictly verifies family membership & editor/admin role)
 router.post('/', requireAuth, (req, res) => {
   const data = req.body;
   if (!data.id || !data.name) {
@@ -151,20 +171,14 @@ router.post('/', requireAuth, (req, res) => {
   }
 
   // Verify family permissions if familyId is specified
-  if (data.familyId) {
-    const family = db.families.find((f) => f.id === data.familyId);
-    if (!family) {
-      return res.status(404).json({ error: 'Familie nicht gefunden.' });
-    }
-    const role = getUserFamilyRole(family, req.user.id);
-    if (!role) {
-      return res
-        .status(403)
-        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
-    }
-    if (role === 'viewer') {
-      return res.status(403).json({ error: 'Betrachter dürfen keine neuen Kinder anlegen.' });
-    }
+  const permError = checkFamilyWritePermission(
+    data.familyId,
+    req.user.id,
+    db,
+    'keine neuen Kinder anlegen'
+  );
+  if (permError) {
+    return res.status(permError.status).json({ error: permError.error });
   }
 
   const profile = {
@@ -188,31 +202,26 @@ router.put('/:id', requireAuth, (req, res) => {
   const existingProfile = db.profiles[idx];
 
   // Verify permissions in existing profile's family
-  if (existingProfile.familyId) {
-    const family = db.families.find((f) => f.id === existingProfile.familyId);
-    if (!family) {
-      return res.status(404).json({ error: 'Familie nicht gefunden.' });
-    }
-    const role = getUserFamilyRole(family, req.user.id);
-    if (!role) {
-      return res
-        .status(403)
-        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
-    }
-    if (role === 'viewer') {
-      return res.status(403).json({ error: 'Betrachter dürfen keine Änderungen vornehmen.' });
-    }
+  const permError = checkFamilyWritePermission(
+    existingProfile.familyId,
+    req.user.id,
+    db,
+    'keine Änderungen vornehmen'
+  );
+  if (permError) {
+    return res.status(permError.status).json({ error: permError.error });
   }
 
   // If changing familyId in update, verify user has write access to target family
   if (req.body?.familyId && req.body.familyId !== existingProfile.familyId) {
-    const targetFamily = db.families.find((f) => f.id === req.body.familyId);
-    if (!targetFamily) {
-      return res.status(404).json({ error: 'Zielfamilie nicht gefunden.' });
-    }
-    const targetRole = getUserFamilyRole(targetFamily, req.user.id);
-    if (!targetRole || targetRole === 'viewer') {
-      return res.status(403).json({ error: 'Keine Schreibrechte für die Zielfamilie.' });
+    const targetPermError = checkFamilyWritePermission(
+      req.body.familyId,
+      req.user.id,
+      db,
+      'keine Änderungen an der Zielfamilie vornehmen'
+    );
+    if (targetPermError) {
+      return res.status(targetPermError.status).json({ error: targetPermError.error });
     }
   }
 
@@ -236,20 +245,14 @@ router.delete('/:id', requireAuth, (req, res) => {
     return res.status(404).json({ error: 'Profile not found' });
   }
 
-  if (existingProfile.familyId) {
-    const family = db.families.find((f) => f.id === existingProfile.familyId);
-    if (!family) {
-      return res.status(404).json({ error: 'Familie nicht gefunden.' });
-    }
-    const role = getUserFamilyRole(family, req.user.id);
-    if (!role) {
-      return res
-        .status(403)
-        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
-    }
-    if (role === 'viewer') {
-      return res.status(403).json({ error: 'Betrachter dürfen keine Profile löschen.' });
-    }
+  const permError = checkFamilyWritePermission(
+    existingProfile.familyId,
+    req.user.id,
+    db,
+    'keine Profile löschen'
+  );
+  if (permError) {
+    return res.status(permError.status).json({ error: permError.error });
   }
 
   db.profiles = db.profiles.filter((p) => p.id !== req.params.id);

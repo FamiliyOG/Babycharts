@@ -16,7 +16,13 @@
     "health": "สุขภาพ",
     "vaccinations": "สมุดบันทึกวัคซีน",
     "uCheckups": "การตรวจสุขภาพ (U1-U9)",
-    "family": "ครอบครัว"
+    "family": "ครอบครัว",
+    "shortGrowth": "กราฟ",
+    "shortVaccines": "วัคซีน",
+    "shortTeeth": "ฟัน",
+    "shortMilestones": "ช่วงเวลา",
+    "shortHealth": "ไข้",
+    "shortUCheckups": "ตรวจสุขภาพ"
   },
   "roles": {
     "admin": "ผู้ดูแลระบบ",

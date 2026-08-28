@@ -446,6 +446,14 @@ function getRoleLabel(role) {
 }
 
 /**
+ * Helper to count admins including the family owner
+ */
+function countFamilyAdmins(family) {
+  return (family.members || []).filter((m) => m.role === 'admin' || m.userId === family.ownerId)
+    .length;
+}
+
+/**
  * PUT /api/families/:familyId/members/:userId
  * Updates a member's role in the family (admin only, Issue BC-039, BC-040)
  */
@@ -486,10 +494,7 @@ router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
 
   // BC-042: Protect the last admin in the family from being demoted
   if (oldRole === 'admin' && role !== 'admin') {
-    const adminCount = (family.members || []).filter(
-      (m) => m.role === 'admin' || m.userId === family.ownerId
-    ).length;
-    if (adminCount <= 1) {
+    if (countFamilyAdmins(family) <= 1) {
       return res.status(400).json({
         error: 'Der letzte Administrator einer Familie kann nicht herabgestuft werden.',
       });
@@ -540,10 +545,7 @@ router.post('/:familyId/leave', requireAuth, (req, res) => {
 
   // BC-042: If the member is an admin, ensure they are not the sole remaining admin
   if (member.role === 'admin') {
-    const adminCount = (family.members || []).filter(
-      (m) => m.role === 'admin' || m.userId === family.ownerId
-    ).length;
-    if (adminCount <= 1) {
+    if (countFamilyAdmins(family) <= 1) {
       return res.status(400).json({
         error:
           'Sie sind der letzte Administrator. Bitte ernennen Sie ein anderes Mitglied zum Administrator, bevor Sie die Familie verlassen.',
@@ -608,10 +610,7 @@ router.delete('/:familyId/members/:userId', requireAuth, (req, res) => {
 
   // BC-042: Protect the last admin
   if (targetMember.role === 'admin') {
-    const adminCount = (family.members || []).filter(
-      (m) => m.role === 'admin' || m.userId === family.ownerId
-    ).length;
-    if (adminCount <= 1) {
+    if (countFamilyAdmins(family) <= 1) {
       return res.status(400).json({
         error: 'Der letzte Administrator einer Familie kann nicht entfernt werden.',
       });

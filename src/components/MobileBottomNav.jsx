@@ -22,16 +22,55 @@ export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) 
   const { t } = useTranslation();
 
   const leftTabs = [
-    { id: 'growth', label: t('nav.growth'), shortLabel: 'Kurven', icon: TrendingUp },
-    { id: 'vaccines', label: t('nav.vaccinations'), shortLabel: 'Impfen', icon: Syringe },
-    { id: 'teeth', label: t('nav.teeth'), shortLabel: 'Zähne', icon: ToothIcon },
+    { id: 'growth', label: t('nav.growth'), shortLabel: t('nav.shortGrowth'), icon: TrendingUp },
+    {
+      id: 'vaccines',
+      label: t('nav.vaccinations'),
+      shortLabel: t('nav.shortVaccines'),
+      icon: Syringe,
+    },
+    { id: 'teeth', label: t('nav.teeth'), shortLabel: t('nav.shortTeeth'), icon: ToothIcon },
   ];
 
   const rightTabs = [
-    { id: 'milestones', label: t('nav.milestones'), shortLabel: 'Momente', icon: Sparkles },
-    { id: 'health', label: t('nav.health'), shortLabel: 'Fieber', icon: HeartPulse },
-    { id: 'ucheckups', label: t('nav.uCheckups'), shortLabel: 'U-Heft', icon: ClipboardList },
+    {
+      id: 'milestones',
+      label: t('nav.milestones'),
+      shortLabel: t('nav.shortMilestones'),
+      icon: Sparkles,
+    },
+    { id: 'health', label: t('nav.health'), shortLabel: t('nav.shortHealth'), icon: HeartPulse },
+    {
+      id: 'ucheckups',
+      label: t('nav.uCheckups'),
+      shortLabel: t('nav.shortUCheckups'),
+      icon: ClipboardList,
+    },
   ];
+
+  const renderTabButton = (tab) => {
+    const Icon = tab.icon;
+    const isActive = activeTab === tab.id;
+    return (
+      <button
+        key={tab.id}
+        type="button"
+        onClick={() => onTabChange(tab.id)}
+        title={tab.label}
+        aria-label={tab.label}
+        className={`flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-xl transition-all active:scale-95 touch-manipulation min-w-0 ${
+          isActive ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+        }`}
+      >
+        <Icon
+          className={`w-4 h-4 mb-0.5 transition-transform shrink-0 ${isActive ? 'scale-110' : ''}`}
+        />
+        <span className="text-[9px] sm:text-[10px] font-medium tracking-tight truncate max-w-full text-center">
+          {tab.shortLabel || tab.label}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <div
@@ -41,29 +80,7 @@ export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) 
       <div className="flex items-center justify-between w-full max-w-md mx-auto relative px-1">
         {/* Left 3 Tabs */}
         <div className="flex items-center justify-around flex-1">
-          {leftTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-                title={tab.label}
-                aria-label={tab.label}
-                className={`flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-xl transition-all active:scale-95 touch-manipulation min-w-0 ${
-                  isActive ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Icon
-                  className={`w-4 h-4 mb-0.5 transition-transform shrink-0 ${isActive ? 'scale-110' : ''}`}
-                />
-                <span className="text-[9px] sm:text-[10px] font-medium tracking-tight truncate max-w-full text-center">
-                  {tab.shortLabel || tab.label}
-                </span>
-              </button>
-            );
-          })}
+          {leftTabs.map(renderTabButton)}
         </div>
 
         {/* Center Floating Action Button (Quick Add) */}
@@ -83,29 +100,7 @@ export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) 
 
         {/* Right 3 Tabs */}
         <div className="flex items-center justify-around flex-1">
-          {rightTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-                title={tab.label}
-                aria-label={tab.label}
-                className={`flex flex-col items-center justify-center flex-1 py-1 px-0.5 rounded-xl transition-all active:scale-95 touch-manipulation min-w-0 ${
-                  isActive ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Icon
-                  className={`w-4 h-4 mb-0.5 transition-transform shrink-0 ${isActive ? 'scale-110' : ''}`}
-                />
-                <span className="text-[9px] sm:text-[10px] font-medium tracking-tight truncate max-w-full text-center">
-                  {tab.shortLabel || tab.label}
-                </span>
-              </button>
-            );
-          })}
+          {rightTabs.map(renderTabButton)}
         </div>
       </div>
     </div>

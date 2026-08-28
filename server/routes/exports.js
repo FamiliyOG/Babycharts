@@ -108,34 +108,42 @@ router.get('/', requireAuth, async (req, res) => {
   return res.json(files);
 });
 
+function validatePdfFileParam(exportDir, fileQuery) {
+  const fileParam = typeof fileQuery === 'string' ? fileQuery.trim() : null;
+  if (!fileParam?.endsWith('.pdf')) {
+    return { error: 'Invalid file parameter', status: 400 };
+  }
+
+  const filePath = resolveSafePath(exportDir, fileParam);
+  if (!filePath) {
+    return { error: 'Invalid file path', status: 400 };
+  }
+
+  const normalizedRel = path.relative(exportDir, filePath).replaceAll('\\', '/');
+  const topFolder = normalizedRel.split('/')[0];
+  return { filePath, topFolder };
+}
+
 // GET – download a specific PDF via query param (strictly authorized by family)
 // /api/exports/download?file=ChildName/report.pdf
 router.get('/download', requireAuth, (req, res) => {
-  const fileParam = typeof req.query.file === 'string' ? req.query.file.trim() : null;
-  if (!fileParam?.endsWith('.pdf')) {
-    return res.status(400).json({ error: 'Invalid file parameter' });
-  }
-
   const exportDir = getExportDir();
-  const filePath = resolveSafePath(exportDir, fileParam);
-
-  if (!filePath) {
-    return res.status(400).json({ error: 'Invalid file path' });
+  const validation = validatePdfFileParam(exportDir, req.query.file);
+  if (validation.error) {
+    return res.status(validation.status).json({ error: validation.error });
   }
 
   // Check authorization for the child folder
   const db = readDb();
   const allowedFolders = getAllowedChildFolders(req.user, db);
-  const normalizedRel = path.relative(exportDir, filePath).replaceAll('\\', '/');
-  const topFolder = normalizedRel.split('/')[0];
 
-  if (!allowedFolders.has(topFolder)) {
+  if (!allowedFolders.has(validation.topFolder)) {
     return res
       .status(403)
       .json({ error: 'Zugriff verweigert: Sie sind nicht für diese PDF-Datei autorisiert.' });
   }
 
-  return res.download(filePath, path.basename(filePath), (err) => {
+  return res.download(validation.filePath, path.basename(validation.filePath), (err) => {
     if (err && !res.headersSent) {
       return res.status(404).json({ error: 'File not found' });
     }
@@ -145,21 +153,14 @@ router.get('/download', requireAuth, (req, res) => {
 // DELETE – remove a specific PDF via query param (requires editor or admin role)
 // DELETE /api/exports/delete?file=ChildName/report.pdf
 router.delete('/delete', requireAuth, async (req, res) => {
-  const fileParam = typeof req.query.file === 'string' ? req.query.file.trim() : null;
-  if (!fileParam?.endsWith('.pdf')) {
-    return res.status(400).json({ error: 'Invalid file parameter' });
-  }
-
   const exportDir = getExportDir();
-  const filePath = resolveSafePath(exportDir, fileParam);
-
-  if (!filePath) {
-    return res.status(400).json({ error: 'Invalid file path' });
+  const validation = validatePdfFileParam(exportDir, req.query.file);
+  if (validation.error) {
+    return res.status(validation.status).json({ error: validation.error });
   }
 
+  const { filePath, topFolder } = validation;
   const db = readDb();
-  const normalizedRel = path.relative(exportDir, filePath).replaceAll('\\', '/');
-  const topFolder = normalizedRel.split('/')[0];
 
   // Find the corresponding profile & family
   const targetProfile = db.profiles.find((p) => sanitizeName(p.name) === topFolder);

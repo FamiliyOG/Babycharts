@@ -16,7 +16,13 @@
     "health": "Gesundheit",
     "vaccinations": "Impfkalender",
     "uCheckups": "U-Heft Vorsorge",
-    "family": "Familie"
+    "family": "Familie",
+    "shortGrowth": "Kurven",
+    "shortVaccines": "Impfen",
+    "shortTeeth": "Zähne",
+    "shortMilestones": "Momente",
+    "shortHealth": "Fieber",
+    "shortUCheckups": "U-Heft"
   },
   "roles": {
     "admin": "Administrator",

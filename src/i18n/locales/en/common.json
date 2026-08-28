@@ -16,7 +16,13 @@
     "health": "Health",
     "vaccinations": "Vaccines",
     "uCheckups": "Checkups (U1-U9)",
-    "family": "Family"
+    "family": "Family",
+    "shortGrowth": "Charts",
+    "shortVaccines": "Vaccines",
+    "shortTeeth": "Teeth",
+    "shortMilestones": "Moments",
+    "shortHealth": "Fever",
+    "shortUCheckups": "Checkups"
   },
   "roles": {
     "admin": "Administrator",

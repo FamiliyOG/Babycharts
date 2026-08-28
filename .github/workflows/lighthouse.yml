@@ -38,4 +38,6 @@ jobs:
         run: npm run build
 
       - name: Run Lighthouse CI
-        run: npm run lighthouse
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12.6.2
+        with:
+          configPath: './lighthouserc.cjs'

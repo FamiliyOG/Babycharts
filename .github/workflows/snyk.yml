@@ -37,15 +37,9 @@ jobs:
       - name: Install Dependencies
         run: npm ci --ignore-scripts
 
-      - name: Install Snyk CLI
-        run: npm install -g snyk@1.1307.0 --ignore-scripts
-
-      - name: Snyk Open Source
-        run: snyk test --severity-threshold=high
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Snyk Code
-        run: snyk code test --severity-threshold=high
+      - name: Snyk Open Source & Code Scan
+        uses: snyk/actions/node@b98d498629f1c368650224d6d212bf7dfa89e4bf # 0.4.0
+        with:
+          args: --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

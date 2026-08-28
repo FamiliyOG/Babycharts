@@ -33,19 +33,30 @@ jobs:
         run: npm audit --audit-level=high
 
   trivy-scan:
-    name: Trivy Repository Vulnerability Scan
+    name: Trivy Repository Security Scan
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
+      security-events: write
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'table'
-          exit-code: '0'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
+
+      - name: Upload Trivy Results to GitHub Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy'

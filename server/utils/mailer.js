@@ -75,14 +75,11 @@ export async function sendPasswordResetEmail(toEmail, resetToken, userName = 'El
         </div>
       `,
     });
-    console.log(
-      `\x1b[32m[Mailer ${new Date().toISOString()}]\x1b[0m Password reset email sent to %s`,
-      toEmail
-    );
+    console.log(`[Mailer ${new Date().toISOString()}] Password reset email sent to:`, toEmail);
     return true;
   } catch (err) {
     console.error(
-      `\x1b[31m[Mailer Error ${new Date().toISOString()}]\x1b[0m Failed to send email to %s:`,
+      `[Mailer Error ${new Date().toISOString()}] Failed to send email to:`,
       toEmail,
       err?.message || err
     );

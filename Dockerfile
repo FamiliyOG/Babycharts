@@ -4,7 +4,8 @@
 # Compatible with Unraid, Docker Desktop, and standard Linux hosts.
 # ─────────────────────────────────────────────────────────────────────────────
 
-FROM node:22-slim AS base
+# Pin base image by immutable multi-arch digest (node:22-slim)
+FROM node@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5 AS base
 
 # Install Chromium and runtime dependencies, plus python3 and build-essential for better-sqlite3 compilation
 RUN apt-get update && apt-get install -y \

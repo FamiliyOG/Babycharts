@@ -17,12 +17,17 @@ if (typeof window !== 'undefined') {
   });
 
   window.addEventListener('error', (event) => {
-    // Ignore harmless browser/extension warnings (e.g. extension accessing file:/// or forced layout notices)
+    // Ignore harmless browser/extension warnings (e.g. extension accessing file:///, extension messaging, or forced layout notices)
     const msg = event.message || '';
+    const filename = event.filename || '';
     if (
       msg.includes('may not load or link to file:///') ||
       msg.includes('Layout-Darstellung') ||
-      msg.includes('Layout')
+      msg.includes('Layout') ||
+      msg.includes('ExtensionMessagingService') ||
+      msg.includes('onMessage listener') ||
+      filename.includes('moz-extension://') ||
+      filename.includes('chrome-extension://')
     ) {
       return;
     }
@@ -35,10 +40,15 @@ if (typeof window !== 'undefined') {
 
   window.addEventListener('unhandledrejection', (event) => {
     const msg = event.reason?.message || '';
+    const stack = event.reason?.stack || '';
     if (
       msg.includes('may not load or link to file:///') ||
       msg.includes('Layout-Darstellung') ||
-      msg.includes('Layout')
+      msg.includes('Layout') ||
+      msg.includes('ExtensionMessagingService') ||
+      msg.includes('onMessage listener') ||
+      stack.includes('moz-extension://') ||
+      stack.includes('chrome-extension://')
     ) {
       return;
     }

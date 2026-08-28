@@ -411,22 +411,19 @@ router.post('/login', loginLimiter, validateLoginPayload, async (req, res) => {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
     }
 
-    // If 2FA is active for this account, verify 2FA code before issuing token
+    // If 2FA is active for this account, strictly require and verify 2FA code
     if (user.twoFactorSecret) {
       const totpCode =
         typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
 
-      // If user hasn't provided a code yet, respond with requires2FA prompt
-      if (totpCode.length === 0) {
-        return res.status(200).json({
-          requires2FA: true,
-          message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',
-        });
-      }
-
-      // If a code was provided, verify it strictly
-      const isValid = verifyUserTwoFactor(user, totpCode, db);
-      if (isValid !== true) {
+      const isVerified = verifyUserTwoFactor(user, totpCode, db);
+      if (!isVerified) {
+        if (totpCode.length === 0) {
+          return res.status(200).json({
+            requires2FA: true,
+            message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',
+          });
+        }
         const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
         console.warn(
           `[2FA LOGIN ${new Date().toISOString()}] 2FA login verification failed for user: ${cleanEmail}`

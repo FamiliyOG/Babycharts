@@ -237,9 +237,14 @@ router.post('/:familyId/transfer-ownership', requireAuth, (req, res) => {
 
   writeDb(db);
 
-  const cleanLog = (val) => String(val || '').replace(/[^a-zA-Z0-9_@.-]/g, '_');
+  const time = new Date().toISOString();
   console.log(
-    `[OWNER TRANSFER ${new Date().toISOString()}] Family (${cleanLog(family.id)}) ownership transferred from ${cleanLog(previousOwnerId)} to ${cleanLog(newOwnerId)}`
+    '[OWNER TRANSFER ' + time + '] Family ID:',
+    String(family.id).replace(/[\r\n]/g, ''),
+    'ownership transferred from:',
+    String(previousOwnerId).replace(/[\r\n]/g, ''),
+    'to:',
+    String(newOwnerId).replace(/[\r\n]/g, '')
   );
 
   return res.json({
@@ -517,9 +522,18 @@ router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
   member.role = role;
   writeDb(db);
 
-  const cleanLog = (val) => String(val || '').replace(/[^a-zA-Z0-9_@.-]/g, '_');
+  const time = new Date().toISOString();
   console.log(
-    `[ROLE CHANGE ${new Date().toISOString()}] User ${cleanLog(req.user.email)} changed role of ${cleanLog(userId)} in family ${cleanLog(family.id)} from ${cleanLog(oldRole)} to ${cleanLog(role)}`
+    '[ROLE CHANGE ' + time + '] User:',
+    String(req.user.email).replace(/[\r\n]/g, ''),
+    'changed role of:',
+    String(userId).replace(/[\r\n]/g, ''),
+    'in family:',
+    String(family.id).replace(/[\r\n]/g, ''),
+    'from:',
+    String(oldRole).replace(/[\r\n]/g, ''),
+    'to:',
+    String(role).replace(/[\r\n]/g, '')
   );
 
   return res.json({

@@ -376,13 +376,13 @@ function formatFamilySummary(family, userId) {
  */
 router.post('/login', loginLimiter, async (req, res) => {
   try {
-    const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
-    const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
-    if (!rawEmail || !rawPassword) {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    if (email.length === 0 || password.length === 0) {
       return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
     }
 
-    const normalizedEmail = rawEmail.toLowerCase();
+    const normalizedEmail = email.toLowerCase();
     const db = readDb();
     const user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
 
@@ -390,23 +390,23 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
     }
 
-    const isMatch = await bcrypt.compare(rawPassword, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
     }
 
     // Check if user has 2FA enabled
     if (user.twoFactorSecret) {
-      const rawTotp =
+      const totpCode =
         typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
-      if (!rawTotp) {
+      if (totpCode.length === 0) {
         return res.status(200).json({
           requires2FA: true,
           message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',
         });
       }
 
-      const verified = verifyUserTwoFactor(user, rawTotp, db);
+      const verified = verifyUserTwoFactor(user, totpCode, db);
       if (!verified) {
         const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
         console.warn(
@@ -554,9 +554,9 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
  */
 router.post('/2fa/verify', requireAuth, twoFactorLimiter, (req, res) => {
   try {
-    const rawTotp =
+    const totpCode =
       typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
-    if (!rawTotp) {
+    if (totpCode.length === 0) {
       return res.status(400).json({ error: 'Code ist erforderlich.' });
     }
 
@@ -590,7 +590,7 @@ router.post('/2fa/verify', requireAuth, twoFactorLimiter, (req, res) => {
     const verified = speakeasy.totp.verify({
       secret: user.tempTwoFactorSecret,
       encoding: 'base32',
-      token: rawTotp,
+      token: totpCode,
       window: 2,
     });
 

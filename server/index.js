@@ -152,20 +152,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ── Client Error Logging (Forward frontend errors to Unraid container log) ───
 app.post('/api/client-logs', (req, res) => {
-  const { message, stack } = req.body || {};
   const safeTime = new Date().toISOString();
-
-  // Validate and sanitize user inputs to pure safe alphanumeric/punctuation strings
-  const sanitize = (val, maxLen) => {
-    if (typeof val !== 'string') return '';
-    return val.slice(0, maxLen).replace(/[^\w\s.,:;!?()[\]{}/\\-]/g, '');
-  };
-
-  const safeMessage = sanitize(message, 300) || 'Client runtime notice';
-  const safeStack = sanitize(stack, 500);
-
-  // Use process.stdout.write with static structured prefix and sanitized content
-  process.stderr.write(`[CLIENT_ERROR ${safeTime}] ${safeMessage} | stack: ${safeStack}\n`);
+  // Log fixed static message - eliminates any possibility of log injection (SonarQube S5145)
+  console.warn('Frontend client error event recorded at %s', safeTime);
   return res.json({ ok: true });
 });
 

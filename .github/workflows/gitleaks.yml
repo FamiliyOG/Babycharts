@@ -22,15 +22,14 @@ jobs:
     name: Detect Secrets
     runs-on: ubuntu-latest
 
+    container:
+      image: zricethezav/gitleaks:v8.24.0
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks Secret Scanner
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
-          GITLEAKS_ENABLE_SUMMARY: true
+      - name: Run Gitleaks CLI
+        run: gitleaks detect --source=. --verbose --redact

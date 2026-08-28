@@ -237,9 +237,10 @@ router.post('/:familyId/transfer-ownership', requireAuth, (req, res) => {
 
   writeDb(db);
 
-  const time = new Date().toISOString();
   console.log(
-    '[OWNER TRANSFER ' + time + '] Family ID:',
+    '[OWNER TRANSFER]',
+    new Date().toISOString(),
+    'Family ID:',
     String(family.id).replace(/[\r\n]/g, ''),
     'ownership transferred from:',
     String(previousOwnerId).replace(/[\r\n]/g, ''),
@@ -522,9 +523,10 @@ router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
   member.role = role;
   writeDb(db);
 
-  const time = new Date().toISOString();
   console.log(
-    '[ROLE CHANGE ' + time + '] User:',
+    '[ROLE CHANGE]',
+    new Date().toISOString(),
+    'User:',
     String(req.user.email).replace(/[\r\n]/g, ''),
     'changed role of:',
     String(userId).replace(/[\r\n]/g, ''),

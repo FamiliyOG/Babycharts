@@ -370,21 +370,27 @@ function formatFamilySummary(family, userId) {
   };
 }
 
+function isValidLoginInput(body) {
+  if (!body || typeof body !== 'object') return false;
+  const hasValidEmail = typeof body.email === 'string' && body.email.trim().length > 0;
+  const hasValidPassword = typeof body.password === 'string' && body.password.length > 0;
+  return hasValidEmail && hasValidPassword;
+}
+
 /**
  * POST /api/auth/login
  * Authenticates user and returns JWT + user families
  */
 router.post('/login', loginLimiter, async (req, res) => {
   try {
-    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
-    const password = typeof req.body?.password === 'string' ? req.body.password : '';
-    if (email.length === 0 || password.length === 0) {
+    if (!isValidLoginInput(req.body)) {
       return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
     }
 
-    const normalizedEmail = email.toLowerCase();
+    const email = req.body.email.trim().toLowerCase();
+    const password = req.body.password;
     const db = readDb();
-    const user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
+    const user = db.users.find((u) => u.email.toLowerCase() === email);
 
     if (!user) {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
@@ -398,8 +404,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     // Check if user has 2FA enabled
     if (user.twoFactorSecret) {
       const totpCode =
-        typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
-      if (totpCode.length === 0) {
+        typeof req.body.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
+      if (!totpCode) {
         return res.status(200).json({
           requires2FA: true,
           message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',

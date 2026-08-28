@@ -61,30 +61,12 @@ export function AuthProvider({ children }) {
   );
 
   useEffect(() => {
-    let isMounted = true;
     const token = localStorage.getItem('babycharts_token');
-    if (!token) return;
-
-    getMe().then((res) => {
-      if (!isMounted) return;
-      if (res.ok && res.data?.user) {
-        setUser(res.data.user);
-        syncUserLanguage(res.data.user);
-        setActiveFamily(res.data.family);
-        setFamilies(res.data.families || []);
-      } else {
-        logoutUser();
-        setUser(null);
-        setActiveFamily(null);
-        setFamilies([]);
-      }
-      setIsLoading(false);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [syncUserLanguage]);
+    if (token) {
+      // oxlint-disable-next-line react/set-state-in-effect
+      refreshUser();
+    }
+  }, [refreshUser]);
 
   const login = useCallback(async (email, password, totpCode = '') => {
     const res = await loginUser(email, password, totpCode);

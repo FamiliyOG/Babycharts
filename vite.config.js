@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // Custom Vite plugin to strip non-standard CSS properties from Tailwind v4 CSS reset to prevent Firefox console warnings
 function stripNonStandardCssPlugin() {
@@ -33,8 +34,19 @@ function stripNonStandardCssPlugin() {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [stripNonStandardCssPlugin(), react(), tailwindcss()],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    stripNonStandardCssPlugin(),
+    react(),
+    tailwindcss(),
+    mode === 'analyze' &&
+      visualizer({
+        filename: './reports/bundle/stats.html',
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+      }),
+  ].filter(Boolean),
   test: {
     environment: 'jsdom',
     globals: true,
@@ -61,4 +73,4 @@ export default defineConfig({
       ignored: ['**/server/data/**'],
     },
   },
-});
+}));

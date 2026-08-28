@@ -53,17 +53,21 @@ async function safeFetch(url, options = {}) {
 
 // ── Auth Endpoints ──────────────────────────────────────────────────────────
 
-export async function loginUser(email, password, totpCode = '') {
-  const res = await safeFetch(`${BASE}/auth/login`, {
-    method: 'POST',
-    body: JSON.stringify({ email, password, totpCode }),
-  });
+function handleAuthTokenResponse(res) {
   if (res.ok && res.data?.token && typeof res.data.token === 'string') {
     // Sanitize JWT token to prevent storage poisoning (jssecurity:S8475)
     const cleanToken = res.data.token.replace(/[^a-zA-Z0-9._-]/g, '');
     localStorage.setItem('babycharts_token', cleanToken);
   }
   return res;
+}
+
+export async function loginUser(email, password, totpCode = '') {
+  const res = await safeFetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    body: JSON.stringify({ email, password, totpCode }),
+  });
+  return handleAuthTokenResponse(res);
 }
 
 export async function setup2FA() {
@@ -105,11 +109,7 @@ export async function changePassword(currentPassword, newPassword, logoutAllDevi
     method: 'POST',
     body: JSON.stringify({ currentPassword, newPassword, logoutAllDevices }),
   });
-  if (res.ok && res.data?.token) {
-    const cleanToken = res.data.token.replace(/[^a-zA-Z0-9._-]/g, '');
-    localStorage.setItem('babycharts_token', cleanToken);
-  }
-  return res;
+  return handleAuthTokenResponse(res);
 }
 
 export async function registerUser({ name, email, password, familyName, inviteCode }) {
@@ -117,11 +117,7 @@ export async function registerUser({ name, email, password, familyName, inviteCo
     method: 'POST',
     body: JSON.stringify({ name, email, password, familyName, inviteCode }),
   });
-  if (res.ok && res.data?.token && typeof res.data.token === 'string') {
-    const cleanToken = res.data.token.replace(/[^a-zA-Z0-9._-]/g, '');
-    localStorage.setItem('babycharts_token', cleanToken);
-  }
-  return res;
+  return handleAuthTokenResponse(res);
 }
 
 export async function getMe(familyId = null) {

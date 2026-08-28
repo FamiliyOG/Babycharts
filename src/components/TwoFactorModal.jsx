@@ -19,6 +19,12 @@ export default function TwoFactorModal({ isOpen, onClose }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
+  const resetToInitial = () => {
+    setStep('initial');
+    setDisablePassword('');
+    setTotpCode('');
+    setError(null);
+  };
 
   if (!isOpen) return null;
 
@@ -233,11 +239,7 @@ export default function TwoFactorModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setStep('initial');
-                }}
+                onClick={() => resetToInitial()}
                 className="flex-1 py-2.5 rounded-xl border border-slate-800 text-slate-300 hover:bg-slate-800 text-xs font-semibold cursor-pointer"
               >
                 {t('common.cancel')}
@@ -345,12 +347,7 @@ export default function TwoFactorModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setStep('initial');
-                  setDisablePassword('');
-                }}
+                onClick={() => resetToInitial()}
                 className="flex-1 py-2.5 rounded-xl border border-slate-800 text-slate-300 hover:bg-slate-800 text-xs font-semibold cursor-pointer"
               >
                 {t('common.cancel')}

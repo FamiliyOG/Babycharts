@@ -1,0 +1,23 @@
+{
+  "threshold": 5,
+  "minLines": 8,
+  "minTokens": 50,
+  "reporters": ["console", "json"],
+  "output": "./reports/duplication",
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/playwright-report/**",
+    "**/test-results/**",
+    "**/reports/**",
+    "**/server/data/**",
+    "**/public/**",
+    "**/src/test/**",
+    "**/src/data/whoPercentiles.js",
+    "**/*.json",
+    "**/*.md",
+    "**/*.svg"
+  ],
+  "format": ["javascript", "jsx"]
+}

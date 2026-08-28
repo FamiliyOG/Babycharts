@@ -33,6 +33,11 @@ export default function AuthModal({ isOpen, onClose }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setError(null);
+    setSuccess(null);
+  };
 
   if (!isOpen) return null;
 
@@ -161,13 +166,7 @@ export default function AuthModal({ isOpen, onClose }) {
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setMode('login');
-                setError(null);
-                setSuccess(null);
-              }}
+              onClick={() => switchMode('login')}
               className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 mode === 'login'
                   ? 'bg-slate-800 text-white shadow'
@@ -179,13 +178,7 @@ export default function AuthModal({ isOpen, onClose }) {
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setMode('register');
-                setError(null);
-                setSuccess(null);
-              }}
+              onClick={() => switchMode('register')}
               className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 mode === 'register'
                   ? 'bg-slate-800 text-white shadow'
@@ -471,13 +464,7 @@ export default function AuthModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setMode('login');
-                  setError(null);
-                  setSuccess(null);
-                }}
+                onClick={() => switchMode('login')}
                 className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-medium transition-colors cursor-pointer"
               >
                 {t('auth.backToLogin')}

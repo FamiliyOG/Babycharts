@@ -454,6 +454,32 @@ function countFamilyAdmins(family) {
 }
 
 /**
+ * Helper to validate admin permission and target member status for admin operations on members
+ */
+function validateTargetMemberAdminOp(db, familyId, reqUserId, targetUserId, actionDesc) {
+  const family = db.families.find((f) => f.id === familyId);
+  if (!family) {
+    return { status: 404, error: 'Familie nicht gefunden.' };
+  }
+
+  const userRole = getUserFamilyRole(family, reqUserId);
+  if (userRole !== 'admin') {
+    return { status: 403, error: `Nur Administratoren dürfen ${actionDesc}.` };
+  }
+
+  if (family.ownerId === targetUserId) {
+    return { status: 400, error: 'Der Familieninhaber ist geschützt (Owner-Schutz).' };
+  }
+
+  const member = (family.members || []).find((m) => m.userId === targetUserId);
+  if (!member) {
+    return { status: 404, error: 'Mitglied nicht in dieser Familie gefunden.' };
+  }
+
+  return { family, member };
+}
+
+/**
  * PUT /api/families/:familyId/members/:userId
  * Updates a member's role in the family (admin only, Issue BC-039, BC-040)
  */
@@ -467,38 +493,25 @@ router.put('/:familyId/members/:userId', requireAuth, (req, res) => {
   }
 
   const db = readDb();
-  const family = db.families.find((f) => f.id === familyId);
-
-  if (!family) {
-    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  const validation = validateTargetMemberAdminOp(
+    db,
+    familyId,
+    req.user.id,
+    userId,
+    'Mitgliedsrollen ändern'
+  );
+  if (validation.error) {
+    return res.status(validation.status).json({ error: validation.error });
   }
 
-  const userRole = getUserFamilyRole(family, req.user.id);
-  if (userRole !== 'admin') {
-    return res.status(403).json({ error: 'Nur Administratoren dürfen Mitgliedsrollen ändern.' });
-  }
-
-  // BC-043: Prevent modifying the owner's role
-  if (family.ownerId === userId) {
-    return res
-      .status(400)
-      .json({ error: 'Die Rolle des Familieninhabers kann nicht geändert werden (Owner-Schutz).' });
-  }
-
-  const member = (family.members || []).find((m) => m.userId === userId);
-  if (!member) {
-    return res.status(404).json({ error: 'Mitglied nicht in dieser Familie gefunden.' });
-  }
-
+  const { family, member } = validation;
   const oldRole = member.role;
 
   // BC-042: Protect the last admin in the family from being demoted
-  if (oldRole === 'admin' && role !== 'admin') {
-    if (countFamilyAdmins(family) <= 1) {
-      return res.status(400).json({
-        error: 'Der letzte Administrator einer Familie kann nicht herabgestuft werden.',
-      });
-    }
+  if (oldRole === 'admin' && role !== 'admin' && countFamilyAdmins(family) <= 1) {
+    return res.status(400).json({
+      error: 'Der letzte Administrator einer Familie kann nicht herabgestuft werden.',
+    });
   }
 
   member.role = role;
@@ -544,13 +557,11 @@ router.post('/:familyId/leave', requireAuth, (req, res) => {
   const member = family.members[memberIndex];
 
   // BC-042: If the member is an admin, ensure they are not the sole remaining admin
-  if (member.role === 'admin') {
-    if (countFamilyAdmins(family) <= 1) {
-      return res.status(400).json({
-        error:
-          'Sie sind der letzte Administrator. Bitte ernennen Sie ein anderes Mitglied zum Administrator, bevor Sie die Familie verlassen.',
-      });
-    }
+  if (member.role === 'admin' && countFamilyAdmins(family) <= 1) {
+    return res.status(400).json({
+      error:
+        'Sie sind der letzte Administrator. Bitte ernennen Sie ein anderes Mitglied zum Administrator, bevor Sie die Familie verlassen.',
+    });
   }
 
   // Remove the member from the family
@@ -585,36 +596,24 @@ router.post('/:familyId/leave', requireAuth, (req, res) => {
 router.delete('/:familyId/members/:userId', requireAuth, (req, res) => {
   const { familyId, userId } = req.params;
   const db = readDb();
-  const family = db.families.find((f) => f.id === familyId);
-
-  if (!family) {
-    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  const validation = validateTargetMemberAdminOp(
+    db,
+    familyId,
+    req.user.id,
+    userId,
+    'Mitglieder entfernen'
+  );
+  if (validation.error) {
+    return res.status(validation.status).json({ error: validation.error });
   }
 
-  const userRole = getUserFamilyRole(family, req.user.id);
-  if (userRole !== 'admin') {
-    return res.status(403).json({ error: 'Nur Administratoren dürfen Mitglieder entfernen.' });
-  }
-
-  // BC-043: Owner protection
-  if (family.ownerId === userId) {
-    return res
-      .status(400)
-      .json({ error: 'Der Familieninhaber kann nicht entfernt werden (Owner-Schutz).' });
-  }
-
-  const targetMember = (family.members || []).find((m) => m.userId === userId);
-  if (!targetMember) {
-    return res.status(404).json({ error: 'Mitglied nicht in dieser Familie gefunden.' });
-  }
+  const { family, member: targetMember } = validation;
 
   // BC-042: Protect the last admin
-  if (targetMember.role === 'admin') {
-    if (countFamilyAdmins(family) <= 1) {
-      return res.status(400).json({
-        error: 'Der letzte Administrator einer Familie kann nicht entfernt werden.',
-      });
-    }
+  if (targetMember.role === 'admin' && countFamilyAdmins(family) <= 1) {
+    return res.status(400).json({
+      error: 'Der letzte Administrator einer Familie kann nicht entfernt werden.',
+    });
   }
 
   family.members = (family.members || []).filter((m) => m.userId !== userId);

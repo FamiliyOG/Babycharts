@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "project": ["src/**/*.{js,jsx}", "server/**/*.{js,jsx}", "e2e/**/*.{js,jsx}"],
+  "rules": {
+    "exports": "off"
+  },
+  "ignoreDependencies": ["stylelint-config-standard"],
+  "ignoreBinaries": ["snyk"],
+  "ignoreExportsUsedInFile": true
+}

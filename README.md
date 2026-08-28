@@ -131,15 +131,23 @@ Die Anwendung ist im Browser unter `http://localhost:5173` erreichbar.
 BabyCharts enthält eine automatisierte Testsuite mit **Vitest** und **Supertest**:
 
 ```bash
-# Alle Tests einmalig ausführen
+# Automatisierte Tests ausführen
 npm test
 
-# Tests im interaktiven Watch-Modus
-npm run test:watch
+# Test-Coverage Report generieren
+npm run test:coverage
 
-# Code-Qualität und Linting prüfen
-npm run lint:all
-npm run format:check
+# End-to-End Tests
+npm run test:e2e
+
+# Accessibility Tests (WCAG 2.1 AA via Axe & Playwright)
+npm run test:a11y
+
+# Code-Qualität, Dead-Code, Duplikate & Architektur prüfen
+npm run scan:code
+
+# Vollständiger Qualitäts-, Test- & Build-Audit (Master Scan)
+npm run scan:full
 ```
 
 ---

@@ -25,6 +25,7 @@ dist-ssr
 
 # Test coverage & artifacts
 coverage/
+reports/
 playwright-report/
 test-results/
 blob-report/

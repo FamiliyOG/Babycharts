@@ -841,39 +841,11 @@ router.post('/change-password', requireAuth, async (req, res) => {
 
 /**
  * PUT /api/auth/profile
- * Updates user profile name, avatar, and preferred language (BC-054)
+ * Alias for PUT /api/auth/me (BC-054)
  */
-router.put('/profile', requireAuth, (req, res) => {
-  try {
-    const { name, avatar, language } = req.body || {};
-    const db = readDb();
-    const user = db.users.find((u) => u.id === req.user.id);
-
-    if (!user) {
-      return res.status(404).json({ error: 'Benutzerkonto nicht gefunden.' });
-    }
-
-    if (typeof name === 'string' && name.trim()) {
-      user.name = name.trim();
-    }
-    if (avatar !== undefined) {
-      user.avatar = avatar;
-    }
-    if (typeof language === 'string' && ['de', 'en', 'th'].includes(language.toLowerCase())) {
-      user.language = language.toLowerCase();
-    }
-
-    user.updatedAt = new Date().toISOString();
-    writeDb(db);
-
-    return res.json({
-      message: 'Profil erfolgreich aktualisiert.',
-      user: formatUserPayload(user),
-    });
-  } catch (err) {
-    console.error('[Auth] Update profile error:', err);
-    return res.status(500).json({ error: 'Fehler beim Aktualisieren des Profils.' });
-  }
+router.put('/profile', requireAuth, (req, res, next) => {
+  req.url = '/me';
+  router.handle(req, res, next);
 });
 
 export default router;

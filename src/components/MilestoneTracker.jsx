@@ -5,6 +5,7 @@ import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-r
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
 import { uploadEncryptedMedia, getAuthorizedMediaUrl, sanitizeMediaUrl } from '../utils/api.js';
+import { compressImage } from '../utils/imageCompressor.js';
 
 function sanitizePhotoUrl(url) {
   return sanitizeMediaUrl(url);
@@ -53,63 +54,21 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     if (!file) return;
 
     setPhotoError(null);
-
-    if (!file.type.startsWith('image/')) {
-      setPhotoError('Ungültiges Dateiformat: Bitte wählen Sie ein Foto aus (PNG, JPG, WebP).');
-      return;
-    }
-
     setIsUploadingPhoto(true);
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const result = ev.target?.result;
-      if (typeof result === 'string' && result.startsWith('data:image/')) {
-        // Compress/resize client-side to max 1200px to ensure fast loads & tiny payload size (< 300 KB)
-        const img = new Image();
-        img.onload = async () => {
-          const maxDim = 1200;
-          let { width, height } = img;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
 
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-
-          // Store optimized data URL directly in state (100% resilient & cross-device synchronized)
-          setMilestonePhoto(compressedDataUrl);
-          setPhotoError(null);
-          setIsUploadingPhoto(false);
-
-          // Best-effort encrypted backup on server in background
-          uploadEncryptedMedia(compressedDataUrl, activeChild.familyId, file.name).catch(() => {});
-        };
-        img.onerror = () => {
-          setPhotoError('Fehler beim Verarbeiten des Fotos.');
-          setIsUploadingPhoto(false);
-        };
-        img.src = result;
-      } else {
-        setPhotoError('Ungültiges Bildformat.');
+    compressImage(file, 1200, 0.82)
+      .then((compressedDataUrl) => {
+        setMilestonePhoto(compressedDataUrl);
+        setPhotoError(null);
+        uploadEncryptedMedia(compressedDataUrl, activeChild.familyId, file.name).catch(() => {});
+      })
+      .catch((err) => {
+        setPhotoError(err.message || 'Fehler beim Verarbeiten des Fotos.');
+      })
+      .finally(() => {
         setIsUploadingPhoto(false);
-      }
-    };
-    reader.onerror = () => {
-      setPhotoError('Fehler beim Einlesen des Fotos. Bitte versuchen Sie es erneut.');
-      setIsUploadingPhoto(false);
-    };
-    reader.readAsDataURL(file);
+      });
+
     e.target.value = '';
   };
 

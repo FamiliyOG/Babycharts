@@ -101,18 +101,14 @@ router.post('/import', requireAuth, (req, res) => {
   }
 
   if (targetFamilyId) {
-    const family = db.families.find((f) => f.id === targetFamilyId);
-    if (!family) {
-      return res.status(404).json({ error: 'Familie nicht gefunden.' });
-    }
-    const role = getUserFamilyRole(family, req.user.id);
-    if (!role) {
-      return res
-        .status(403)
-        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
-    }
-    if (role === 'viewer') {
-      return res.status(403).json({ error: 'Betrachter haben keine Schreibrechte.' });
+    const permError = checkFamilyWritePermission(
+      targetFamilyId,
+      req.user.id,
+      db,
+      'keine Profile importieren'
+    );
+    if (permError) {
+      return res.status(permError.status).json({ error: permError.error });
     }
   }
 

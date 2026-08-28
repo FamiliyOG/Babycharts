@@ -2,6 +2,35 @@
  * Realistic Demo Profiles for Instant Testing with Measurements, Vaccinations & Teeth
  */
 
+function createVac(completed, date, doctor, batch, notes) {
+  return {
+    completed,
+    date,
+    doctor,
+    batch,
+    notes,
+    updatedAt: `${date}T10:00:00.000Z`,
+  };
+}
+
+function createTooth(erupted, date, notes) {
+  return {
+    erupted,
+    date,
+    notes,
+    updatedAt: `${date}T18:00:00.000Z`,
+  };
+}
+
+function createMilestone(completed, date, notes) {
+  return {
+    completed,
+    date,
+    notes,
+    photo: null,
+  };
+}
+
 export const DEMO_PROFILES = [
   {
     id: 'demo-boy-noah',
@@ -10,158 +39,112 @@ export const DEMO_PROFILES = [
     birthdate: '2025-08-15',
     notes: 'Fröhlicher kleiner Entdecker. U1 bis U6 erfolgreich abgeschlossen.',
     vaccinations: {
-      'rotavirus-1': {
-        completed: true,
-        date: '2025-10-02',
-        doctor: 'Dr. med. Weber, Kinderarztpraxis',
-        batch: 'RV-9041',
-        notes: 'Sehr gut vertragen.',
-        updatedAt: '2025-10-02T10:30:00.000Z',
-      },
-      'rotavirus-2': {
-        completed: true,
-        date: '2025-11-20',
-        doctor: 'Dr. med. Weber, Kinderarztpraxis',
-        batch: 'RV-9182',
-        notes: 'Keine Auffälligkeiten.',
-        updatedAt: '2025-11-20T11:00:00.000Z',
-      },
-      '6fach-1': {
-        completed: true,
-        date: '2025-10-02',
-        doctor: 'Dr. med. Weber, Kinderarztpraxis',
-        batch: 'HEX-4820',
-        notes: 'Leichte Rötung an der Einstichstelle, am nächsten Tag wieder gut.',
-        updatedAt: '2025-10-02T10:30:00.000Z',
-      },
-      'pneumokokken-1': {
-        completed: true,
-        date: '2025-10-02',
-        doctor: 'Dr. med. Weber, Kinderarztpraxis',
-        batch: 'PN-3310',
-        notes: 'Zusammen mit 6-fach 1 verabreicht.',
-        updatedAt: '2025-10-02T10:30:00.000Z',
-      },
-      '6fach-2': {
-        completed: true,
-        date: '2025-12-18',
-        doctor: 'Dr. med. Weber, Kinderarztpraxis',
-        batch: 'HEX-5012',
-        notes: 'Gut vertragen, minimal erhöhte Temperatur (37.8°C).',
-        updatedAt: '2025-12-18T09:45:00.000Z',
-      },
-      'pneumokokken-2': {
-        completed: true,
-        date: '2025-12-18',
-        doctor: 'Dr. med. Weber, Kinderarztpraxis',
-        batch: 'PN-3490',
-        notes: 'Alles bestens.',
-        updatedAt: '2025-12-18T09:45:00.000Z',
-      },
-      '6fach-3': {
-        completed: true,
-        date: '2026-07-20',
-        doctor: 'Dr. med. Weber, Kinderarztpraxis',
-        batch: 'HEX-5390',
-        notes: 'Abschluss Grundimmunisierung.',
-        updatedAt: '2026-07-20T10:15:00.000Z',
-      },
-      'pneumokokken-3': {
-        completed: true,
-        date: '2026-07-20',
-        doctor: 'Dr. med. Weber, Kinderarztpraxis',
-        batch: 'PN-3801',
-        notes: 'Abschluss Grundimmunisierung.',
-        updatedAt: '2026-07-20T10:15:00.000Z',
-      },
+      'rotavirus-1': createVac(
+        true,
+        '2025-10-02',
+        'Dr. med. Weber, Kinderarztpraxis',
+        'RV-9041',
+        'Sehr gut vertragen.'
+      ),
+      'rotavirus-2': createVac(
+        true,
+        '2025-11-20',
+        'Dr. med. Weber, Kinderarztpraxis',
+        'RV-9182',
+        'Keine Auffälligkeiten.'
+      ),
+      '6fach-1': createVac(
+        true,
+        '2025-10-02',
+        'Dr. med. Weber, Kinderarztpraxis',
+        'HEX-4820',
+        'Leichte Rötung an der Einstichstelle, am nächsten Tag wieder gut.'
+      ),
+      'pneumokokken-1': createVac(
+        true,
+        '2025-10-02',
+        'Dr. med. Weber, Kinderarztpraxis',
+        'PN-3310',
+        'Zusammen mit 6-fach 1 verabreicht.'
+      ),
+      '6fach-2': createVac(
+        true,
+        '2025-12-18',
+        'Dr. med. Weber, Kinderarztpraxis',
+        'HEX-5012',
+        'Gut vertragen, minimal erhöhte Temperatur (37.8°C).'
+      ),
+      'pneumokokken-2': createVac(
+        true,
+        '2025-12-18',
+        'Dr. med. Weber, Kinderarztpraxis',
+        'PN-3490',
+        'Alles bestens.'
+      ),
+      '6fach-3': createVac(
+        true,
+        '2026-07-20',
+        'Dr. med. Weber, Kinderarztpraxis',
+        'HEX-5390',
+        'Abschluss Grundimmunisierung.'
+      ),
+      'pneumokokken-3': createVac(
+        true,
+        '2026-07-20',
+        'Dr. med. Weber, Kinderarztpraxis',
+        'PN-3801',
+        'Abschluss Grundimmunisierung.'
+      ),
     },
     teeth: {
-      'lr-1': {
-        erupted: true,
-        date: '2026-03-10',
-        notes: 'Erster Zahn! Mittlerer Schneidezahn unten rechts.',
-        updatedAt: '2026-03-10T18:00:00.000Z',
-      },
-      'll-1': {
-        erupted: true,
-        date: '2026-03-24',
-        notes: 'Zweiter Schneidezahn unten links folgt zwei Wochen später.',
-        updatedAt: '2026-03-24T18:00:00.000Z',
-      },
-      'ur-1': {
-        erupted: true,
-        date: '2026-05-18',
-        notes: 'Oberer mittlerer Schneidezahn rechts.',
-        updatedAt: '2026-05-18T18:00:00.000Z',
-      },
-      'ul-1': {
-        erupted: true,
-        date: '2026-05-30',
-        notes: 'Oberer mittlerer Schneidezahn links.',
-        updatedAt: '2026-05-30T18:00:00.000Z',
-      },
-      'ur-2': {
-        erupted: true,
-        date: '2026-07-15',
-        notes: 'Seitlicher Schneidezahn oben rechts.',
-        updatedAt: '2026-07-15T18:00:00.000Z',
-      },
-      'ul-2': {
-        erupted: true,
-        date: '2026-08-02',
-        notes: 'Seitlicher Schneidezahn oben links kurz vor dem 1. Geburtstag!',
-        updatedAt: '2026-08-02T18:00:00.000Z',
-      },
+      'lr-1': createTooth(true, '2026-03-10', 'Erster Zahn! Mittlerer Schneidezahn unten rechts.'),
+      'll-1': createTooth(
+        true,
+        '2026-03-24',
+        'Zweiter Schneidezahn unten links folgt zwei Wochen später.'
+      ),
+      'ur-1': createTooth(true, '2026-05-18', 'Oberer mittlerer Schneidezahn rechts.'),
+      'ul-1': createTooth(true, '2026-05-30', 'Oberer mittlerer Schneidezahn links.'),
+      'ur-2': createTooth(true, '2026-07-15', 'Seitlicher Schneidezahn oben rechts.'),
+      'ul-2': createTooth(
+        true,
+        '2026-08-02',
+        'Seitlicher Schneidezahn oben links kurz vor dem 1. Geburtstag!'
+      ),
     },
     milestones: {
-      'first-smile': {
-        completed: true,
-        date: '2025-09-25',
-        notes: 'Hat Mama und Papa beim Wickeln so süß angelächelt!',
-        photo: null,
-      },
-      'hold-head': {
-        completed: true,
-        date: '2025-11-10',
-        notes: 'Hält das Köpfchen in Bauchlage schon ganz stabil hoch.',
-        photo: null,
-      },
-      'roll-over': {
-        completed: true,
-        date: '2026-01-14',
-        notes: 'Auf der Krabbeldecke schwungvoll vom Bauch auf den Rücken gerollt.',
-        photo: null,
-      },
-      'first-solid-food': {
-        completed: true,
-        date: '2026-02-18',
-        notes: 'Erster Pastinakenbrei – fand er anfangs skeptisch, dann super!',
-        photo: null,
-      },
-      'sit-alone': {
-        completed: true,
-        date: '2026-04-02',
-        notes: 'Sitzt frei und spielt mit seinen Holzbausteinen.',
-        photo: null,
-      },
-      crawl: {
-        completed: true,
-        date: '2026-04-28',
-        notes: 'Krabbelt blitzschnell durchs Wohnzimmer.',
-        photo: null,
-      },
-      'stand-up': {
-        completed: true,
-        date: '2026-06-10',
-        notes: 'Zieht sich an der Couch hoch in den Stand!',
-        photo: null,
-      },
-      'first-birthday': {
-        completed: true,
-        date: '2026-08-15',
-        notes: 'Große Party mit der Familie und Bananenkuchen.',
-        photo: null,
-      },
+      'first-smile': createMilestone(
+        true,
+        '2025-09-25',
+        'Hat Mama und Papa beim Wickeln so süß angelächelt!'
+      ),
+      'hold-head': createMilestone(
+        true,
+        '2025-11-10',
+        'Hält das Köpfchen in Bauchlage schon ganz stabil hoch.'
+      ),
+      'roll-over': createMilestone(
+        true,
+        '2026-01-14',
+        'Auf der Krabbeldecke schwungvoll vom Bauch auf den Rücken gerollt.'
+      ),
+      'first-solid-food': createMilestone(
+        true,
+        '2026-02-18',
+        'Erster Pastinakenbrei – fand er anfangs skeptisch, dann super!'
+      ),
+      'sit-alone': createMilestone(
+        true,
+        '2026-04-02',
+        'Sitzt frei und spielt mit seinen Holzbausteinen.'
+      ),
+      crawl: createMilestone(true, '2026-04-28', 'Krabbelt blitzschnell durchs Wohnzimmer.'),
+      'stand-up': createMilestone(true, '2026-06-10', 'Zieht sich an der Couch hoch in den Stand!'),
+      'first-birthday': createMilestone(
+        true,
+        '2026-08-15',
+        'Große Party mit der Familie und Bananenkuchen.'
+      ),
     },
     healthLog: [
       {
@@ -262,198 +245,141 @@ export const DEMO_PROFILES = [
     birthdate: '2024-08-20',
     notes: 'Neugierig und bewegungsfreudig. 2 Jahre alt.',
     vaccinations: {
-      'rotavirus-1': {
-        completed: true,
-        date: '2024-10-05',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'RV-8102',
-        notes: 'Schluckimpfung gut vertragen.',
-        updatedAt: '2024-10-05T09:00:00.000Z',
-      },
-      'rotavirus-2': {
-        completed: true,
-        date: '2024-11-15',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'RV-8240',
-        notes: 'Keine Beschwerden.',
-        updatedAt: '2024-11-15T09:00:00.000Z',
-      },
-      '6fach-1': {
-        completed: true,
-        date: '2024-10-05',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'HEX-3910',
-        notes: 'Keine Nebenwirkungen.',
-        updatedAt: '2024-10-05T09:00:00.000Z',
-      },
-      'pneumokokken-1': {
-        completed: true,
-        date: '2024-10-05',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'PN-2910',
-        notes: 'Einwandfrei.',
-        updatedAt: '2024-10-05T09:00:00.000Z',
-      },
-      '6fach-2': {
-        completed: true,
-        date: '2024-12-15',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'HEX-4102',
-        notes: 'Ruhiger Nachmittag.',
-        updatedAt: '2024-12-15T10:00:00.000Z',
-      },
-      'pneumokokken-2': {
-        completed: true,
-        date: '2024-12-15',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'PN-3012',
-        notes: 'Alles gut.',
-        updatedAt: '2024-12-15T10:00:00.000Z',
-      },
-      '6fach-3': {
-        completed: true,
-        date: '2025-07-22',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'HEX-4510',
-        notes: 'Abschluss Grundimmunisierung.',
-        updatedAt: '2025-07-22T10:30:00.000Z',
-      },
-      'pneumokokken-3': {
-        completed: true,
-        date: '2025-07-22',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'PN-3410',
-        notes: 'Abschluss Pneumokokken.',
-        updatedAt: '2025-07-22T10:30:00.000Z',
-      },
-      'meningokokken-c': {
-        completed: true,
-        date: '2025-09-02',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'MEN-1289',
-        notes: 'Schutz gegen Meningokokken C.',
-        updatedAt: '2025-09-02T11:00:00.000Z',
-      },
-      'mmrv-1': {
-        completed: true,
-        date: '2025-07-22',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'MMRV-7712',
-        notes: 'Leichtes Impffieber nach 7 Tagen, rasch abgeklungen.',
-        updatedAt: '2025-07-22T10:30:00.000Z',
-      },
-      'mmrv-2': {
-        completed: true,
-        date: '2025-12-10',
-        doctor: 'Gemeinschaftspraxis Kinderheilkunde',
-        batch: 'MMRV-7901',
-        notes: '2. Dosis MMRV – Vollständiger Schutz.',
-        updatedAt: '2025-12-10T10:00:00.000Z',
-      },
+      'rotavirus-1': createVac(
+        true,
+        '2024-10-05',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'RV-8102',
+        'Schluckimpfung gut vertragen.'
+      ),
+      'rotavirus-2': createVac(
+        true,
+        '2024-11-15',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'RV-8240',
+        'Keine Beschwerden.'
+      ),
+      '6fach-1': createVac(
+        true,
+        '2024-10-05',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'HEX-3910',
+        'Keine Nebenwirkungen.'
+      ),
+      'pneumokokken-1': createVac(
+        true,
+        '2024-10-05',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'PN-2910',
+        'Einwandfrei.'
+      ),
+      '6fach-2': createVac(
+        true,
+        '2024-12-15',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'HEX-4102',
+        'Ruhiger Nachmittag.'
+      ),
+      'pneumokokken-2': createVac(
+        true,
+        '2024-12-15',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'PN-3012',
+        'Alles gut.'
+      ),
+      '6fach-3': createVac(
+        true,
+        '2025-07-22',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'HEX-4510',
+        'Abschluss Grundimmunisierung.'
+      ),
+      'pneumokokken-3': createVac(
+        true,
+        '2025-07-22',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'PN-3410',
+        'Abschluss Pneumokokken.'
+      ),
+      'meningokokken-c': createVac(
+        true,
+        '2025-09-02',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'MEN-1289',
+        'Schutz gegen Meningokokken C.'
+      ),
+      'mmrv-1': createVac(
+        true,
+        '2025-07-22',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'MMRV-7712',
+        'Leichtes Impffieber nach 7 Tagen, rasch abgeklungen.'
+      ),
+      'mmrv-2': createVac(
+        true,
+        '2025-12-10',
+        'Gemeinschaftspraxis Kinderheilkunde',
+        'MMRV-7901',
+        '2. Dosis MMRV – Vollständiger Schutz.'
+      ),
     },
     teeth: {
-      'lr-1': { erupted: true, date: '2025-03-01', notes: 'Zahn 81 durchgebrochen' },
-      'll-1': { erupted: true, date: '2025-03-12', notes: 'Zahn 71 durchgebrochen' },
-      'ur-1': { erupted: true, date: '2025-04-18', notes: 'Zahn 51 durchgebrochen' },
-      'ul-1': { erupted: true, date: '2025-04-26', notes: 'Zahn 61 durchgebrochen' },
-      'ur-2': { erupted: true, date: '2025-06-15', notes: 'Zahn 52 durchgebrochen' },
-      'ul-2': { erupted: true, date: '2025-06-28', notes: 'Zahn 62 durchgebrochen' },
-      'lr-2': { erupted: true, date: '2025-08-05', notes: 'Zahn 82 durchgebrochen' },
-      'll-2': { erupted: true, date: '2025-08-14', notes: 'Zahn 72 durchgebrochen' },
-      'ur-4': { erupted: true, date: '2025-10-10', notes: 'Erster Backenzahn oben rechts (54)' },
-      'ul-4': { erupted: true, date: '2025-10-22', notes: 'Erster Backenzahn oben links (64)' },
-      'lr-4': { erupted: true, date: '2025-11-05', notes: 'Erster Backenzahn unten rechts (84)' },
-      'll-4': { erupted: true, date: '2025-11-18', notes: 'Erster Backenzahn unten links (74)' },
-      'ur-3': { erupted: true, date: '2026-01-12', notes: 'Eckzahn oben rechts (53)' },
-      'ul-3': { erupted: true, date: '2026-01-25', notes: 'Eckzahn oben links (63)' },
-      'lr-3': { erupted: true, date: '2026-03-08', notes: 'Eckzahn unten rechts (83)' },
-      'll-3': { erupted: true, date: '2026-03-20', notes: 'Eckzahn unten links (73)' },
+      'lr-1': createTooth(true, '2025-03-01', 'Zahn 81 durchgebrochen'),
+      'll-1': createTooth(true, '2025-03-12', 'Zahn 71 durchgebrochen'),
+      'ur-1': createTooth(true, '2025-04-18', 'Zahn 51 durchgebrochen'),
+      'ul-1': createTooth(true, '2025-04-26', 'Zahn 61 durchgebrochen'),
+      'ur-2': createTooth(true, '2025-06-15', 'Zahn 52 durchgebrochen'),
+      'ul-2': createTooth(true, '2025-06-28', 'Zahn 62 durchgebrochen'),
+      'lr-2': createTooth(true, '2025-08-05', 'Zahn 82 durchgebrochen'),
+      'll-2': createTooth(true, '2025-08-14', 'Zahn 72 durchgebrochen'),
+      'ur-4': createTooth(true, '2025-10-10', 'Erster Backenzahn oben rechts (54)'),
+      'ul-4': createTooth(true, '2025-10-22', 'Erster Backenzahn oben links (64)'),
+      'lr-4': createTooth(true, '2025-11-05', 'Erster Backenzahn unten rechts (84)'),
+      'll-4': createTooth(true, '2025-11-18', 'Erster Backenzahn unten links (74)'),
+      'ur-3': createTooth(true, '2026-01-12', 'Eckzahn oben rechts (53)'),
+      'ul-3': createTooth(true, '2026-01-25', 'Eckzahn oben links (63)'),
+      'lr-3': createTooth(true, '2026-03-08', 'Eckzahn unten rechts (83)'),
+      'll-3': createTooth(true, '2026-03-20', 'Eckzahn unten links (73)'),
     },
     milestones: {
-      'first-smile': {
-        completed: true,
-        date: '2024-09-28',
-        notes: 'Wunderschönes Lächeln beim Stillen.',
-        photo: null,
-      },
-      'hold-head': {
-        completed: true,
-        date: '2024-11-15',
-        notes: 'Kopf super stabil.',
-        photo: null,
-      },
-      'roll-over': {
-        completed: true,
-        date: '2025-01-10',
-        notes: 'Dreht sich blitzschnell in beide Richtungen.',
-        photo: null,
-      },
-      'first-solid-food': {
-        completed: true,
-        date: '2025-02-25',
-        notes: 'Liebt Karottenbrei und Banane.',
-        photo: null,
-      },
-      'sit-alone': {
-        completed: true,
-        date: '2025-04-10',
-        notes: 'Freies Sitzen ohne Umkippen.',
-        photo: null,
-      },
-      crawl: {
-        completed: true,
-        date: '2025-05-02',
-        notes: 'Krabbelt durch das ganze Haus.',
-        photo: null,
-      },
-      'pincer-grasp': {
-        completed: true,
-        date: '2025-05-20',
-        notes: 'Pflückt Heidelbeeren mit den Fingerchen.',
-        photo: null,
-      },
-      'stand-up': {
-        completed: true,
-        date: '2025-06-15',
-        notes: 'Steht frei am Couchtisch.',
-        photo: null,
-      },
-      'first-word': {
-        completed: true,
-        date: '2025-07-10',
-        notes: 'Erstes Wort: „Papa“ und kurz darauf „Wauwau“!',
-        photo: null,
-      },
-      'first-steps': {
-        completed: true,
-        date: '2025-08-10',
-        notes: 'Erste 4 freie Schritte mitten ins Wohnzimmer!',
-        photo: null,
-      },
-      'first-birthday': {
-        completed: true,
-        date: '2025-08-20',
-        notes: '1. Geburtstag mit allen Freunden gefeiert.',
-        photo: null,
-      },
-      'drink-cup': {
-        completed: true,
-        date: '2025-10-15',
-        notes: 'Trinkt alleine aus der Tasse.',
-        photo: null,
-      },
-      'two-words': {
-        completed: true,
-        date: '2026-04-12',
-        notes: '„Auto fahren“, „Mehr Buch“ und „Gute Nacht“',
-        photo: null,
-      },
-      'run-jump': {
-        completed: true,
-        date: '2026-08-01',
-        notes: 'Rennt und hüpft begeistert durch Pfützen.',
-        photo: null,
-      },
+      'first-smile': createMilestone(true, '2024-09-28', 'Wunderschönes Lächeln beim Stillen.'),
+      'hold-head': createMilestone(true, '2024-11-15', 'Kopf super stabil.'),
+      'roll-over': createMilestone(
+        true,
+        '2025-01-10',
+        'Dreht sich blitzschnell in beide Richtungen.'
+      ),
+      'first-solid-food': createMilestone(true, '2025-02-25', 'Liebt Karottenbrei und Banane.'),
+      'sit-alone': createMilestone(true, '2025-04-10', 'Freies Sitzen ohne Umkippen.'),
+      crawl: createMilestone(true, '2025-05-02', 'Krabbelt durch das ganze Haus.'),
+      'pincer-grasp': createMilestone(
+        true,
+        '2025-05-20',
+        'Pflückt Heidelbeeren mit den Fingerchen.'
+      ),
+      'stand-up': createMilestone(true, '2025-06-15', 'Steht frei am Couchtisch.'),
+      'first-word': createMilestone(
+        true,
+        '2025-07-10',
+        'Erstes Wort: „Papa“ und kurz darauf „Wauwau“!'
+      ),
+      'first-steps': createMilestone(
+        true,
+        '2025-08-10',
+        'Erste 4 freie Schritte mitten ins Wohnzimmer!'
+      ),
+      'first-birthday': createMilestone(
+        true,
+        '2025-08-20',
+        '1. Geburtstag mit allen Freunden gefeiert.'
+      ),
+      'drink-cup': createMilestone(true, '2025-10-15', 'Trinkt alleine aus der Tasse.'),
+      'two-words': createMilestone(
+        true,
+        '2026-04-12',
+        '„Auto fahren“, „Mehr Buch“ und „Gute Nacht“'
+      ),
+      'run-jump': createMilestone(true, '2026-08-01', 'Rennt und hüpft begeistert durch Pfützen.'),
     },
     healthLog: [
       {

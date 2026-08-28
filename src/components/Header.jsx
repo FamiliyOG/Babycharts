@@ -23,6 +23,7 @@ import {
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
+import { compressImage } from '../utils/imageCompressor.js';
 import { getAuthorizedMediaUrl } from '../utils/api.js';
 
 function LanguageSwitcherDropdown({ isMobile = false }) {
@@ -414,65 +415,21 @@ function UserMenuDropdown({
     }
 
     setIsUploading(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const result = ev.target?.result;
-        if (typeof result === 'string' && result.startsWith('data:image/')) {
-          const img = new Image();
-          img.onload = async () => {
-            try {
-              const maxDim = 800;
-              let { width, height } = img;
-              if (width > maxDim || height > maxDim) {
-                if (width > height) {
-                  height = Math.round((height * maxDim) / width);
-                  width = maxDim;
-                } else {
-                  width = Math.round((width * maxDim) / height);
-                  height = maxDim;
-                }
-              }
-
-              const canvas = document.createElement('canvas');
-              canvas.width = width;
-              canvas.height = height;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, width, height);
-
-              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
-              const res = await onUpdateProfile({ avatar: compressedDataUrl });
-              if (!res?.ok) {
-                setAvatarError(res?.error || 'Fehler beim Speichern.');
-              } else {
-                setAvatarError(null);
-              }
-            } catch {
-              setAvatarError('Fehler beim Verarbeiten des Bildes.');
-            } finally {
-              setIsUploading(false);
-            }
-          };
-          img.onerror = () => {
-            setAvatarError('Fehler beim Laden des Bildes.');
-            setIsUploading(false);
-          };
-          img.src = result;
+    compressImage(file, 800, 0.85)
+      .then(async (compressedDataUrl) => {
+        const res = await onUpdateProfile({ avatar: compressedDataUrl });
+        if (!res?.ok) {
+          setAvatarError(res?.error || 'Fehler beim Speichern.');
         } else {
-          setAvatarError('Ungültiges Bildformat.');
-          setIsUploading(false);
+          setAvatarError(null);
         }
-      } catch {
-        setAvatarError('Fehler beim Hochladen.');
+      })
+      .catch((err) => {
+        setAvatarError(err.message || 'Fehler beim Verarbeiten des Bildes.');
+      })
+      .finally(() => {
         setIsUploading(false);
-      }
-    };
-    reader.onerror = () => {
-      setAvatarError('Fehler beim Einlesen des Fotos.');
-      setIsUploading(false);
-    };
-    reader.readAsDataURL(file);
+      });
     e.target.value = '';
   };
 

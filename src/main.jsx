@@ -17,7 +17,16 @@ if (typeof window !== 'undefined') {
   });
 
   window.addEventListener('error', (event) => {
-    logClientError(event.message, event.error, {
+    // Ignore harmless browser/extension warnings (e.g. extension accessing file:/// or forced layout notices)
+    const msg = event.message || '';
+    if (
+      msg.includes('may not load or link to file:///') ||
+      msg.includes('Layout-Darstellung') ||
+      msg.includes('Layout')
+    ) {
+      return;
+    }
+    logClientError(msg, event.error, {
       filename: event.filename,
       lineno: event.lineno,
       colno: event.colno,
@@ -25,7 +34,15 @@ if (typeof window !== 'undefined') {
   });
 
   window.addEventListener('unhandledrejection', (event) => {
-    logClientError(event.reason?.message || 'Unhandled Promise Rejection', event.reason, {
+    const msg = event.reason?.message || '';
+    if (
+      msg.includes('may not load or link to file:///') ||
+      msg.includes('Layout-Darstellung') ||
+      msg.includes('Layout')
+    ) {
+      return;
+    }
+    logClientError(msg || 'Unhandled Promise Rejection', event.reason, {
       type: 'unhandledrejection',
     });
   });

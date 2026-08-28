@@ -68,15 +68,22 @@ BabyCharts ist eine selbst gehostete All-in-One Plattform für Eltern und Famili
 - Protokollierung verabreichter Medikamente (z. B. Paracetamol, Ibuprofen) und Dosierungen.
 - Dokumentation von Symptomen (Husten, Schnupfen, Bauchweh etc.).
 
-### 📑 7. Smarte Berichte & Exporte
+### 📑 7. Smarte Berichte & Automatisierte PDF-Generierung
 
+- **Automatisierte PDF-Generierung**: Integrierter Cron-Scheduler mit Headless Chrome / Puppeteer für vollautomatische Monats- und Quartalsberichte.
 - **DIN A4 PDF-Bericht**: Umfassender Ausdruck für Kinderarzt oder Archiv mit Perzentilen und Kurven.
 - **DIN A5 U-Heft Einleger**: Perfekt formatiert zum Einkleben / Einlegen in das offizielle gelbe U-Heft.
 - **Kalender-Export (`.ics`)**: Automatische Termine für alle U-Untersuchungen und Impfungen für Google Calendar, Apple Kalender & Outlook.
 - **CSV / Excel Export**: Rohdaten-Export für eigene Auswertungen.
 - **JSON Backup & Restore**: Vollständige Datensicherung mit 1-Klick-Wiederherstellung.
 
-### 👥 8. Familienverwaltung & Rollen-Autorisierung
+### 🌐 8. Mehrsprachigkeit & Internationalisierung (i18n)
+
+- Vollständig mehrsprachig unterstützt: **Deutsch (DE)**, **Englisch (EN)** und **Thailändisch (TH / ภาษาไทย)**.
+- Optimiertes Font-Rendering für thailändische Schriftzeichen (Noto Sans Thai) im Web & in generierten PDF-Dokumenten.
+- Automatische Spracherkennung via Browser-Präferenzen mit manueller Umschaltmöglichkeit.
+
+### 👥 9. Familienverwaltung & Rollen-Autorisierung
 
 - **Strikte Cross-Family-Isolation**: Vollständige Daten- und Medienisolierung zwischen verschiedenen Familien.
 - Geteilter Zugriff für Elternteile und Partner mit Schreibrechten (`editor` / `admin`).
@@ -88,14 +95,14 @@ BabyCharts ist eine selbst gehostete All-in-One Plattform für Eltern und Famili
 
 ## 🛠️ Technologie-Stack
 
-| Bereich             | Technologien                                                                                |
-| :------------------ | :------------------------------------------------------------------------------------------ |
-| **Frontend**        | React 19, Tailwind CSS v4, Chart.js, React-Chartjs-2, jsPDF, Lucide Icons, Canvas-Confetti  |
-| **Backend**         | Node.js, Express 5 (ESM), SQLite (`better-sqlite3` im WAL-Modus)                            |
-| **Testing**         | Vitest, Supertest (Unit-, Integrations- & Security-Test-Suiten)                             |
-| **Verschlüsselung** | AES-256-GCM für Mediendateien mit persistentem 32-Byte Master-Key, Bcrypt Passworthashes    |
-| **Sicherheit**      | JWT (JSON Web Tokens), 2FA (TOTP via Speakeasy & QRCode), Rollen-Middleware, XSS-Schutz     |
-| **Tooling & CI**    | Vite 8, Prettier, Oxlint, ESLint 9, Stylelint, GitHub Actions CI, Docker Multi-Stage Builds |
+| Bereich             | Technologien                                                                                                    |
+| :------------------ | :-------------------------------------------------------------------------------------------------------------- |
+| **Frontend**        | React 19, Tailwind CSS v4, Chart.js, React-Chartjs-2, jsPDF, Lucide Icons, Canvas-Confetti, i18next (DE/EN/TH)  |
+| **Backend**         | Node.js, Express 5 (ESM), SQLite (`better-sqlite3` im WAL-Modus), Puppeteer, Node-Cron, Nodemailer              |
+| **Testing**         | Vitest, Supertest, Playwright (Unit-, Integrations-, E2E-, A11y- & Security-Suiten)                             |
+| **Verschlüsselung** | AES-256-GCM für Mediendateien mit persistentem 32-Byte Master-Key, Bcrypt Passworthashes                        |
+| **Sicherheit**      | JWT (JSON Web Tokens), 2FA (TOTP via Speakeasy & QRCode), Rollen-Middleware, XSS- & CSP-Schutz                  |
+| **Tooling & CI**    | Vite 8, Prettier, Oxlint, ESLint 9, Stylelint, HTML-Validate, Knip, jscpd, depcruise, Docker Multi-Stage Builds |
 
 ---
 

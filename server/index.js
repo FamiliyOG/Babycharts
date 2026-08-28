@@ -153,28 +153,23 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // ── Client Error Logging (Forward frontend errors to Unraid container log) ───
 app.post('/api/client-logs', (req, res) => {
   const { message, stack, context } = req.body || {};
-  // Sanitize user inputs to prevent log injection (CodeQL js/log-injection CWE-117)
-  const sanitizeForLog = (str, maxLen = 500) => {
-    if (typeof str !== 'string') return '';
-    return str.slice(0, maxLen).replace(/[^a-zA-Z0-9 _.,:;!?'"()/\\[\]{}=+-]/g, '_');
-  };
-
   const safeTime = new Date().toISOString();
-  const safeMessage =
-    typeof message === 'string' ? sanitizeForLog(message, 500) : 'Unknown client error';
+  // Strip control characters, line feeds and carriage returns completely
+  const cleanStr = (val, max = 500) =>
+    typeof val === 'string' ? val.slice(0, max).replace(/[\r\n\t]/g, ' ') : '';
 
-  console.error('[CLIENT ERROR]', safeTime, safeMessage);
-  if (context && typeof context === 'object') {
-    try {
-      const rawJson = JSON.stringify(context) || '';
-      console.error('  Context:', sanitizeForLog(rawJson, 1000));
-    } catch {
-      console.error('  Context: [Unserializable object]');
-    }
-  }
-  if (stack && typeof stack === 'string') {
-    console.error('  Stack:', sanitizeForLog(stack, 1000));
-  }
+  const cleanMessage = cleanStr(message, 500) || 'Unknown client error';
+  const cleanStack = cleanStr(stack, 1000);
+
+  console.error(
+    JSON.stringify({
+      level: 'CLIENT_ERROR',
+      timestamp: safeTime,
+      message: cleanMessage,
+      stack: cleanStack,
+      context: typeof context === 'object' && context !== null ? context : undefined,
+    })
+  );
   return res.json({ ok: true });
 });
 

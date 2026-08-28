@@ -370,25 +370,26 @@ function formatFamilySummary(family, userId) {
   };
 }
 
-function isValidLoginInput(body) {
-  if (!body || typeof body !== 'object') return false;
-  const hasValidEmail = typeof body.email === 'string' && body.email.trim().length > 0;
-  const hasValidPassword = typeof body.password === 'string' && body.password.length > 0;
-  return hasValidEmail && hasValidPassword;
-}
-
 /**
  * POST /api/auth/login
  * Authenticates user and returns JWT + user families
  */
 router.post('/login', loginLimiter, async (req, res) => {
   try {
-    if (!isValidLoginInput(req.body)) {
+    const rawEmail = req.body?.email;
+    const rawPassword = req.body?.password;
+
+    if (typeof rawEmail !== 'string' || typeof rawPassword !== 'string') {
       return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
     }
 
-    const email = req.body.email.trim().toLowerCase();
-    const password = req.body.password;
+    const email = rawEmail.trim().toLowerCase();
+    const password = rawPassword;
+
+    if (email.length === 0 || password.length === 0) {
+      return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
+    }
+
     const db = readDb();
     const user = db.users.find((u) => u.email.toLowerCase() === email);
 
@@ -401,19 +402,19 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
     }
 
-    // Check if user has 2FA enabled
+    // If 2FA is active for this account, verify 2FA code before issuing token
     if (user.twoFactorSecret) {
-      const totpCode =
-        typeof req.body.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
-      if (!totpCode) {
+      const totpInput =
+        typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
+      if (totpInput.length === 0) {
         return res.status(200).json({
           requires2FA: true,
           message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',
         });
       }
 
-      const verified = verifyUserTwoFactor(user, totpCode, db);
-      if (!verified) {
+      const is2faValid = verifyUserTwoFactor(user, totpInput, db);
+      if (!is2faValid) {
         const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
         console.warn(
           `[2FA LOGIN ${new Date().toISOString()}] 2FA login verification failed for user: ${cleanEmail}`
@@ -560,11 +561,11 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
  */
 router.post('/2fa/verify', requireAuth, twoFactorLimiter, (req, res) => {
   try {
-    const totpCode =
-      typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
-    if (totpCode.length === 0) {
+    const rawCode = req.body?.totpCode;
+    if (typeof rawCode !== 'string' || rawCode.trim().length === 0) {
       return res.status(400).json({ error: 'Code ist erforderlich.' });
     }
+    const totpCode = rawCode.replace(/\s+/g, '').trim();
 
     const db = readDb();
     const user = db.users.find((u) => u.id === req.user.id);

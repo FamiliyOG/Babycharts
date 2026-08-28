@@ -13,6 +13,7 @@
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:html": "html-validate index.html",
     "lint:all": "oxlint && eslint . && npm run lint:css && npm run lint:html",
+    "lighthouse": "lhci autorun",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
@@ -62,6 +63,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.39.5",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",

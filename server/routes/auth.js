@@ -370,50 +370,60 @@ function formatFamilySummary(family, userId) {
   };
 }
 
+const validateLoginPayload = (req, res, next) => {
+  const { email, password } = req.body || {};
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  if (cleanEmail.length === 0 || password.length === 0) {
+    return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
+  }
+  req.authEmail = cleanEmail;
+  req.authPassword = password;
+  return next();
+};
+
+const validateTotpCode = (req, res, next) => {
+  const code = req.body?.totpCode;
+  if (typeof code !== 'string' || code.trim().length === 0) {
+    return res.status(400).json({ error: 'Code ist erforderlich.' });
+  }
+  req.authTotp = code.replace(/\s+/g, '').trim();
+  return next();
+};
+
 /**
  * POST /api/auth/login
  * Authenticates user and returns JWT + user families
  */
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', loginLimiter, validateLoginPayload, async (req, res) => {
   try {
-    const rawEmail = req.body?.email;
-    const rawPassword = req.body?.password;
-
-    if (typeof rawEmail !== 'string' || typeof rawPassword !== 'string') {
-      return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
-    }
-
-    const email = rawEmail.trim().toLowerCase();
-    const password = rawPassword;
-
-    if (email.length === 0 || password.length === 0) {
-      return res.status(400).json({ error: 'E-Mail und Passwort sind erforderlich.' });
-    }
-
     const db = readDb();
-    const user = db.users.find((u) => u.email.toLowerCase() === email);
+    const user = db.users.find((u) => u.email.toLowerCase() === req.authEmail);
 
     if (!user) {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(req.authPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
     }
 
     // If 2FA is active for this account, verify 2FA code before issuing token
     if (user.twoFactorSecret) {
-      const totpInput =
+      const code =
         typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
-      if (totpInput.length === 0) {
+      const hasCode = code.length > 0;
+      if (!hasCode) {
         return res.status(200).json({
           requires2FA: true,
           message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',
         });
       }
 
-      const is2faValid = verifyUserTwoFactor(user, totpInput, db);
+      const is2faValid = verifyUserTwoFactor(user, code, db);
       if (!is2faValid) {
         const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
         console.warn(
@@ -559,13 +569,9 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
  * POST /api/auth/2fa/verify
  * Verifies code and confirms permanent 2FA activation
  */
-router.post('/2fa/verify', requireAuth, twoFactorLimiter, (req, res) => {
+router.post('/2fa/verify', requireAuth, twoFactorLimiter, validateTotpCode, (req, res) => {
   try {
-    const rawCode = req.body?.totpCode;
-    if (typeof rawCode !== 'string' || rawCode.trim().length === 0) {
-      return res.status(400).json({ error: 'Code ist erforderlich.' });
-    }
-    const totpCode = rawCode.replace(/\s+/g, '').trim();
+    const totpCode = req.authTotp;
 
     const db = readDb();
     const user = db.users.find((u) => u.id === req.user.id);

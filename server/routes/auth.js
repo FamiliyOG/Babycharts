@@ -413,18 +413,20 @@ router.post('/login', loginLimiter, validateLoginPayload, async (req, res) => {
 
     // If 2FA is active for this account, verify 2FA code before issuing token
     if (user.twoFactorSecret) {
-      const code =
+      const totpCode =
         typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
-      const hasCode = code.length > 0;
-      if (!hasCode) {
+
+      // If user hasn't provided a code yet, respond with requires2FA prompt
+      if (totpCode.length === 0) {
         return res.status(200).json({
           requires2FA: true,
           message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',
         });
       }
 
-      const is2faValid = verifyUserTwoFactor(user, code, db);
-      if (!is2faValid) {
+      // If a code was provided, verify it strictly
+      const isValid = verifyUserTwoFactor(user, totpCode, db);
+      if (isValid !== true) {
         const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
         console.warn(
           `[2FA LOGIN ${new Date().toISOString()}] 2FA login verification failed for user: ${cleanEmail}`

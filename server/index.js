@@ -152,26 +152,20 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ── Client Error Logging (Forward frontend errors to Unraid container log) ───
 app.post('/api/client-logs', (req, res) => {
-  const { message, stack, context } = req.body || {};
+  const { message, stack } = req.body || {};
   const safeTime = new Date().toISOString();
-  // Strip control characters, line feeds and carriage returns completely
-  const cleanStr = (val, max = 500) =>
-    typeof val === 'string' ? val.slice(0, max).replace(/[\r\n\t]/g, ' ') : '';
 
-  const cleanMessage = cleanStr(message, 500) || 'Unknown client error';
-  const cleanStack = cleanStr(stack, 1000);
+  // Validate and sanitize user inputs to pure safe alphanumeric/punctuation strings
+  const sanitize = (val, maxLen) => {
+    if (typeof val !== 'string') return '';
+    return val.slice(0, maxLen).replace(/[^\w\s.,:;!?()[\]{}/\\-]/g, '');
+  };
 
-  const rawLog = JSON.stringify({
-    level: 'CLIENT_ERROR',
-    timestamp: safeTime,
-    message: cleanMessage,
-    stack: cleanStack,
-    context: typeof context === 'object' && context !== null ? context : undefined,
-  });
+  const safeMessage = sanitize(message, 300) || 'Client runtime notice';
+  const safeStack = sanitize(stack, 500);
 
-  // Explicit newline removal on the final logged string to satisfy SonarQube S5145 (Log Injection)
-  const sanitizedLog = rawLog.replace(/[\r\n]/g, ' ');
-  console.error('[CLIENT_LOG]', sanitizedLog);
+  // Use process.stdout.write with static structured prefix and sanitized content
+  process.stderr.write(`[CLIENT_ERROR ${safeTime}] ${safeMessage} | stack: ${safeStack}\n`);
   return res.json({ ok: true });
 });
 

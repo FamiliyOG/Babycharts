@@ -189,6 +189,39 @@ router.post('/', requireAuth, (req, res) => {
   return res.status(201).json(profile);
 });
 
+const ALLOWED_PROFILE_KEYS = [
+  'name',
+  'dob',
+  'gender',
+  'bloodType',
+  'measurements',
+  'milestones',
+  'customMilestones',
+  'teeth',
+  'uCheckups',
+  'vaccines',
+  'allergies',
+  'conditions',
+  'notes',
+  'avatar',
+  'familyId',
+];
+
+/** Merges updated profile fields into existing profile safely */
+function applyProfileUpdates(existingProfile, body, profileId) {
+  const updated = { ...existingProfile, id: profileId };
+  if (!body || typeof body !== 'object') return updated;
+
+  for (const key of ALLOWED_PROFILE_KEYS) {
+    if (body[key] !== undefined) {
+      updated[key] = body[key];
+    }
+  }
+
+  updated.schedule = body.schedule ?? existingProfile.schedule ?? defaultSchedule();
+  return updated;
+}
+
 // PUT – update profile (requires editor or admin role in profile's family)
 router.put('/:id', requireAuth, (req, res) => {
   const db = readDb();
@@ -221,16 +254,12 @@ router.put('/:id', requireAuth, (req, res) => {
     }
   }
 
-  db.profiles[idx] = {
-    ...existingProfile,
-    ...req.body,
-    id: req.params.id, // prevent id change
-    schedule: req.body.schedule ?? existingProfile.schedule ?? defaultSchedule(),
-  };
+  const updatedProfile = applyProfileUpdates(existingProfile, req.body, req.params.id);
+  db.profiles.splice(idx, 1, updatedProfile);
 
   writeDb(db);
   rescheduleAll();
-  return res.json(db.profiles[idx]);
+  return res.json(updatedProfile);
 });
 
 // DELETE – remove profile (requires editor or admin role in profile's family)

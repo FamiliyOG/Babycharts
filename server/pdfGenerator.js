@@ -70,10 +70,10 @@ export async function generatePdfForChild(profile, appUrl) {
       margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
     });
 
-    console.log(`[PDF] ✅ Generated: ${outputPath}`);
+    console.log('[PDF] Generated: %s', outputPath);
     return outputPath;
   } catch (err) {
-    console.error(`[PDF] ❌ Failed for "${profile.name}":`, err.message);
+    console.error('[PDF] Failed for profile:', profile?.name, err?.message || err);
     return null;
   } finally {
     if (browser) await browser.close();

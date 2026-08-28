@@ -257,7 +257,7 @@ router.get('/:id', requireMediaAuth, (req, res) => {
     const iv = Buffer.from(meta.iv, 'hex');
     const authTag = Buffer.from(meta.authTag, 'hex');
 
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv, { authTagLength: 16 });
     decipher.setAuthTag(authTag);
     const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
 

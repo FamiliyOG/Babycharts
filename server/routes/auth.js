@@ -42,7 +42,7 @@ export function decryptTwoFactorSecret(encryptedSecret) {
     const key = crypto.createHash('sha256').update(JWT_SECRET).digest();
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(tagHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv, { authTagLength: 16 });
     decipher.setAuthTag(authTag);
     const decrypted = Buffer.concat([
       decipher.update(Buffer.from(dataHex, 'hex')),
@@ -540,7 +540,8 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error(
-      `\x1b[31m[2FA SETUP ERROR ${new Date().toISOString()}]\x1b[0m Error generating 2FA secret:`,
+      '[2FA SETUP ERROR %s] Error generating 2FA secret:',
+      new Date().toISOString(),
       err
     );
     return res.status(500).json({ error: 'Fehler beim Generieren des 2FA-Codes.' });
@@ -631,10 +632,7 @@ router.post('/2fa/verify', requireAuth, twoFactorLimiter, (req, res) => {
       recoveryCodes, // Provided to user to save/print
     });
   } catch (err) {
-    console.error(
-      `\x1b[31m[2FA VERIFY ERROR ${new Date().toISOString()}]\x1b[0m Verification exception:`,
-      err
-    );
+    console.error('[2FA VERIFY ERROR %s] Verification exception:', new Date().toISOString(), err);
     return res.status(500).json({ error: 'Fehler bei der 2FA-Verifikation.' });
   }
 });

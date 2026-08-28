@@ -161,15 +161,17 @@ app.post('/api/client-logs', (req, res) => {
   const cleanMessage = cleanStr(message, 500) || 'Unknown client error';
   const cleanStack = cleanStr(stack, 1000);
 
-  console.error(
-    JSON.stringify({
-      level: 'CLIENT_ERROR',
-      timestamp: safeTime,
-      message: cleanMessage,
-      stack: cleanStack,
-      context: typeof context === 'object' && context !== null ? context : undefined,
-    })
-  );
+  const rawLog = JSON.stringify({
+    level: 'CLIENT_ERROR',
+    timestamp: safeTime,
+    message: cleanMessage,
+    stack: cleanStack,
+    context: typeof context === 'object' && context !== null ? context : undefined,
+  });
+
+  // Explicit newline removal on the final logged string to satisfy SonarQube S5145 (Log Injection)
+  const sanitizedLog = rawLog.replace(/[\r\n]/g, ' ');
+  console.error('[CLIENT_LOG]', sanitizedLog);
   return res.json({ ok: true });
 });
 

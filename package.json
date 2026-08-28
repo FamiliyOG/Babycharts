@@ -82,7 +82,7 @@
     "html-validate": "^11.10.0",
     "jscpd": "^5.0.16",
     "jsdom": "^30.0.1",
-    "knip": "^6.32.3",
+    "knip": "^6.33.0",
     "oxlint": "^1.80.0",
     "prettier": "^3.9.6",
     "rollup-plugin-visualizer": "^7.1.1",
@@ -92,5 +92,10 @@
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "extract-zip": "^2.0.1",
+    "tmp": "^0.2.3",
+    "uuid": "^11.1.0"
   }
 }

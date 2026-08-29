@@ -38,7 +38,7 @@ const METRIC_UNITS = {
 };
 
 function formatMetricDisplayValue(val, metric) {
-  if (val === null || val === undefined) return '';
+  if (val == null) return '';
   if (metric === 'weight') {
     return `${Math.round(val * 1000).toLocaleString('de-DE')} g`;
   }
@@ -244,6 +244,13 @@ function buildChartOptions(
   const tooltipBody = isDark ? '#cbd5e1' : '#334155';
   const tooltipBorder = isDark ? 'rgba(51, 65, 85, 0.8)' : 'rgba(203, 213, 225, 0.8)';
 
+  let stepSize = 6;
+  if (maxAgeMonths <= 12) {
+    stepSize = 1;
+  } else if (maxAgeMonths <= 24) {
+    stepSize = 2;
+  }
+
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -321,7 +328,7 @@ function buildChartOptions(
         grid: { color: gridColor },
         ticks: {
           color: tickColor,
-          stepSize: maxAgeMonths <= 12 ? 1 : maxAgeMonths <= 24 ? 2 : 6,
+          stepSize,
           callback: (value) => {
             if (value === 0) return t('growth.birth') || 'Geburt';
             const years = Math.floor(value / 12);

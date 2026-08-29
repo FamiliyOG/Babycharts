@@ -5,6 +5,15 @@
 
 export const STIKO_VACCINATIONS = [
   {
+    id: 'rsv-prophylaxe',
+    name: 'RSV-Prophylaxe (Nirsevimab)',
+    shortName: 'RSV',
+    recommendedAgeMonths: 0,
+    periodText: 'Vor 1. RSV-Saison / Ab Geburt',
+    description:
+      'Antikörper-Immunisierung zum Schutz vor schweren Atemwegsinfektionen durch das RS-Virus.',
+  },
+  {
     id: 'rotavirus-1',
     name: 'Rotaviren (1. Dosis)',
     shortName: 'Rotaviren 1',
@@ -19,6 +28,15 @@ export const STIKO_VACCINATIONS = [
     recommendedAgeMonths: 3,
     periodText: 'Im Abstand von 4 Wochen',
     description: '2. Teil der Schluckimpfung.',
+  },
+  {
+    id: 'meningokokken-b-1',
+    name: 'Meningokokken B (1. Dosis)',
+    shortName: 'Meningokokken B 1',
+    recommendedAgeMonths: 2,
+    periodText: 'Im 2. Lebensmonat (ab 2 Monate)',
+    description:
+      'Schutz vor invasiven Hirnhaut- und Blutvergiftungserkrankungen durch Meningokokken Typ B.',
   },
   {
     id: '6fach-1',
@@ -36,6 +54,14 @@ export const STIKO_VACCINATIONS = [
     recommendedAgeMonths: 2,
     periodText: 'Im 2. Lebensmonat',
     description: 'Schutz vor schwerer Lungen-, Hirnhaut- und Mittelohrentzündung.',
+  },
+  {
+    id: 'meningokokken-b-2',
+    name: 'Meningokokken B (2. Dosis)',
+    shortName: 'Meningokokken B 2',
+    recommendedAgeMonths: 4,
+    periodText: 'Im 4. Lebensmonat',
+    description: '2. Dosis Meningokokken B.',
   },
   {
     id: '6fach-2',
@@ -70,6 +96,14 @@ export const STIKO_VACCINATIONS = [
     description: 'Abschluss der Pneumokokken-Grundimmunisierung.',
   },
   {
+    id: 'meningokokken-b-3',
+    name: 'Meningokokken B (3. Dosis / Abschluss)',
+    shortName: 'Meningokokken B 3',
+    recommendedAgeMonths: 12,
+    periodText: 'Im 12.–15. Lebensmonat',
+    description: 'Abschluss der Grundimmunisierung gegen Meningokokken B.',
+  },
+  {
     id: 'meningokokken-c',
     name: 'Meningokokken C',
     shortName: 'Meningokokken C',
@@ -92,5 +126,23 @@ export const STIKO_VACCINATIONS = [
     recommendedAgeMonths: 15,
     periodText: 'Im 15.–23. Lebensmonat',
     description: '2. Impfung für vollständigen Schutz gegen MMR & Windpocken.',
+  },
+  {
+    id: 'hepatitis-a',
+    name: 'Hepatitis A (Reise- / Indikationsimpfung)',
+    shortName: 'Hepatitis A',
+    recommendedAgeMonths: 12,
+    periodText: 'Ab 12 Monaten (2 Dosen im Abstand von 6–12 Mon.)',
+    description:
+      'Schutz vor infektiöser Leberentzündung (Hepatitis A) bei Reisen oder erhöhtem Risiko.',
+  },
+  {
+    id: 'influenza',
+    name: 'Grippe / Influenza (Saisonal)',
+    shortName: 'Grippe (Influenza)',
+    recommendedAgeMonths: 6,
+    periodText: 'Jährlich ab Herbst (ab 6 Monaten)',
+    description:
+      'Saisonaler Schutz vor echter Grippe für Kinder mit chronischen Erkrankungen oder erhöhtem Risiko.',
   },
 ];

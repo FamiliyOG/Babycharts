@@ -191,6 +191,7 @@ router.post('/', requireAuth, (req, res) => {
 
 const ALLOWED_PROFILE_KEYS = [
   'name',
+  'birthdate',
   'dob',
   'gender',
   'bloodType',
@@ -199,7 +200,9 @@ const ALLOWED_PROFILE_KEYS = [
   'customMilestones',
   'teeth',
   'uCheckups',
+  'vaccinations',
   'vaccines',
+  'healthLog',
   'allergies',
   'conditions',
   'notes',

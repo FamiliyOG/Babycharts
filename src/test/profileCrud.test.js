@@ -57,6 +57,16 @@ describe('Profile CRUD & Measurement Security Test Suite (BC-084)', () => {
       .send({
         name: 'Maximilian',
         notes: 'Liebt Spaziergänge',
+        vaccinations: {
+          'rotavirus-1': {
+            completed: true,
+            date: '2025-02-15',
+            doctor: 'Dr. Test',
+            batch: 'RV-1234',
+            notes: 'Test Impfung',
+            updatedAt: '2025-02-15T10:00:00.000Z',
+          },
+        },
         measurements: [
           {
             id: 'm-test-1',
@@ -72,6 +82,7 @@ describe('Profile CRUD & Measurement Security Test Suite (BC-084)', () => {
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.name).toBe('Maximilian');
     expect(updateRes.body.measurements).toHaveLength(1);
+    expect(updateRes.body.vaccinations?.['rotavirus-1']?.completed).toBe(true);
 
     // 4. Delete child profile (DELETE /api/profiles/:id)
     const deleteRes = await request(app)

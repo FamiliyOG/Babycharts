@@ -419,6 +419,11 @@
     "recordVaccine": "Record Vaccination",
     "removeVaccine": "Remove Vaccination",
     "items": {
+      "rsv-prophylaxe": {
+        "name": "RSV Immunization (Nirsevimab)",
+        "period": "Before 1st RSV season / From birth",
+        "desc": "Monoclonal antibody immunization to protect against severe respiratory syncytial virus infections."
+      },
       "rotavirus-1": {
         "name": "Rotavirus (1st dose)",
         "period": "From 6th week of life",
@@ -429,6 +434,11 @@
         "period": "4 weeks after 1st dose",
         "desc": "2nd part of oral rotavirus vaccination."
       },
+      "meningokokken-b-1": {
+        "name": "Meningococcal B (1st dose)",
+        "period": "2nd month of life (from 2 months)",
+        "desc": "Protection against invasive meningitis and sepsis caused by Meningococcal group B."
+      },
       "6fach-1": {
         "name": "6-in-1 Vaccine (1st dose)",
         "period": "2nd month of life",
@@ -438,6 +448,11 @@
         "name": "Pneumococcal (1st dose)",
         "period": "2nd month of life",
         "desc": "Protection against severe pneumonia, meningitis, and ear infections."
+      },
+      "meningokokken-b-2": {
+        "name": "Meningococcal B (2nd dose)",
+        "period": "4th month of life",
+        "desc": "2nd dose of Meningococcal B vaccine."
       },
       "6fach-2": {
         "name": "6-in-1 Vaccine (2nd dose)",
@@ -459,6 +474,11 @@
         "period": "11th–14th month of life",
         "desc": "Completion of primary pneumococcal immunization."
       },
+      "meningokokken-b-3": {
+        "name": "Meningococcal B (3rd dose / Completion)",
+        "period": "12th–15th month of life",
+        "desc": "Completion of primary immunization against Meningococcal B."
+      },
       "meningokokken-c": {
         "name": "Meningococcal C",
         "period": "12th month of life",
@@ -473,6 +493,16 @@
         "name": "MMRV (2nd dose / Completion)",
         "period": "15th–23rd month of life",
         "desc": "2nd dose for complete protection against MMR & Chickenpox."
+      },
+      "hepatitis-a": {
+        "name": "Hepatitis A (Travel / Indication)",
+        "period": "From 12 months (2 doses 6–12 months apart)",
+        "desc": "Protection against infectious Hepatitis A for travel or specific health conditions."
+      },
+      "influenza": {
+        "name": "Flu / Influenza (Seasonal)",
+        "period": "Annually in Autumn (from 6 months)",
+        "desc": "Seasonal protection against influenza for children with chronic conditions or increased risk."
       }
     }
   },

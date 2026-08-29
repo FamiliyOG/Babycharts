@@ -419,6 +419,11 @@
     "recordVaccine": "Impfung eintragen",
     "removeVaccine": "Impfung entfernen",
     "items": {
+      "rsv-prophylaxe": {
+        "name": "RSV-Prophylaxe (Nirsevimab)",
+        "period": "Vor 1. RSV-Saison / Ab Geburt",
+        "desc": "Antikörper-Immunisierung zum Schutz vor schweren Atemwegsinfektionen durch das RS-Virus."
+      },
       "rotavirus-1": {
         "name": "Rotaviren (1. Dosis)",
         "period": "Ab 6. Lebenswoche",
@@ -429,6 +434,11 @@
         "period": "Im Abstand von 4 Wochen",
         "desc": "2. Teil der Schluckimpfung."
       },
+      "meningokokken-b-1": {
+        "name": "Meningokokken B (1. Dosis)",
+        "period": "Im 2. Lebensmonat (ab 2 Monate)",
+        "desc": "Schutz vor invasiven Hirnhaut- und Blutvergiftungserkrankungen durch Meningokokken Typ B."
+      },
       "6fach-1": {
         "name": "6-fach-Impfung (1. Dosis)",
         "period": "Im 2. Lebensmonat",
@@ -438,6 +448,11 @@
         "name": "Pneumokokken (1. Dosis)",
         "period": "Im 2. Lebensmonat",
         "desc": "Schutz vor schwerer Lungen-, Hirnhaut- und Mittelohrentzündung."
+      },
+      "meningokokken-b-2": {
+        "name": "Meningokokken B (2. Dosis)",
+        "period": "Im 4. Lebensmonat",
+        "desc": "2. Dosis Meningokokken B."
       },
       "6fach-2": {
         "name": "6-fach-Impfung (2. Dosis)",
@@ -459,6 +474,11 @@
         "period": "Im 11.–14. Lebensmonat",
         "desc": "Abschluss der Pneumokokken-Grundimmunisierung."
       },
+      "meningokokken-b-3": {
+        "name": "Meningokokken B (3. Dosis / Abschluss)",
+        "period": "Im 12.–15. Lebensmonat",
+        "desc": "Abschluss der Grundimmunisierung gegen Meningokokken B."
+      },
       "meningokokken-c": {
         "name": "Meningokokken C",
         "period": "Im 12. Lebensmonat",
@@ -473,6 +493,16 @@
         "name": "MMRV (2. Dosis / Abschluss)",
         "period": "Im 15.–23. Lebensmonat",
         "desc": "2. Impfung für vollständigen Schutz gegen MMR & Windpocken."
+      },
+      "hepatitis-a": {
+        "name": "Hepatitis A (Reise- / Indikationsimpfung)",
+        "period": "Ab 12 Monaten (2 Dosen im Abstand von 6–12 Mon.)",
+        "desc": "Schutz vor infektiöser Leberentzündung (Hepatitis A) bei Reisen oder erhöhtem Risiko."
+      },
+      "influenza": {
+        "name": "Grippe / Influenza (Saisonal)",
+        "period": "Jährlich ab Herbst (ab 6 Monaten)",
+        "desc": "Saisonaler Schutz vor echter Grippe für Kinder mit chronischen Erkrankungen oder erhöhtem Risiko."
       }
     }
   },

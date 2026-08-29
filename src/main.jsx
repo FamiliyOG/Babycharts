@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './index.css';
 import './i18n/index.js';
 import App from './App.jsx';
@@ -80,9 +81,21 @@ if (typeof window !== 'undefined') {
 // Select root component: Puppeteer report mode vs. full app
 const puppeteerChildId = new URLSearchParams(window.location.search).get('puppeteerReport');
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutes fresh cache
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
+});
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ThemeProvider>{puppeteerChildId ? <ReportPrintPage /> : <App />}</ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>{puppeteerChildId ? <ReportPrintPage /> : <App />}</ThemeProvider>
+    </QueryClientProvider>
   </StrictMode>
 );
 

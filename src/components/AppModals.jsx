@@ -10,7 +10,6 @@ export default function AppModals({
   activeChild,
   profiles,
   setProfiles,
-  activeFamily,
   importProfiles,
   isQuickAddOpen,
   setIsQuickAddOpen,
@@ -90,8 +89,8 @@ export default function AppModals({
           profiles={profiles}
           onLoadDemoData={handleLoadDemoData}
           onImportProfiles={(imported) => {
-            setProfiles(imported);
-            importProfiles(imported, activeFamily?.id).catch(() => {});
+            if (setProfiles) setProfiles(imported);
+            importProfiles(imported);
           }}
           onClose={() => setIsExportModalOpen(false)}
         />

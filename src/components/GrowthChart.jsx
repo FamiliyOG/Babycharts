@@ -448,74 +448,14 @@ export default function GrowthChart({ activeChild }) {
         />
       </div>
 
-      {/* Interactive Legend with Mouseover Tooltips */}
-      <div className="mb-3 sm:mb-4">
-        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3 py-1.5 sm:py-2 px-2 sm:px-3 bg-slate-100 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800/80 text-[11px] sm:text-xs">
-          {legendItems.map((item) => {
-            const shortLabelMap = {
-              child: activeChild.name,
-              p50: '50% (Ø)',
-              p15_85: '15% – 85%',
-              p85: '85%',
-              p97: '97%',
-              p3: '3%',
-            };
-            const mobileShortLabel = shortLabelMap[item.key] || item.label;
-
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onMouseEnter={() => setHoveredLegendKey(item.key)}
-                onMouseLeave={() => setHoveredLegendKey(null)}
-                onClick={() => toggleDataset(item.key)}
-                aria-label={`Legende: ${item.label}`}
-                className={`group relative flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-all border-0 bg-transparent text-left focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-700 ${
-                  hiddenDatasets[item.key]
-                    ? 'opacity-40 line-through bg-slate-200/50 dark:bg-slate-900/40'
-                    : 'hover:bg-slate-200/60 dark:hover:bg-slate-800/80'
-                }`}
-              >
-                {item.style === 'solid-dot' && (
-                  <span
-                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-white shadow-sm shrink-0"
-                    style={{ backgroundColor: item.color }}
-                  />
-                )}
-                {item.style === 'dashed-line' && (
-                  <span className="w-3.5 sm:w-4 h-0 border-t-2 border-dashed border-slate-600 dark:border-white opacity-80 shrink-0" />
-                )}
-                {item.style === 'shaded-box' && (
-                  <span
-                    className="w-3 sm:w-3.5 h-3 sm:h-3.5 rounded border border-slate-400 dark:border-slate-600 shadow-inner shrink-0"
-                    style={{ backgroundColor: item.color }}
-                  />
-                )}
-                {item.style === 'solid-line' && (
-                  <span className="w-3.5 sm:w-4 h-0 border-t-2 border-slate-400 shrink-0" />
-                )}
-                {item.style === 'dashed-line-red' && (
-                  <span className="w-3.5 sm:w-4 h-0 border-t-2 border-dashed border-rose-500 shrink-0" />
-                )}
-
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  <span className="inline sm:hidden">{mobileShortLabel}</span>
-                  <span className="hidden sm:inline">{item.label}</span>
-                </span>
-
-                <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 sm:w-64 p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[11px] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 leading-snug">
-                  <div className="font-bold text-slate-900 dark:text-white mb-0.5 flex items-center gap-1 text-xs">
-                    <Info className="w-3 h-3 text-cyan-500" />
-                    <span>{item.label}</span>
-                  </div>
-                  <div>{item.description}</div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-200 dark:border-t-slate-950" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Interactive Legend with Mouseover Tooltips Subcomponent */}
+      <GrowthLegend
+        legendItems={legendItems}
+        hiddenDatasets={hiddenDatasets}
+        toggleDataset={toggleDataset}
+        setHoveredLegendKey={setHoveredLegendKey}
+        isGirl={isGirl}
+      />
 
       {/* Chart Canvas Container */}
       <div className="h-96 w-full relative">

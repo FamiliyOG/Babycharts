@@ -6,14 +6,8 @@ import OfflineBanner from './components/OfflineBanner.jsx';
 import AppModals from './components/AppModals.jsx';
 import AppContent from './components/AppContent.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-import {
-  importProfiles,
-  fetchProfiles,
-  createProfile,
-  updateProfile,
-  deleteProfile,
-  logClientError,
-} from './utils/api.js';
+import { useProfiles, useProfileMutations } from './utils/useProfilesQuery.js';
+import { logClientError } from './utils/api.js';
 import { getAppSettings, saveAppSettings } from './utils/storage.js';
 import { DEMO_PROFILES } from './data/demoProfiles.js';
 import { calculateAge } from './utils/percentileCalc.js';
@@ -27,7 +21,7 @@ function MainApp() {
     canEdit,
     isDev,
     userRole,
-    isLoading,
+    isLoading: isAuthLoading,
     isAuthModalOpen,
     setIsAuthModalOpen,
     isFamilyModalOpen,
@@ -37,53 +31,20 @@ function MainApp() {
   } = useAuth();
 
   const familyId = activeFamily?.id || null;
-  const [profiles, setProfiles] = useState([]);
   const [activeChildId, setActiveChildId] = useState(null);
+
+  const { data: profiles = [], isLoading: isProfilesLoading } = useProfiles(familyId, {
+    enabled: !!user,
+  });
+
+  const { createMutation, updateMutation, deleteMutation, importMutation, invalidateProfiles } =
+    useProfileMutations(familyId);
+
+  const isLoading = isAuthLoading || (!!user && isProfilesLoading);
 
   const handleSelectChild = (childId) => {
     setActiveChildId(childId);
   };
-
-  useEffect(() => {
-    if (!user) return;
-
-    let isMounted = true;
-
-    const applySyncedProfiles = (serverProfiles) => {
-      if (!isMounted || !Array.isArray(serverProfiles)) return;
-      setProfiles(serverProfiles);
-      setActiveChildId((prev) => {
-        const exists = serverProfiles.some((p) => p.id === prev);
-        return exists ? prev : serverProfiles[0]?.id || null;
-      });
-    };
-
-    const syncServerProfiles = async () => {
-      try {
-        const serverProfiles = await fetchProfiles(familyId);
-        applySyncedProfiles(serverProfiles);
-      } catch {
-        // Ignore network offline sync errors
-      }
-    };
-
-    syncServerProfiles();
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        syncServerProfiles();
-      }
-    };
-
-    window.addEventListener('focus', syncServerProfiles);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener('focus', syncServerProfiles);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user, familyId]);
 
   const [activeTab, setActiveTab] = useState(() => {
     const saved = getAppSettings();
@@ -138,15 +99,13 @@ function MainApp() {
           familyId: activeFamily?.id,
           measurements: profileData.measurements || [],
         };
-        const serverProfile = await createProfile(payload);
-        setProfiles((prev) => [...prev, serverProfile]);
+        const serverProfile = await createMutation.mutateAsync(payload);
         setActiveChildId(serverProfile.id);
         showToast(`Profil "${serverProfile.name}" erfolgreich erstellt! 🎉`);
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
       } else {
         const payload = { ...profileData, familyId: profileData.familyId || activeFamily?.id };
-        const updated = await updateProfile(payload.id, payload);
-        setProfiles((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        const updated = await updateMutation.mutateAsync({ id: payload.id, payload });
         showToast(`Profil "${updated.name}" aktualisiert.`);
       }
     } catch (err) {
@@ -167,8 +126,7 @@ function MainApp() {
     }
 
     try {
-      await deleteProfile(childId);
-      setProfiles((prev) => prev.filter((p) => p.id !== childId));
+      await deleteMutation.mutateAsync(childId);
       setActiveChildId((prev) => (prev === childId ? null : prev));
       showToast('Profil gelöscht.');
     } catch (err) {
@@ -255,11 +213,9 @@ function MainApp() {
           id: crypto.randomUUID(),
           familyId: activeFamily?.id,
         };
-        await createProfile(payload);
+        await createMutation.mutateAsync(payload);
       }
-      const refreshed = await fetchProfiles(familyId);
-      setProfiles(refreshed);
-      if (refreshed.length > 0) setActiveChildId(refreshed[0].id);
+      invalidateProfiles();
       showToast('Demo-Profile geladen! 🎉');
       confetti({ particleCount: 60, spread: 70, origin: { y: 0.5 } });
     } catch (err) {
@@ -385,9 +341,9 @@ function MainApp() {
       <AppModals
         activeChild={activeChild}
         profiles={profiles}
-        setProfiles={setProfiles}
+        setProfiles={undefined}
         activeFamily={activeFamily}
-        importProfiles={importProfiles}
+        importProfiles={(imported) => importMutation.mutateAsync(imported)}
         isQuickAddOpen={isQuickAddOpen}
         setIsQuickAddOpen={setIsQuickAddOpen}
         isProfileModalOpen={isProfileModalOpen}

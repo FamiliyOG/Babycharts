@@ -1,19 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  X,
-  Users,
-  Copy,
-  Check,
-  UserPlus,
-  Trash2,
-  KeyRound,
-  Edit2,
-  Camera,
-  LogOut,
-  Crown,
-  Clock,
-} from 'lucide-react';
+import { X, Users, Trash2, KeyRound, Edit2, Camera, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 import {
@@ -28,6 +15,8 @@ import {
   deleteFamily,
   getAuthorizedMediaUrl,
 } from '../utils/api.js';
+import InviteCodeManager from './family/InviteCodeManager.jsx';
+import MemberList, { getRoleBadgeClass, getFullRoleLabel } from './family/MemberList.jsx';
 
 export default function FamilyManagementModal({ isOpen, onClose }) {
   const { t } = useTranslation();
@@ -45,9 +34,9 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
   const { dialogRef } = useModalDismissal(isOpen, onClose);
 
   const [familyData, setFamilyData] = useState(null);
-  const [inviteRole, setInviteRole] = useState('editor'); // 'editor' | 'viewer'
-  const [inviteExpiresIn, setInviteExpiresIn] = useState('48'); // '24' | '48' | '168' | '720'
-  const [inviteMaxUses, setInviteMaxUses] = useState('1'); // '1' | '3' | '5' | '0'
+  const [inviteRole, setInviteRole] = useState('editor');
+  const [inviteExpiresIn, setInviteExpiresIn] = useState('48');
+  const [inviteMaxUses, setInviteMaxUses] = useState('1');
   const [generatedInvite, setGeneratedInvite] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -98,20 +87,17 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const base64Data = ev.target?.result;
-      if (!base64Data || !activeFamily?.id) {
-        setIsUploadingAvatar(false);
-        return;
+      if (base64Data && activeFamily?.id) {
+        const res = await updateFamily(activeFamily.id, { avatar: base64Data });
+        if (res.ok) {
+          await loadFamily();
+          if (refreshUser) await refreshUser();
+          setStatusMessage('Familien-Icon erfolgreich aktualisiert.');
+        } else {
+          setStatusMessage(res.error || 'Fehler beim Hochladen.');
+        }
       }
-
-      const res = await updateFamily(activeFamily.id, { avatar: base64Data });
       setIsUploadingAvatar(false);
-      if (res.ok) {
-        setStatusMessage('Familien-Icon erfolgreich aktualisiert.');
-        await refreshUser(activeFamily.id);
-        loadFamily();
-      } else {
-        setStatusMessage(res.error || 'Fehler beim Hochladen des Bildes.');
-      }
     };
     reader.readAsDataURL(file);
   };
@@ -120,42 +106,41 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     if (!activeFamily?.id) return;
     const res = await updateFamily(activeFamily.id, { avatar: null });
     if (res.ok) {
-      setStatusMessage('Familien-Icon zurückgesetzt.');
-      await refreshUser(activeFamily.id);
-      loadFamily();
+      await loadFamily();
+      if (refreshUser) await refreshUser();
+      setStatusMessage('Familien-Icon entfernt.');
     }
   };
 
-  if (!isOpen) return null;
+  const handleSaveFamilyName = async (e) => {
+    e.preventDefault();
+    if (!editedName.trim() || !activeFamily?.id) return;
+    const res = await updateFamily(activeFamily.id, { name: editedName.trim() });
+    if (res.ok) {
+      setIsEditingName(false);
+      await loadFamily();
+      if (refreshUser) await refreshUser();
+      setStatusMessage('Familienname gespeichert.');
+    } else {
+      setStatusMessage(res.error || 'Fehler beim Speichern.');
+    }
+  };
 
-  const handleCreateInvite = async () => {
+  const handleGenerateInvite = async (e) => {
+    e.preventDefault();
     if (!activeFamily?.id) return;
     const res = await createFamilyInvite(
       activeFamily.id,
       inviteRole,
-      Number(inviteExpiresIn),
-      Number(inviteMaxUses)
+      Number.parseInt(inviteExpiresIn, 10),
+      Number.parseInt(inviteMaxUses, 10)
     );
     if (res.ok) {
       setGeneratedInvite(res.data);
-      loadFamily();
-    }
-  };
-
-  const handleTransferOwnership = async (newOwnerId, memberName) => {
-    if (!activeFamily?.id) return;
-    const confirmed = window.confirm(
-      `Möchten Sie die INHABERSCHAFT der Familie "${activeFamily.name}" wirklich an ${memberName} übertragen?\n\nSie bleiben weiterhin Administrator, sind jedoch nicht mehr der Hauptinhaber.`
-    );
-    if (!confirmed) return;
-
-    const res = await transferFamilyOwnership(activeFamily.id, newOwnerId);
-    if (res.ok) {
-      setStatusMessage(`Inhaberschaft erfolgreich an ${memberName} übertragen.`);
-      await refreshUser(activeFamily.id);
-      loadFamily();
+      await loadFamily();
+      setStatusMessage('Einladungscode erfolgreich generiert.');
     } else {
-      setStatusMessage(res.error || 'Fehler bei der Übertragung der Inhaberschaft.');
+      setStatusMessage(res.error || 'Fehler beim Erstellen des Codes.');
     }
   };
 
@@ -163,17 +148,54 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     if (!activeFamily?.id) return;
     const res = await deleteFamilyInvite(activeFamily.id, code);
     if (res.ok) {
-      if (generatedInvite?.code === code) {
-        setGeneratedInvite(null);
-      }
-      loadFamily();
+      await loadFamily();
+      if (generatedInvite?.code === code) setGeneratedInvite(null);
+      setStatusMessage('Code erfolgreich widerrufen.');
     }
   };
 
-  const handleCopy = (text) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleRoleChange = async (userId, newRole) => {
+    if (!activeFamily?.id) return;
+    const res = await updateFamilyMemberRole(activeFamily.id, userId, newRole);
+    if (res.ok) {
+      await loadFamily();
+      setStatusMessage('Rolle erfolgreich aktualisiert.');
+    } else {
+      setStatusMessage(res.error || 'Fehler beim Ändern der Rolle.');
+    }
+  };
+
+  const handleTransferOwnership = async (userId, memberName) => {
+    if (
+      !activeFamily?.id ||
+      !window.confirm(
+        `Möchten Sie die Eigentümerschaft an "${memberName}" übertragen? Sie verlieren dadurch Ihre Eigentümerrechte.`
+      )
+    )
+      return;
+    const res = await transferFamilyOwnership(activeFamily.id, userId);
+    if (res.ok) {
+      await loadFamily();
+      if (refreshUser) await refreshUser();
+      setStatusMessage(`Inhaberschaft an ${memberName} übertragen.`);
+    } else {
+      setStatusMessage(res.error || 'Fehler bei der Übertragung.');
+    }
+  };
+
+  const handleRemoveMember = async (userId, memberName) => {
+    if (
+      !activeFamily?.id ||
+      !window.confirm(`Möchten Sie "${memberName}" wirklich aus der Familie entfernen?`)
+    )
+      return;
+    const res = await removeFamilyMember(activeFamily.id, userId);
+    if (res.ok) {
+      await loadFamily();
+      setStatusMessage(`${memberName} wurde entfernt.`);
+    } else {
+      setStatusMessage(res.error || 'Fehler beim Entfernen.');
+    }
   };
 
   const handleJoinFamily = async (e) => {
@@ -182,43 +204,20 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     const res = await joinFamily(joinCodeInput.trim());
     if (res.ok) {
       setJoinCodeInput('');
-      setStatusMessage(res.message || 'Erfolgreich beigetreten!');
-      await refreshUser();
+      setStatusMessage('Familie erfolgreich beigetreten!');
+      if (refreshUser) await refreshUser();
+      await loadFamily();
     } else {
-      setStatusMessage(res.error || 'Fehler beim Beitritt.');
-    }
-  };
-
-  const handleRemoveMember = async (userId, memberName) => {
-    if (!window.confirm(`Möchten Sie ${memberName} wirklich aus der Familie entfernen?`)) return;
-    const res = await removeFamilyMember(activeFamily.id, userId);
-    if (res.ok) {
-      loadFamily();
-    }
-  };
-
-  const handleRoleChange = async (userId, newRole) => {
-    if (!activeFamily?.id) return;
-    const res = await updateFamilyMemberRole(activeFamily.id, userId, newRole);
-    if (res.ok) {
-      setStatusMessage(res.data?.message || 'Rolle erfolgreich aktualisiert.');
-      loadFamily();
-      await refreshUser(activeFamily.id);
-    } else {
-      setStatusMessage(res.error || 'Fehler beim Ändern der Rolle.');
+      setStatusMessage(res.error || 'Ungültiger oder abgelaufener Code.');
     }
   };
 
   const handleLeaveFamily = async () => {
-    if (!activeFamily?.id) return;
-    const confirmed = window.confirm(
-      `Möchten Sie die Familie "${activeFamily.name}" wirklich verlassen?\n\nSie verlieren damit den Zugriff auf die Daten dieser Familie, bis Sie erneut eingeladen werden.`
-    );
-    if (!confirmed) return;
-
+    if (!activeFamily?.id || !window.confirm('Möchten Sie diese Familie wirklich verlassen?'))
+      return;
     const res = await leaveFamily(activeFamily.id);
     if (res.ok) {
-      await refreshUser();
+      if (refreshUser) await refreshUser();
       onClose();
     } else {
       setStatusMessage(res.error || 'Fehler beim Verlassen der Familie.');
@@ -226,72 +225,57 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
   };
 
   const handleDeleteCurrentFamily = async () => {
-    if (!activeFamily?.id) return;
-    const confirmed = window.confirm(
-      `Sind Sie sicher, dass Sie die Familie "${activeFamily.name}" UNWIDERRUFLICH LÖSCHEN möchten?\n\nAlle zugeordneten Kinderprofile, Messwerte und Daten dieser Familie werden dabei gelöscht.`
-    );
-    if (!confirmed) return;
-
+    if (
+      !activeFamily?.id ||
+      !window.confirm(
+        'Möchten Sie diese Familie wirklich unwiderruflich löschen? Alle zugehörigen Daten gehen verloren.'
+      )
+    )
+      return;
     const res = await deleteFamily(activeFamily.id);
     if (res.ok) {
-      await refreshUser();
+      if (refreshUser) await refreshUser();
       onClose();
     } else {
       setStatusMessage(res.error || 'Fehler beim Löschen der Familie.');
     }
   };
 
-  const handleSaveFamilyName = async (e) => {
-    e.preventDefault();
-    if (!activeFamily?.id || !editedName.trim()) return;
-    const res = await updateFamily(activeFamily.id, { name: editedName.trim() });
-    if (res.ok) {
-      setIsEditingName(false);
-      setStatusMessage('Familienname erfolgreich geändert.');
-      await refreshUser(activeFamily.id);
-      loadFamily();
-    } else {
-      setStatusMessage(res.error || 'Fehler beim Ändern des Namens.');
-    }
-  };
-
-  const getRoleBadgeClass = (role) => {
-    if (role === 'admin') return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-    if (role === 'editor') return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
-    return 'bg-slate-700/60 text-slate-300 border-slate-600/40';
-  };
-
-  const getRoleLabel = (role) => {
-    if (role === 'admin') return 'Administrator';
-    if (role === 'editor') return 'Elternteil';
-    return 'Besucher';
-  };
-
-  const getFullRoleLabel = (role) => {
-    if (role === 'admin') return '👑 Administrator';
-    if (role === 'editor') return '✏️ Elternteil';
-    return '👁️ Besucher';
-  };
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div
+      aria-labelledby="family-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
+    >
       <div
         ref={dialogRef}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto"
+        className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl p-6 text-slate-100 max-h-[90vh] overflow-y-auto"
       >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Schließen"
-          className="absolute top-5 right-5 text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-cyan-950/80 border border-cyan-800/60 text-cyan-400">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 id="family-modal-title" className="text-base font-bold">
+                {t('family.title')}
+              </h2>
+              <p className="text-xs text-slate-400">{t('family.subtitle')}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common.close')}
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        {/* Title & Avatar */}
-        <div className="flex items-start sm:items-center gap-3.5 mb-6 pr-8">
-          {/* Family Avatar / Icon with Upload Trigger */}
+        {/* Family Avatar & Header Details */}
+        <div className="flex items-center gap-4 mb-6 p-4 rounded-2xl bg-slate-950 border border-slate-800">
           <div className="relative group shrink-0">
             {activeFamily?.avatar ? (
               <img
@@ -328,7 +312,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     onClick={handleRemoveAvatar}
                     title="Icon entfernen und Standard wiederherstellen"
                     aria-label="Icon entfernen"
-                    className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md z-10 transition-transform active:scale-95 flex items-center justify-center"
+                    className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md z-10 transition-transform active:scale-95 flex items-center justify-center cursor-pointer"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -354,7 +338,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="submit"
-                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-md"
+                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg transition-colors shadow-md cursor-pointer"
                   >
                     Speichern
                   </button>
@@ -364,7 +348,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                       setEditedName(activeFamily?.name || '');
                       setIsEditingName(false);
                     }}
-                    className="px-2.5 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 text-xs rounded-lg transition-colors"
+                    className="px-2.5 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 text-xs rounded-lg transition-colors cursor-pointer"
                   >
                     Abbrechen
                   </button>
@@ -384,7 +368,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     }}
                     title="Familiennamen bearbeiten"
                     aria-label="Familiennamen bearbeiten"
-                    className="p-1 text-slate-400 hover:text-cyan-300 rounded-lg hover:bg-slate-800 transition-colors"
+                    className="p-1 text-slate-400 hover:text-cyan-300 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
@@ -408,7 +392,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
             <button
               type="button"
               onClick={() => setStatusMessage(null)}
-              className="text-cyan-400 hover:text-cyan-200 ml-2"
+              className="text-cyan-400 hover:text-cyan-200 ml-2 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -427,7 +411,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     key={fam.id}
                     type="button"
                     onClick={() => switchFamily(fam.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isActive
                         ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/80 ring-2 ring-cyan-400'
                         : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700'
@@ -441,260 +425,33 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* Members List */}
-        <div className="mb-6">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
-            Mitglieder ({familyData?.members?.length || 1})
-          </h3>
-          <div className="space-y-2">
-            {familyData?.members ? (
-              familyData.members.map((member) => {
-                const isCurrentUser = member.userId === user?.id;
-                const canRemove = isAdmin && !isCurrentUser && member.userId !== familyData.ownerId;
+        {/* Members List Subcomponent */}
+        <MemberList
+          familyData={familyData}
+          user={user}
+          isAdmin={isAdmin}
+          activeFamily={activeFamily}
+          handleTransferOwnership={handleTransferOwnership}
+          handleRoleChange={handleRoleChange}
+          handleRemoveMember={handleRemoveMember}
+        />
 
-                return (
-                  <div
-                    key={member.userId}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-slate-950 border border-slate-800/80 hover:border-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {member.avatar ? (
-                        <img
-                          src={getAuthorizedMediaUrl(member.avatar)}
-                          alt={member.name}
-                          className="w-8 h-8 rounded-full object-cover border border-cyan-500/40"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-slate-200 uppercase">
-                          {member.name ? member.name.charAt(0) : 'U'}
-                        </div>
-                      )}
-                      <div>
-                        <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                          <span>{member.name || 'Benutzer'}</span>
-                          {isCurrentUser && (
-                            <span className="text-[10px] text-cyan-400 font-normal">(Sie)</span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-slate-500">{member.email}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Owner Transfer Button (Visible only to the current owner on other members, BC-044) */}
-                      {activeFamily?.isOwner && !isCurrentUser && (
-                        <button
-                          type="button"
-                          onClick={() => handleTransferOwnership(member.userId, member.name)}
-                          className="p-1 rounded-lg text-amber-500 hover:text-amber-400 hover:bg-amber-950/40 transition-colors cursor-pointer"
-                          title="Inhaberschaft an dieses Mitglied übertragen"
-                        >
-                          <Crown className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      {isAdmin && !isCurrentUser && member.userId !== familyData.ownerId ? (
-                        <select
-                          value={member.role}
-                          onChange={(e) => handleRoleChange(member.userId, e.target.value)}
-                          aria-label={`Rolle für ${member.name} ändern`}
-                          className="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-bold rounded-lg px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer"
-                        >
-                          <option value="admin">👑 Administrator</option>
-                          <option value="editor">✏️ Elternteil (Editor)</option>
-                          <option value="viewer">👁️ Besucher (Viewer)</option>
-                        </select>
-                      ) : (
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getRoleBadgeClass(member.role)}`}
-                        >
-                          {getRoleLabel(member.role)}
-                        </span>
-                      )}
-
-                      {canRemove && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveMember(member.userId, member.name)}
-                          className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                          title="Mitglied entfernen"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-xs text-slate-500 p-2">Lade Mitglieder...</div>
-            )}
-          </div>
-        </div>
-
-        {/* Invite Generator (Admins & Editors, BC-045, BC-046) */}
-        {userRole !== 'viewer' && (
-          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xs">
-            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <UserPlus className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              <span>Mitglied oder Besucher einladen</span>
-            </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-              Erstellen Sie einen Einladungscode für Ihren Partner oder für Besucher (z. B.
-              Großeltern):
-            </p>
-
-            <div className="space-y-2 mb-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div>
-                  <label
-                    htmlFor="invite-role-select"
-                    className="block text-[10px] font-semibold text-slate-400 mb-1"
-                  >
-                    Berechtigung:
-                  </label>
-                  <select
-                    id="invite-role-select"
-                    aria-label="Rolle für Einladung auswählen"
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
-                  >
-                    <option value="editor">✏️ Elternteil</option>
-                    <option value="viewer">👁️ Besucher</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="invite-expiry-select"
-                    className="block text-[10px] font-semibold text-slate-400 mb-1"
-                  >
-                    Gültigkeitsdauer:
-                  </label>
-                  <select
-                    id="invite-expiry-select"
-                    aria-label="Gültigkeitsdauer auswählen"
-                    value={inviteExpiresIn}
-                    onChange={(e) => setInviteExpiresIn(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
-                  >
-                    <option value="24">⏱️ 24 Std.</option>
-                    <option value="48">⏱️ 48 Std.</option>
-                    <option value="168">⏱️ 7 Tage</option>
-                    <option value="720">⏱️ 30 Tage</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="invite-max-uses-select"
-                    className="block text-[10px] font-semibold text-slate-400 mb-1"
-                  >
-                    Verwendungen:
-                  </label>
-                  <select
-                    id="invite-max-uses-select"
-                    aria-label="Maximale Verwendungen auswählen"
-                    value={inviteMaxUses}
-                    onChange={(e) => setInviteMaxUses(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500 shadow-xs"
-                  >
-                    <option value="1">🔒 Einmalig (1x)</option>
-                    <option value="3">👥 Bis zu 3x</option>
-                    <option value="5">👥 Bis zu 5x</option>
-                    <option value="0">♾️ Unbegrenzt</option>
-                  </select>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleCreateInvite}
-                className="w-full mt-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-all active:scale-98 flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Einladungscode generieren</span>
-              </button>
-            </div>
-
-            {generatedInvite && (
-              <div className="p-3 bg-slate-950 border border-cyan-600/40 rounded-xl flex items-center justify-between gap-2 animate-fadeIn mb-3">
-                <div>
-                  <div className="text-[10px] text-slate-400">
-                    Neuer Einladungscode (
-                    {generatedInvite.role === 'editor' ? 'Elternteil' : 'Besucher'}):
-                  </div>
-                  <div className="font-mono text-base font-bold text-cyan-300 tracking-wider">
-                    {generatedInvite.code}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(generatedInvite.code)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-semibold"
-                >
-                  {copied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                  <span>{copied ? 'Kopiert!' : 'Kopieren'}</span>
-                </button>
-              </div>
-            )}
-
-            {/* List of currently active invites for this family */}
-            {familyData?.invites && familyData.invites.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-slate-800/80">
-                <div className="text-[11px] font-semibold text-slate-400 mb-2">
-                  Aktive Einladungscodes ({familyData.invites.length}):
-                </div>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                  {familyData.invites.map((inv) => (
-                    <div
-                      key={inv.code}
-                      className="flex items-center justify-between p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-xs"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-cyan-300 tracking-wider">
-                          {inv.code}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          ({inv.role === 'editor' ? 'Elternteil' : 'Besucher'})
-                        </span>
-                        {inv.expiresAt && (
-                          <span className="text-[9px] text-slate-500 flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5" />
-                            <span>{new Date(inv.expiresAt).toLocaleDateString('de-DE')}</span>
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(inv.code)}
-                          title="Code kopieren"
-                          className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                        >
-                          <Copy className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteInvite(inv.code)}
-                          title="Code widerrufen"
-                          className="p-1 rounded-lg hover:bg-rose-950/40 text-slate-400 hover:text-rose-400"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Invite Generator Subcomponent */}
+        <InviteCodeManager
+          isAdmin={isAdmin}
+          familyData={familyData}
+          inviteRole={inviteRole}
+          setInviteRole={setInviteRole}
+          inviteExpiresIn={inviteExpiresIn}
+          setInviteExpiresIn={setInviteExpiresIn}
+          inviteMaxUses={inviteMaxUses}
+          setInviteMaxUses={setInviteMaxUses}
+          handleGenerateInvite={handleGenerateInvite}
+          handleDeleteInvite={handleDeleteInvite}
+          generatedInvite={generatedInvite}
+          copied={copied}
+          setCopied={setCopied}
+        />
 
         {/* Join another family with code */}
         <div className="pt-4 border-t border-slate-800/80 mb-6">
@@ -722,7 +479,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
           </form>
         </div>
 
-        {/* Leave Family (for Non-Owner Members, BC-041, BC-042, BC-043) */}
+        {/* Leave Family */}
         {!activeFamily?.isOwner && (
           <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs mb-3">
             <div>
@@ -745,7 +502,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* Danger Zone: Delete Family (Owner or Admin only) */}
+        {/* Delete Family */}
         {(isAdmin || activeFamily?.isOwner) && (
           <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div>

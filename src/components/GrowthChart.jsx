@@ -14,8 +14,10 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { Line } from 'react-chartjs-2';
 import { WHO_DATA } from '../data/whoPercentiles.js';
 import { calculateAge, calculateBMI } from '../utils/percentileCalc.js';
-import { Scale, Ruler, Circle, Activity, Info, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Scale, Ruler, Circle, Activity, Info } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
+import GrowthLegend from './growth/GrowthLegend.jsx';
+import GrowthControls from './growth/GrowthControls.jsx';
 
 ChartJS.register(
   LinearScale,
@@ -302,63 +304,58 @@ function buildChartOptions(
           mode: 'xy',
         },
         limits: {
-          x: { min: 0, max: 60, minRange: 3 },
-          y: {
-            min: yBounds.min !== null ? yBounds.min : 'original',
-            max: yBounds.max !== null ? yBounds.max : 'original',
-          },
+          x: { min: 0, max: 60 },
+          y: { min: yBounds.min, max: yBounds.max },
         },
       },
     },
     scales: {
       x: {
         type: 'linear',
-        min: 0,
-        max: maxAgeMonths,
-        grid: {
-          color: gridColor,
-          drawBorder: true,
-        },
-        ticks: {
-          color: tickColor,
-          font: { size: 11 },
-          autoSkip: true,
-          maxTicksLimit: 12,
-          callback: (val) => {
-            const num = Number(val);
-            if (num <= 0.05) return t('growth.birth') || 'Geburt';
-            const rounded = Math.round(num * 10) / 10;
-            if (rounded % 12 === 0) return `${rounded / 12} ${t('growth.yearsUnit') || 'J.'}`;
-            if (Number.isInteger(rounded)) return `${rounded} ${t('growth.monthsUnit') || 'M.'}`;
-            return `${rounded.toFixed(1)} ${t('growth.monthsUnit') || 'M.'}`;
-          },
-        },
         title: {
           display: true,
           text: t('growth.xAxisTitle') || 'Alter (Monate / Jahre)',
           color: titleColor,
-          font: { size: 11, weight: '600' },
+          font: { size: 12, weight: 'bold' },
         },
+        grid: { color: gridColor },
+        ticks: {
+          color: tickColor,
+          stepSize: maxAgeMonths <= 12 ? 1 : maxAgeMonths <= 24 ? 2 : 6,
+          callback: (value) => {
+            if (value === 0) return t('growth.birth') || 'Geburt';
+            const years = Math.floor(value / 12);
+            const rem = value % 12;
+            if (value % 12 === 0) return `${years} ${t('growth.yearsUnit') || 'J.'}`;
+            if (maxAgeMonths <= 24) return `${value} ${t('growth.monthsUnit') || 'M.'}`;
+            return rem === 6
+              ? `${years}½ ${t('growth.yearsUnit') || 'J.'}`
+              : `${value} ${t('growth.monthsUnit') || 'M.'}`;
+          },
+        },
+        min: 0,
+        max: maxAgeMonths,
       },
       y: {
         type: 'linear',
-        min: yBounds.min,
-        max: yBounds.max,
-        grid: {
-          color: gridColor,
-          drawBorder: true,
-        },
-        ticks: {
-          color: tickColor,
-          font: { size: 11 },
-          callback: (val) => formatMetricDisplayValue(val, metric),
-        },
         title: {
           display: true,
-          text: `${metricTitles[metric] || ''} (${METRIC_UNITS[metric]})`,
+          text: `${metricTitles[metric]} (${METRIC_UNITS[metric]})`,
           color: titleColor,
-          font: { size: 11, weight: '600' },
+          font: { size: 12, weight: 'bold' },
         },
+        grid: { color: gridColor },
+        ticks: {
+          color: tickColor,
+          callback: (value) => {
+            if (metric === 'weight') {
+              return `${Math.round(value * 1000).toLocaleString('de-DE')} g`;
+            }
+            return value;
+          },
+        },
+        min: yBounds.min,
+        max: yBounds.max,
       },
     },
   };
@@ -367,26 +364,21 @@ function buildChartOptions(
 export default function GrowthChart({ activeChild }) {
   const { t } = useTranslation();
   const { isDark } = useTheme();
-  const [metric, setMetric] = useState('weight'); // 'weight' | 'length' | 'headCircumference' | 'bmi'
-  const [maxAgeMonths, setMaxAgeMonths] = useState(24);
-  const [hoveredLegendKey, setHoveredLegendKey] = useState(null);
-  const [hiddenDatasets, setHiddenDatasets] = useState({
-    child: false,
-    p50: false,
-    p15_85: false,
-    p85: false,
-    p97: false,
-    p3: false,
-  });
-
   const chartRef = useRef(null);
+  const [metric, setMetric] = useState('weight');
+  const [maxAgeMonths, setMaxAgeMonths] = useState(60);
+  const [hiddenDatasets, setHiddenDatasets] = useState({});
+  const [hoveredLegendKey, setHoveredLegendKey] = useState(null);
 
   if (!activeChild) return null;
 
   const isGirl = activeChild.gender === 'girl';
+  const childColor = isGirl ? '#f43f5e' : '#06b6d4';
   const measurements = activeChild.measurements || [];
-  const rawWhoData = WHO_DATA[isGirl ? 'girl' : 'boy']?.[metric] || [];
+
+  const rawWhoData = WHO_DATA[activeChild.gender]?.[metric] || [];
   const filteredWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);
+  const childPoints = computeChildDataPoints(measurements, activeChild.birthdate, metric);
 
   const METRIC_TITLES = {
     weight: t('growth.weightTitle'),
@@ -395,58 +387,28 @@ export default function GrowthChart({ activeChild }) {
     bmi: t('growth.bmiTitle'),
   };
 
-  // Compute maximum sensible Y range for current view range to keep Y axis beautifully proportioned
-  const currentRangeWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);
-  const maxP97 = Math.max(...currentRangeWhoData.map((d) => d.p97 || 0), 0);
-  const childPoints = computeChildDataPoints(measurements, activeChild.birthdate, metric);
-  const maxChildVal = Math.max(
-    ...childPoints.filter((p) => p.x <= maxAgeMonths).map((p) => p.y || 0),
-    0
-  );
-  const highestVal = Math.max(maxP97, maxChildVal);
+  const metricButtons = [
+    { id: 'weight', label: t('growth.weight'), icon: Scale },
+    { id: 'length', label: t('growth.length'), icon: Ruler },
+    { id: 'headCircumference', label: t('growth.headCircumference'), icon: Circle },
+    { id: 'bmi', label: t('growth.bmi'), icon: Activity },
+  ];
 
-  const getYBounds = (currentMetric, maxVal) => {
-    if (currentMetric === 'weight') {
-      const top = Math.ceil(maxVal * 1.12);
-      return { min: 0, max: top };
-    }
-    if (currentMetric === 'length') {
-      return { min: 40, max: Math.ceil(maxVal + 5) };
-    }
-    if (currentMetric === 'headCircumference') {
-      return { min: 30, max: Math.ceil(maxVal + 4) };
-    }
-    if (currentMetric === 'bmi') {
-      return { min: 10, max: Math.ceil(maxVal + 2) };
-    }
-    return { min: 0, max: null };
+  const toggleDataset = (key) => {
+    setHiddenDatasets((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const yBounds = getYBounds(metric, highestVal);
+  const handleZoomIn = () => chartRef.current?.zoom(1.2);
+  const handleZoomOut = () => chartRef.current?.zoom(0.8);
+  const handleResetZoom = () => chartRef.current?.resetZoom();
 
-  const childColor = isGirl ? '#ec4899' : '#06b6d4';
   const legendItems = createLegendItems(activeChild.name, childColor, isGirl, t);
 
-  const toggleDatasetHidden = (itemKey) => {
-    setHiddenDatasets((prev) => ({ ...prev, [itemKey]: !prev[itemKey] }));
-  };
-
-  const handleZoomIn = () => {
-    if (chartRef.current) {
-      chartRef.current.zoom(1.25);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (chartRef.current) {
-      chartRef.current.zoom(0.8);
-    }
-  };
-
-  const handleResetZoom = () => {
-    if (chartRef.current) {
-      chartRef.current.resetZoom();
-    }
+  const yBoundsMap = {
+    weight: { min: 1.5, max: 26 },
+    length: { min: 40, max: 125 },
+    headCircumference: { min: 30, max: 55 },
+    bmi: { min: 10, max: 22 },
   };
 
   const data = buildChartData({
@@ -459,124 +421,37 @@ export default function GrowthChart({ activeChild }) {
     childColor,
     isDark,
   });
-  const options = buildChartOptions(metric, maxAgeMonths, isDark, yBounds, METRIC_TITLES, t);
 
-  const getMetricButtonClass = (targetMetric) => {
-    const isSelected = metric === targetMetric;
-    if (isSelected) {
-      return isGirl ? 'bg-rose-700 text-white shadow-md' : 'bg-cyan-700 text-white shadow-md';
-    }
-    return 'text-slate-400 hover:text-slate-200';
-  };
+  const options = buildChartOptions(
+    metric,
+    maxAgeMonths,
+    isDark,
+    yBoundsMap[metric],
+    METRIC_TITLES,
+    t
+  );
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-2xl mb-6">
-      {/* Controls & Metric Selectors */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4 border-b border-slate-800/80 pb-4">
-        {/* Metric Tabs - Horizontal Scroll on Mobile */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setMetric('weight')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${getMetricButtonClass('weight')}`}
-          >
-            <Scale className="w-3.5 h-3.5" />
-            <span>{t('growth.weight')}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMetric('length')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${getMetricButtonClass('length')}`}
-          >
-            <Ruler className="w-3.5 h-3.5" />
-            <span>{t('growth.length')}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMetric('headCircumference')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${getMetricButtonClass('headCircumference')}`}
-          >
-            <Circle className="w-3.5 h-3.5" />
-            <span>{t('growth.headCircumference')}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMetric('bmi')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all cursor-pointer ${getMetricButtonClass('bmi')}`}
-          >
-            <Activity className="w-3.5 h-3.5" />
-            <span>{t('growth.bmi')}</span>
-          </button>
-        </div>
-
-        {/* Right side: Age Range Filter & Zoom Controls */}
-        <div className="flex items-center justify-between sm:justify-start gap-2 flex-wrap sm:flex-nowrap">
-          {/* Zoom Buttons */}
-          <div className="flex items-center gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              title={t('growth.zoomIn')}
-              aria-label={t('growth.zoomIn')}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              title={t('growth.zoomOut')}
-              aria-label={t('growth.zoomOut')}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleResetZoom}
-              title={t('growth.zoomReset')}
-              aria-label={t('growth.zoomReset')}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span className="hidden sm:inline">{t('growth.zoomReset')}</span>
-            </button>
-          </div>
-
-          {/* Age Range Filter */}
-          <div className="flex items-center justify-between sm:justify-start gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs shrink-0">
-            <span className="px-2 text-slate-400 text-[11px] font-medium">
-              {t('growth.timeRange')}
-            </span>
-            {[12, 24, 60].map((months) => (
-              <button
-                key={months}
-                type="button"
-                onClick={() => {
-                  setMaxAgeMonths(months);
-                  handleResetZoom();
-                }}
-                className={`flex-1 sm:flex-none px-2.5 py-1 rounded-lg font-medium transition-all text-center cursor-pointer ${
-                  maxAgeMonths === months
-                    ? 'bg-slate-800 text-white font-semibold shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {months === 60 ? t('growth.allYears') : `0-${months} M.`}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl mb-6 transition-colors duration-300">
+      {/* Header & Controls Subcomponent */}
+      <div className="mb-4 sm:mb-6">
+        <GrowthControls
+          metric={metric}
+          setMetric={setMetric}
+          maxAgeMonths={maxAgeMonths}
+          setMaxAgeMonths={setMaxAgeMonths}
+          handleZoomIn={handleZoomIn}
+          handleZoomOut={handleZoomOut}
+          handleResetZoom={handleResetZoom}
+          metricButtons={metricButtons}
+          isGirl={isGirl}
+        />
       </div>
 
-      {/* Interactive Legend with Mouseover Tooltips & Native Buttons for Accessibility */}
+      {/* Interactive Legend with Mouseover Tooltips */}
       <div className="mb-3 sm:mb-4">
-        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3 py-1.5 sm:py-2 px-2 sm:px-3 bg-slate-950/60 rounded-xl border border-slate-800/80 text-[11px] sm:text-xs">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3 py-1.5 sm:py-2 px-2 sm:px-3 bg-slate-100 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-800/80 text-[11px] sm:text-xs">
           {legendItems.map((item) => {
-            // Short mobile friendly label map
             const shortLabelMap = {
               child: activeChild.name,
               p50: '50% (Ø)',
@@ -593,15 +468,14 @@ export default function GrowthChart({ activeChild }) {
                 type="button"
                 onMouseEnter={() => setHoveredLegendKey(item.key)}
                 onMouseLeave={() => setHoveredLegendKey(null)}
-                onClick={() => toggleDatasetHidden(item.key)}
+                onClick={() => toggleDataset(item.key)}
                 aria-label={`Legende: ${item.label}`}
-                className={`group relative flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-all border-0 bg-transparent text-left focus:outline-none focus:ring-1 focus:ring-slate-700 ${
+                className={`group relative flex items-center gap-1.5 px-2 py-1 rounded-lg cursor-pointer transition-all border-0 bg-transparent text-left focus:outline-none focus:ring-1 focus:ring-slate-400 dark:focus:ring-slate-700 ${
                   hiddenDatasets[item.key]
-                    ? 'opacity-40 line-through bg-slate-900/40'
-                    : 'hover:bg-slate-800/80'
+                    ? 'opacity-40 line-through bg-slate-200/50 dark:bg-slate-900/40'
+                    : 'hover:bg-slate-200/60 dark:hover:bg-slate-800/80'
                 }`}
               >
-                {/* Visual Dot / Symbol */}
                 {item.style === 'solid-dot' && (
                   <span
                     className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-white shadow-sm shrink-0"
@@ -609,11 +483,11 @@ export default function GrowthChart({ activeChild }) {
                   />
                 )}
                 {item.style === 'dashed-line' && (
-                  <span className="w-3.5 sm:w-4 h-0 border-t-2 border-dashed border-white opacity-80 shrink-0" />
+                  <span className="w-3.5 sm:w-4 h-0 border-t-2 border-dashed border-slate-600 dark:border-white opacity-80 shrink-0" />
                 )}
                 {item.style === 'shaded-box' && (
                   <span
-                    className="w-3 sm:w-3.5 h-3 sm:h-3.5 rounded border border-slate-600 shadow-inner shrink-0"
+                    className="w-3 sm:w-3.5 h-3 sm:h-3.5 rounded border border-slate-400 dark:border-slate-600 shadow-inner shrink-0"
                     style={{ backgroundColor: item.color }}
                   />
                 )}
@@ -624,20 +498,18 @@ export default function GrowthChart({ activeChild }) {
                   <span className="w-3.5 sm:w-4 h-0 border-t-2 border-dashed border-rose-500 shrink-0" />
                 )}
 
-                <span className="font-semibold text-slate-200">
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
                   <span className="inline sm:hidden">{mobileShortLabel}</span>
                   <span className="hidden sm:inline">{item.label}</span>
                 </span>
 
-                {/* Mouseover Tooltip Badge */}
-                <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 sm:w-64 p-2.5 bg-slate-950 border border-slate-700 text-slate-200 text-[11px] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 leading-snug">
-                  <div className="font-bold text-white mb-0.5 flex items-center gap-1 text-xs">
-                    <Info className="w-3 h-3 text-cyan-400" />
+                <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 sm:w-64 p-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-[11px] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 leading-snug">
+                  <div className="font-bold text-slate-900 dark:text-white mb-0.5 flex items-center gap-1 text-xs">
+                    <Info className="w-3 h-3 text-cyan-500" />
                     <span>{item.label}</span>
                   </div>
                   <div>{item.description}</div>
-                  {/* Arrow */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-950" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-200 dark:border-t-slate-950" />
                 </div>
               </button>
             );
@@ -656,10 +528,10 @@ export default function GrowthChart({ activeChild }) {
         />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/60 pt-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/60 pt-3">
         <span>Quelle: WHO Child Growth Standards ({isGirl ? 'Mädchen ♀' : 'Jungen ♂'})</span>
-        <span className="flex items-center gap-1 text-cyan-300">
-          <Info className="w-3 h-3 text-cyan-400" />
+        <span className="flex items-center gap-1 text-cyan-600 dark:text-cyan-300">
+          <Info className="w-3 h-3 text-cyan-500" />
           <span>
             Tipp: Mit Mausrad/Pinch zoomen &amp; ziehen (Pan) oder die Zoom-Buttons nutzen
           </span>

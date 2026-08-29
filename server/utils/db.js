@@ -583,16 +583,22 @@ export async function createDbBackup() {
  * @returns {Promise<{ ok: boolean, error?: string, counts?: object }>}
  */
 export async function validateBackupFile(filePath) {
+  let fd;
   try {
-    if (!fs.existsSync(filePath)) {
-      return { ok: false, error: 'Die Backup-Datei existiert nicht.' };
+    try {
+      fd = await fs.promises.open(filePath, 'r');
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        return { ok: false, error: 'Die Backup-Datei existiert nicht.' };
+      }
+      throw err;
     }
 
     // Check file header magic bytes: SQLite format 3\000
-    const fd = await fs.promises.open(filePath, 'r');
     const headerBuf = Buffer.alloc(16);
     await fd.read(headerBuf, 0, 16, 0);
     await fd.close();
+    fd = null;
 
     const magic = headerBuf.toString('utf8', 0, 15);
     if (magic !== 'SQLite format 3') {
@@ -631,6 +637,14 @@ export async function validateBackupFile(filePath) {
     }
   } catch (err) {
     return { ok: false, error: `Validierungsfehler: ${err.message}` };
+  } finally {
+    if (fd) {
+      try {
+        await fd.close();
+      } catch {
+        // ignore close error
+      }
+    }
   }
 }
 

@@ -1,16 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Activity,
-  Thermometer,
-  Pill,
-  Clock,
-  Plus,
-  Edit2,
-  Trash2,
-  HeartPulse,
-  FileText,
-} from 'lucide-react';
+import { Activity, Plus, HeartPulse, FileText } from 'lucide-react';
 import {
   Chart,
   CategoryScale,
@@ -20,7 +10,9 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import TemperatureCurve from './health/TemperatureCurve.jsx';
+import HealthLogList from './health/HealthLogList.jsx';
+
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 const COMMON_SYMPTOMS = [
@@ -98,55 +90,35 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
     e.preventDefault();
     if (!canEdit) return;
 
-    const parsedTemp = temperature ? Number.parseFloat(temperature) : null;
-    const trimmedMed = medication.trim() || null;
-    const trimmedNotes = notes.trim() || null;
+    const parsedTemp =
+      temperature.trim() === '' ? null : Number.parseFloat(temperature.replace(',', '.'));
 
-    let updated;
+    const newEntry = {
+      id: editingEntry?.id || crypto.randomUUID(),
+      dateTime,
+      temperature: Number.isNaN(parsedTemp) ? null : parsedTemp,
+      medication: medication.trim() || null,
+      symptoms: selectedSymptoms,
+      notes: notes.trim() || null,
+    };
+
+    let updatedList;
     if (editingEntry) {
-      updated = healthLog.map((item) =>
-        item.id === editingEntry.id
-          ? {
-              ...item,
-              dateTime,
-              temperature: parsedTemp,
-              medication: trimmedMed,
-              symptoms: selectedSymptoms,
-              notes: trimmedNotes,
-              updatedAt: new Date().toISOString(),
-            }
-          : item
-      );
+      updatedList = healthLog.map((item) => (item.id === editingEntry.id ? newEntry : item));
     } else {
-      const newEntry = {
-        id: `h-${Date.now()}`,
-        dateTime,
-        temperature: parsedTemp,
-        medication: trimmedMed,
-        symptoms: selectedSymptoms,
-        notes: trimmedNotes,
-        createdAt: new Date().toISOString(),
-      };
-      updated = [newEntry, ...healthLog];
+      updatedList = [newEntry, ...healthLog];
     }
 
-    onUpdateChild({
-      ...activeChild,
-      healthLog: updated,
-    });
-
+    onUpdateChild({ healthLog: updatedList });
     setIsEntryModalOpen(false);
-    setEditingEntry(null);
   };
 
   const handleDeleteEntry = (entryId) => {
     if (!canEdit) return;
-    const updated = healthLog.filter((item) => item.id !== entryId);
-
-    onUpdateChild({
-      ...activeChild,
-      healthLog: updated,
-    });
+    if (window.confirm('Möchten Sie diesen Eintrag wirklich löschen?')) {
+      const updatedList = healthLog.filter((item) => item.id !== entryId);
+      onUpdateChild({ healthLog: updatedList });
+    }
   };
 
   // Temperature chart data
@@ -164,10 +136,10 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
         backgroundColor: 'rgba(244, 63, 94, 0.2)',
         tension: 0.3,
         pointBackgroundColor: tempLogs.map((item) => {
-          if (item.temperature >= 39.0) return '#e11d48'; // High fever
-          if (item.temperature >= 38.0) return '#f97316'; // Fever
-          if (item.temperature >= 37.5) return '#eab308'; // Elevated
-          return '#10b981'; // Normal
+          if (item.temperature >= 39.0) return '#e11d48';
+          if (item.temperature >= 38.0) return '#f97316';
+          if (item.temperature >= 37.5) return '#eab308';
+          return '#10b981';
         }),
         pointRadius: 6,
         pointHoverRadius: 8,
@@ -272,138 +244,22 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
         </div>
       </div>
 
-      {/* Temperature Curve Chart */}
-      {tempLogs.length > 1 && (
-        <div className="mb-6 p-4 rounded-3xl bg-slate-950/70 border border-slate-800/80">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Thermometer className="w-4 h-4 text-rose-400" />
-              <span>{t('health.tempCurve')}</span>
-            </h4>
-            <div className="flex items-center gap-2 text-[10px]">
-              <span className="flex items-center gap-1 text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" /> Normal (&lt;37.5)
-              </span>
-              <span className="flex items-center gap-1 text-amber-400">
-                <span className="w-2 h-2 rounded-full bg-amber-400" /> Erhöht (37.5–38)
-              </span>
-              <span className="flex items-center gap-1 text-rose-400">
-                <span className="w-2 h-2 rounded-full bg-rose-500" /> Fieber (≥38.0)
-              </span>
-            </div>
-          </div>
-          <div className="h-48 w-full">
-            <Line data={chartData} options={chartOptions} />
-          </div>
-        </div>
-      )}
+      {/* Temperature Curve Subcomponent */}
+      <TemperatureCurve
+        chartData={chartData}
+        chartOptions={chartOptions}
+        tempLogsCount={tempLogs.length}
+      />
 
-      {/* Health History List */}
-      <div className="space-y-3">
-        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-          {t('health.historyTitle')} ({healthLog.length} {t('health.entriesCount')})
-        </h4>
-
-        {healthLog.length === 0 ? (
-          <div className="text-center py-8 text-xs text-slate-500 bg-slate-950/40 rounded-2xl border border-slate-800/60">
-            {t('health.noEntries')}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {sortedDesc.map((entry) => {
-              const d = new Date(entry.dateTime);
-              const dateStr = d.toLocaleDateString(undefined, {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              });
-              const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-              const tempBadge = getTempBadge(entry.temperature);
-
-              return (
-                <div
-                  key={entry.id}
-                  className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800/60">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        <span>
-                          {dateStr} ({timeStr})
-                        </span>
-                      </div>
-
-                      {canEdit && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(entry)}
-                            className="p-1 text-slate-400 hover:text-cyan-400 rounded-lg hover:bg-slate-800 transition-colors"
-                            title="Eintrag bearbeiten"
-                            aria-label="Eintrag bearbeiten"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteEntry(entry.id)}
-                            className="p-1 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
-                            title="Eintrag löschen"
-                            aria-label="Eintrag löschen"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-1.5 text-xs">
-                      {entry.temperature !== null && tempBadge && (
-                        <div className="flex items-center gap-2">
-                          <Thermometer className="w-4 h-4 text-rose-400 shrink-0" />
-                          <span className="font-bold text-slate-100">{entry.temperature} °C</span>
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-md font-semibold border ${tempBadge.badgeClass}`}
-                          >
-                            {tempBadge.label}
-                          </span>
-                        </div>
-                      )}
-
-                      {entry.medication && (
-                        <div className="flex items-center gap-2 text-indigo-300">
-                          <Pill className="w-4 h-4 text-indigo-400 shrink-0" />
-                          <span>Medikament: {entry.medication}</span>
-                        </div>
-                      )}
-
-                      {entry.symptoms && entry.symptoms.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {entry.symptoms.map((s) => (
-                            <span
-                              key={s}
-                              className="text-[10px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700/80 text-slate-300"
-                            >
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {entry.notes && (
-                        <p className="text-[11px] text-slate-400 italic pt-1 border-t border-slate-800/40">
-                          „{entry.notes}“
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Health History List Subcomponent */}
+      <HealthLogList
+        healthLog={healthLog}
+        sortedDesc={sortedDesc}
+        canEdit={canEdit}
+        openEditModal={openEditModal}
+        handleDeleteEntry={handleDeleteEntry}
+        getTempBadge={getTempBadge}
+      />
 
       {/* Entry Modal */}
       {isEntryModalOpen && (
@@ -489,7 +345,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
                         key={sym}
                         type="button"
                         onClick={() => toggleSymptom(sym)}
-                        className={`text-xs px-2.5 py-1 rounded-xl border transition-all ${
+                        className={`text-xs px-2.5 py-1 rounded-xl border transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-rose-950/80 border-rose-500 text-rose-200 font-semibold'
                             : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
@@ -523,13 +379,13 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
                 <button
                   type="button"
                   onClick={() => setIsEntryModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-950"
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-950 cursor-pointer"
                 >
                   {editingEntry ? 'Änderungen speichern' : 'Eintrag speichern'}
                 </button>

@@ -50,6 +50,17 @@ function requireMediaAuth(req, res, next) {
     if (!user) {
       return res.status(401).json({ error: 'Benutzerkonto nicht gefunden.' });
     }
+
+    // Invalidate media sessions if password was changed or sessions revoked
+    const currentTokenVersion = user.tokenVersion || 0;
+    const tokenVersionInJwt = decoded.tokenVersion || 0;
+    if (tokenVersionInJwt < currentTokenVersion) {
+      return res.status(401).json({
+        error:
+          'Ihre Sitzung ist abgelaufen, da das Passwort geändert wurde. Bitte erneut anmelden.',
+      });
+    }
+
     req.user = { id: user.id, email: user.email, name: user.name };
     next();
   } catch {

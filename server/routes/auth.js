@@ -17,11 +17,19 @@ import { sendPasswordResetEmail } from '../utils/mailer.js';
 const router = express.Router();
 
 /**
+ * Resolves key for 2FA TOTP secret encryption (DATA_ENCRYPTION_KEY or fallback to JWT_SECRET)
+ */
+function get2FAEncryptionKey() {
+  const secret = process.env.DATA_ENCRYPTION_KEY || JWT_SECRET;
+  return crypto.createHash('sha256').update(secret).digest();
+}
+
+/**
  * Encrypts a 2FA TOTP secret using AES-256-GCM (Issue BC-032)
  */
 export function encryptTwoFactorSecret(plainSecret) {
   if (!plainSecret) return null;
-  const key = crypto.createHash('sha256').update(JWT_SECRET).digest();
+  const key = get2FAEncryptionKey();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const encrypted = Buffer.concat([cipher.update(plainSecret, 'utf8'), cipher.final()]);
@@ -39,7 +47,7 @@ export function decryptTwoFactorSecret(encryptedSecret) {
   }
   try {
     const [ivHex, tagHex, dataHex] = encryptedSecret.split(':');
-    const key = crypto.createHash('sha256').update(JWT_SECRET).digest();
+    const key = get2FAEncryptionKey();
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(tagHex, 'hex');
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv, { authTagLength: 16 });

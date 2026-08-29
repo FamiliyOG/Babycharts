@@ -1,5 +1,22 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import i18n from '../i18n/index.js';
+
+// Prevent jsPDF from writing actual PDF files to disk during test execution
+vi.mock('jspdf', async (importOriginal) => {
+  const actual = await importOriginal();
+  const MockJsPDF = function (...args) {
+    const instance = new (actual.jsPDF || actual.default)(...args);
+    instance.save = vi.fn().mockImplementation(() => instance);
+    return instance;
+  };
+  MockJsPDF.prototype = (actual.jsPDF || actual.default).prototype;
+  return {
+    ...actual,
+    default: MockJsPDF,
+    jsPDF: MockJsPDF,
+  };
+});
+
 import { generateDoctorFeverReport } from '../utils/doctorPdfGenerator.js';
 import { generateUHeftA5Pdf } from '../utils/pdfGenerator.js';
 

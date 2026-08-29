@@ -113,4 +113,24 @@ describe('Server API Endpoints (Supertest)', () => {
     expect(row.email).toBe('audit-test@example.com');
     expect(row.status).toBe('success');
   });
+
+  it('Media Route: rejects requests when tokenVersion is outdated', async () => {
+    const jwt = (await import('jsonwebtoken')).default;
+    const { JWT_SECRET } = await import('../../server/middleware/auth.js');
+    const { readDb } = await import('../../server/utils/db.js');
+
+    const db = readDb();
+    const testUser = db.users[0];
+    if (testUser) {
+      const oldToken = jwt.sign(
+        { id: testUser.id, email: testUser.email, tokenVersion: -1 },
+        JWT_SECRET
+      );
+      const res = await request(app)
+        .get('/api/media/non-existent-file.enc')
+        .set('Authorization', `Bearer ${oldToken}`);
+      expect(res.status).toBe(401);
+      expect(res.body.error).toContain('Sitzung ist abgelaufen');
+    }
+  });
 });

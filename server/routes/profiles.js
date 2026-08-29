@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { readDb, writeDb } from '../utils/db.js';
+import { readDb, writeDb, getProfileById, restoreProfile, softDeleteProfile } from '../utils/db.js';
 import { rescheduleAll } from '../scheduler.js';
 import { optionalAuth, requireAuth, getUserFamilyRole } from '../middleware/auth.js';
 
@@ -257,12 +257,47 @@ router.put('/:id', requireAuth, (req, res) => {
     }
   }
 
+  // Optimistic concurrency check (BC-237): reject if client version is older than stored version
+  if (req.body?.version !== undefined && existingProfile.version !== undefined) {
+    if (req.body.version < existingProfile.version) {
+      return res.status(409).json({
+        error:
+          'Konflikt: Das Profil wurde zwischenzeitlich von einem anderen Benutzer geändert. Bitte laden Sie die Daten neu.',
+        currentVersion: existingProfile.version,
+      });
+    }
+  }
+
   const updatedProfile = applyProfileUpdates(existingProfile, req.body, req.params.id);
+  updatedProfile.version = (existingProfile.version || 1) + 1;
   db.profiles.splice(idx, 1, updatedProfile);
 
   writeDb(db);
   rescheduleAll();
   return res.json(updatedProfile);
+});
+
+// POST – restore soft-deleted profile (BC-220)
+router.post('/:id/restore', requireAuth, (req, res) => {
+  const profile = getProfileById(req.params.id, true);
+  if (!profile) {
+    return res.status(404).json({ error: 'Profile not found' });
+  }
+
+  const db = readDb();
+  const permError = checkFamilyWritePermission(
+    profile.familyId,
+    req.user.id,
+    db,
+    'keine Profile wiederherstellen'
+  );
+  if (permError) {
+    return res.status(permError.status).json({ error: permError.error });
+  }
+
+  restoreProfile(req.params.id);
+  rescheduleAll();
+  return res.json({ ok: true, message: 'Profil erfolgreich wiederhergestellt.' });
 });
 
 // DELETE – remove profile (requires editor or admin role in profile's family)
@@ -283,8 +318,16 @@ router.delete('/:id', requireAuth, (req, res) => {
     return res.status(permError.status).json({ error: permError.error });
   }
 
-  db.profiles = db.profiles.filter((p) => p.id !== req.params.id);
-  writeDb(db);
+  // Support soft-delete (BC-220) or permanent deletion via ?permanent=true
+  const isPermanent = req.query.permanent === 'true';
+  if (!isPermanent) {
+    softDeleteProfile(req.params.id);
+  } else {
+    const idx = db.profiles.findIndex((p) => p.id === req.params.id);
+    db.profiles.splice(idx, 1);
+    writeDb(db);
+  }
+
   rescheduleAll();
   return res.json({ ok: true });
 });

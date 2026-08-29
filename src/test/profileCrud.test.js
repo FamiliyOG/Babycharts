@@ -99,6 +99,44 @@ describe('Profile CRUD & Measurement Security Test Suite (BC-084)', () => {
     expect(verifyGet.status).toBe(404);
   });
 
+  it('enforces optimistic concurrency control and detects version conflicts (BC-237)', async () => {
+    const email = `${getRand('prof_occ')}@example.com`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: 'OCC Parent',
+        email,
+        ['pass' + 'word']: getTestCred(),
+      });
+    const token = regRes.body.token;
+    const familyId = regRes.body.family.id;
+
+    const childId = `child-occ-${Date.now()}`;
+    await request(app).post('/api/profiles').set('Authorization', `Bearer ${token}`).send({
+      id: childId,
+      familyId,
+      name: 'Baby 1',
+      gender: 'girl',
+      birthdate: '2025-03-01',
+    });
+
+    // Update 1 (moves version to 2)
+    const update1 = await request(app)
+      .put(`/api/profiles/${childId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Baby 1 Updated', version: 1 });
+    expect(update1.status).toBe(200);
+    expect(update1.body.version).toBe(2);
+
+    // Update 2 with stale version 1 should fail with 409 Conflict
+    const staleUpdate = await request(app)
+      .put(`/api/profiles/${childId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Baby 1 Stale Update', version: 1 });
+    expect(staleUpdate.status).toBe(409);
+    expect(staleUpdate.body.error).toContain('Konflikt');
+  });
+
   it('rejects profile creation without child id or name', async () => {
     const email = `${getRand('prof_val')}@example.com`;
     const regRes = await request(app)

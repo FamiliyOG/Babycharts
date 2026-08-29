@@ -33,183 +33,39 @@ sqlite.pragma('busy_timeout = 10000');
 sqlite.pragma('foreign_keys = ON');
 sqlite.pragma('synchronous = NORMAL');
 
+import { runMigrations } from './migrations.js';
+
 /**
- * Initialize database schema
+ * Checks SQLite integrity and foreign keys (Issue BC-093)
+ */
+export function checkDatabaseIntegrity() {
+  try {
+    const integrity = sqlite.pragma('integrity_check', { simple: true });
+    const foreignKeys = sqlite.pragma('foreign_key_check');
+    const isOk = integrity === 'ok' && foreignKeys.length === 0;
+    return {
+      ok: isOk,
+      integrity,
+      foreignKeyViolations: foreignKeys.length,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err.message,
+    };
+  }
+}
+
+/**
+ * Initialize database schema and run pending migrations
  */
 function initSchema() {
-  sqlite.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      avatar TEXT,
-      isDev INTEGER DEFAULT 0,
-      role TEXT DEFAULT 'user',
-      twoFactorSecret TEXT,
-      tempTwoFactorSecret TEXT,
-      createdAt TEXT NOT NULL,
-      updatedAt TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS families (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      avatar TEXT,
-      ownerId TEXT,
-      createdAt TEXT NOT NULL,
-      updatedAt TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS family_members (
-      familyId TEXT NOT NULL,
-      userId TEXT NOT NULL,
-      role TEXT NOT NULL,
-      joinedAt TEXT NOT NULL,
-      PRIMARY KEY (familyId, userId),
-      FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS invites (
-      code TEXT PRIMARY KEY,
-      familyId TEXT NOT NULL,
-      role TEXT NOT NULL,
-      createdBy TEXT,
-      createdAt TEXT NOT NULL,
-      expiresAt TEXT,
-      maxUses INTEGER DEFAULT 1,
-      usesCount INTEGER DEFAULT 0,
-      FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS used_invites (
-      code TEXT PRIMARY KEY,
-      familyId TEXT,
-      usedBy TEXT,
-      usedAt TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS profiles (
-      id TEXT PRIMARY KEY,
-      familyId TEXT,
-      name TEXT NOT NULL,
-      birthdate TEXT NOT NULL,
-      gender TEXT NOT NULL,
-      avatar TEXT,
-      notes TEXT,
-      schedule TEXT,
-      vaccinations TEXT,
-      teeth TEXT,
-      milestones TEXT,
-      customMilestones TEXT,
-      createdAt TEXT NOT NULL,
-      updatedAt TEXT,
-      FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE SET NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS measurements (
-      id TEXT PRIMARY KEY,
-      profileId TEXT NOT NULL,
-      date TEXT NOT NULL,
-      weight REAL,
-      length REAL,
-      headCircumference REAL,
-      checkup TEXT,
-      notes TEXT,
-      createdAt TEXT,
-      FOREIGN KEY (profileId) REFERENCES profiles(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS health_logs (
-      id TEXT PRIMARY KEY,
-      profileId TEXT NOT NULL,
-      dateTime TEXT NOT NULL,
-      temperature REAL,
-      medication TEXT,
-      symptoms TEXT,
-      notes TEXT,
-      createdAt TEXT,
-      FOREIGN KEY (profileId) REFERENCES profiles(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-
-    DELETE FROM settings WHERE key = 'pdfOutputDir';
-
-    CREATE TABLE IF NOT EXISTS export_log (
-      profileId TEXT PRIMARY KEY,
-      lastExportAt TEXT NOT NULL,
-      status TEXT,
-      error TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS media_files (
-      id TEXT PRIMARY KEY,
-      familyId TEXT,
-      userId TEXT,
-      originalName TEXT,
-      mimeType TEXT NOT NULL,
-      sizeBytes INTEGER NOT NULL,
-      iv TEXT NOT NULL,
-      authTag TEXT NOT NULL,
-      createdAt TEXT NOT NULL,
-      FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS audit_logs (
-      id TEXT PRIMARY KEY,
-      timestamp TEXT NOT NULL,
-      event TEXT NOT NULL,
-      userId TEXT,
-      email TEXT,
-      ip TEXT,
-      userAgent TEXT,
-      status TEXT NOT NULL,
-      details TEXT
-    );
-  `);
-
-  // Auto-migrate users table if tempTwoFactorSecret column is missing
-  try {
-    const columns = sqlite.prepare('PRAGMA table_info(users)').all();
-    if (!columns.some((c) => c.name === 'tempTwoFactorSecret')) {
-      sqlite.exec('ALTER TABLE users ADD COLUMN tempTwoFactorSecret TEXT');
-    }
-    if (!columns.some((c) => c.name === 'tempTwoFactorExpires')) {
-      sqlite.exec('ALTER TABLE users ADD COLUMN tempTwoFactorExpires INTEGER');
-    }
-    if (!columns.some((c) => c.name === 'recoveryCodes')) {
-      sqlite.exec('ALTER TABLE users ADD COLUMN recoveryCodes TEXT');
-    }
-    if (!columns.some((c) => c.name === 'tokenVersion')) {
-      sqlite.exec('ALTER TABLE users ADD COLUMN tokenVersion INTEGER DEFAULT 0');
-    }
-    if (!columns.some((c) => c.name === 'passwordResetTokenHash')) {
-      sqlite.exec('ALTER TABLE users ADD COLUMN passwordResetTokenHash TEXT');
-    }
-    if (!columns.some((c) => c.name === 'passwordResetExpires')) {
-      sqlite.exec('ALTER TABLE users ADD COLUMN passwordResetExpires INTEGER');
-    }
-    if (!columns.some((c) => c.name === 'language')) {
-      sqlite.exec("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'de'");
-    }
-    // Auto-migrate invites table if maxUses or usesCount columns are missing (BC-047)
-    const inviteColumns = sqlite.prepare('PRAGMA table_info(invites)').all();
-    if (!inviteColumns.some((c) => c.name === 'maxUses')) {
-      sqlite.exec('ALTER TABLE invites ADD COLUMN maxUses INTEGER DEFAULT 1');
-    }
-    // Auto-migrate profiles table if vaccinations column is missing
-    const profileColumns = sqlite.prepare('PRAGMA table_info(profiles)').all();
-    if (!profileColumns.some((c) => c.name === 'vaccinations')) {
-      sqlite.exec('ALTER TABLE profiles ADD COLUMN vaccinations TEXT');
-    }
-  } catch (err) {
-    console.warn('[DB] Migration notice:', err.message);
+  runMigrations(sqlite, DATA_DIR).catch((err) => {
+    console.error('[DB] Migration execution error:', err.message);
+  });
+  const integrity = checkDatabaseIntegrity();
+  if (!integrity.ok) {
+    console.warn('[DB] Integrity check warning:', integrity);
   }
 }
 
@@ -399,8 +255,8 @@ function insertProfileHealthLogs(profileId, healthLogs = []) {
 
 function insertProfiles(profiles = []) {
   const insertProfile = sqlite.prepare(`
-    INSERT OR REPLACE INTO profiles (id, familyId, name, birthdate, gender, avatar, notes, schedule, vaccinations, teeth, milestones, customMilestones, createdAt, updatedAt)
-    VALUES (@id, @familyId, @name, @birthdate, @gender, @avatar, @notes, @schedule, @vaccinations, @teeth, @milestones, @customMilestones, @createdAt, @updatedAt)
+    INSERT OR REPLACE INTO profiles (id, familyId, name, birthdate, gender, avatar, notes, schedule, vaccinations, teeth, milestones, customMilestones, version, deletedAt, createdAt, updatedAt)
+    VALUES (@id, @familyId, @name, @birthdate, @gender, @avatar, @notes, @schedule, @vaccinations, @teeth, @milestones, @customMilestones, @version, @deletedAt, @createdAt, @updatedAt)
   `);
 
   for (const p of profiles) {
@@ -417,6 +273,8 @@ function insertProfiles(profiles = []) {
       teeth: p.teeth ? JSON.stringify(p.teeth) : null,
       milestones: p.milestones ? JSON.stringify(p.milestones) : null,
       customMilestones: p.customMilestones ? JSON.stringify(p.customMilestones) : null,
+      version: p.version || 1,
+      deletedAt: p.deletedAt || null,
       createdAt: p.createdAt || new Date().toISOString(),
       updatedAt: p.updatedAt || null,
     });
@@ -517,7 +375,7 @@ export function readDb() {
   const invites = sqlite.prepare('SELECT * FROM invites').all();
   const usedInvites = sqlite.prepare('SELECT * FROM used_invites').all();
 
-  const profilesRows = sqlite.prepare('SELECT * FROM profiles').all();
+  const profilesRows = sqlite.prepare('SELECT * FROM profiles WHERE deletedAt IS NULL').all();
   const profiles = profilesRows.map((p) => {
     const measurements = sqlite
       .prepare('SELECT * FROM measurements WHERE profileId = ? ORDER BY date ASC')
@@ -533,6 +391,8 @@ export function readDb() {
 
     return {
       ...p,
+      version: p.version || 1,
+      deletedAt: p.deletedAt || null,
       schedule: p.schedule
         ? JSON.parse(p.schedule)
         : { enabled: false, frequency: 'daily', intervalDays: 7, lastExportAt: null },
@@ -682,8 +542,112 @@ export async function createDbBackup() {
   }
 }
 
-export function getProfiles() {
-  return readDb().profiles;
+export function getProfiles(options = {}) {
+  const { includeDeleted = false, familyId = null } = options;
+  let sql = 'SELECT * FROM profiles';
+  const conditions = [];
+  const params = [];
+
+  if (!includeDeleted) {
+    conditions.push('deletedAt IS NULL');
+  }
+  if (familyId) {
+    conditions.push('familyId = ?');
+    params.push(familyId);
+  }
+
+  if (conditions.length > 0) {
+    sql += ` WHERE ${conditions.join(' AND ')}`;
+  }
+
+  const profilesRows = sqlite.prepare(sql).all(...params);
+  return profilesRows.map((p) => {
+    const measurements = sqlite
+      .prepare(
+        'SELECT * FROM measurements WHERE profileId = ? AND deletedAt IS NULL ORDER BY date ASC'
+      )
+      .all(p.id);
+
+    const healthLogs = sqlite
+      .prepare(
+        'SELECT * FROM health_logs WHERE profileId = ? AND deletedAt IS NULL ORDER BY dateTime ASC'
+      )
+      .all(p.id)
+      .map((h) => ({
+        ...h,
+        symptoms: h.symptoms ? JSON.parse(h.symptoms) : [],
+      }));
+
+    return {
+      ...p,
+      schedule: p.schedule
+        ? JSON.parse(p.schedule)
+        : { enabled: false, frequency: 'daily', intervalDays: 7, lastExportAt: null },
+      vaccinations: p.vaccinations ? JSON.parse(p.vaccinations) : {},
+      teeth: p.teeth ? JSON.parse(p.teeth) : {},
+      milestones: p.milestones ? JSON.parse(p.milestones) : {},
+      customMilestones: p.customMilestones ? JSON.parse(p.customMilestones) : [],
+      measurements,
+      healthLog: healthLogs,
+    };
+  });
+}
+
+export function getProfileById(id, includeDeleted = false) {
+  let sql = 'SELECT * FROM profiles WHERE id = ?';
+  if (!includeDeleted) {
+    sql += ' AND deletedAt IS NULL';
+  }
+  const p = sqlite.prepare(sql).get(id);
+  if (!p) return null;
+
+  const measurements = sqlite
+    .prepare(
+      'SELECT * FROM measurements WHERE profileId = ? AND deletedAt IS NULL ORDER BY date ASC'
+    )
+    .all(p.id);
+
+  const healthLogs = sqlite
+    .prepare(
+      'SELECT * FROM health_logs WHERE profileId = ? AND deletedAt IS NULL ORDER BY dateTime ASC'
+    )
+    .all(p.id)
+    .map((h) => ({
+      ...h,
+      symptoms: h.symptoms ? JSON.parse(h.symptoms) : [],
+    }));
+
+  return {
+    ...p,
+    schedule: p.schedule
+      ? JSON.parse(p.schedule)
+      : { enabled: false, frequency: 'daily', intervalDays: 7, lastExportAt: null },
+    vaccinations: p.vaccinations ? JSON.parse(p.vaccinations) : {},
+    teeth: p.teeth ? JSON.parse(p.teeth) : {},
+    milestones: p.milestones ? JSON.parse(p.milestones) : {},
+    customMilestones: p.customMilestones ? JSON.parse(p.customMilestones) : [],
+    measurements,
+    healthLog: healthLogs,
+  };
+}
+
+export function softDeleteProfile(id) {
+  const timestamp = new Date().toISOString();
+  return sqlite.transaction(() => {
+    sqlite.prepare('UPDATE profiles SET deletedAt = ? WHERE id = ?').run(timestamp, id);
+    sqlite.prepare('UPDATE measurements SET deletedAt = ? WHERE profileId = ?').run(timestamp, id);
+    sqlite.prepare('UPDATE health_logs SET deletedAt = ? WHERE profileId = ?').run(timestamp, id);
+    return true;
+  })();
+}
+
+export function restoreProfile(id) {
+  return sqlite.transaction(() => {
+    sqlite.prepare('UPDATE profiles SET deletedAt = NULL WHERE id = ?').run(id);
+    sqlite.prepare('UPDATE measurements SET deletedAt = NULL WHERE profileId = ?').run(id);
+    sqlite.prepare('UPDATE health_logs SET deletedAt = NULL WHERE profileId = ?').run(id);
+    return true;
+  })();
 }
 
 export function getSettings() {

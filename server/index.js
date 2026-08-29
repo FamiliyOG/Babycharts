@@ -17,7 +17,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readDb, writeDb, createDbBackup } from './utils/db.js';
+import { readDb, writeDb, createDbBackup, checkDatabaseIntegrity } from './utils/db.js';
 import { rescheduleAll, setAppUrl } from './scheduler.js';
 
 import rateLimit from 'express-rate-limit';
@@ -159,6 +159,16 @@ app.post('/api/client-logs', (req, res) => {
 });
 
 // ── API routes ───────────────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  const dbStatus = checkDatabaseIntegrity();
+  return res.json({
+    status: dbStatus.ok ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: dbStatus,
+  });
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/families', familiesRouter);
 app.use('/api/profiles', profilesRouter);

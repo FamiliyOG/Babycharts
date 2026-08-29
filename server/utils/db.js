@@ -607,13 +607,11 @@ export async function validateBackupFile(filePath) {
         return { ok: false, error: `Integritätsprüfung fehlgeschlagen: ${integrity}` };
       }
 
-      const tables = testDb
-        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-        .all()
-        .map((t) => t.name);
+      const tableRows = testDb.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+      const tables = new Set(tableRows.map((t) => t.name));
 
       const requiredTables = ['users', 'families', 'profiles'];
-      const missingTables = requiredTables.filter((t) => !tables.includes(t));
+      const missingTables = requiredTables.filter((t) => !tables.has(t));
       if (missingTables.length > 0) {
         return {
           ok: false,

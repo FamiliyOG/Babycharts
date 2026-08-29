@@ -38,7 +38,6 @@ const METRIC_UNITS = {
 };
 
 function formatMetricDisplayValue(val, metric) {
-  if (val == null) return '';
   if (metric === 'weight') {
     return `${Math.round(val * 1000).toLocaleString('de-DE')} g`;
   }

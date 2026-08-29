@@ -60,15 +60,18 @@ describe('Backup Lifecycle, Rotation & Restore Test Suite (BC-098, BC-099, BC-10
 
   it('BC-098: prunes old backup files while keeping the newest backups', async () => {
     const backupsDir = path.join(tempDir, 'backups');
+    fs.rmSync(backupsDir, { recursive: true, force: true });
     fs.mkdirSync(backupsDir, { recursive: true });
 
-    // Create 18 dummy backup files
+    // Create 18 dummy backup files with distinct timestamps
     for (let i = 1; i <= 18; i++) {
       const p = path.join(
         backupsDir,
         `babycharts-backup-2026-01-${String(i).padStart(2, '0')}.sqlite`
       );
       fs.writeFileSync(p, 'dummy');
+      const time = new Date(`2026-01-${String(i).padStart(2, '0')}T12:00:00Z`);
+      fs.utimesSync(p, time, time);
     }
 
     await pruneBackups(backupsDir);

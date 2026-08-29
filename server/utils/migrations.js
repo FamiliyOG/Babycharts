@@ -303,11 +303,10 @@ export function getAppliedMigrations(sqlite) {
 
 /**
  * Runs all pending migrations sequentially within discrete transactions.
- * Creates a pre-migration backup before applying any new migration.
  * @param {import('better-sqlite3').Database} sqlite
  * @param {string} dataDir
  */
-export async function runMigrations(sqlite, dataDir) {
+export function runMigrations(sqlite, dataDir) {
   const applied = getAppliedMigrations(sqlite);
   const pending = MIGRATIONS.filter((m) => !applied.has(m.version)).sort(
     (a, b) => a.version - b.version
@@ -317,9 +316,21 @@ export async function runMigrations(sqlite, dataDir) {
     return;
   }
 
-  // Create a single pre-migration backup before applying the batch of pending migrations (BC-089)
+  // Pre-migration backup path record (if backup directory is provided and real database file exists)
   const nextTargetVersion = pending[0].version;
-  const backupPath = await createPreMigrationBackup(sqlite, dataDir, nextTargetVersion);
+  let backupPath = null;
+  if (dataDir && fs.existsSync(dataDir)) {
+    try {
+      const backupsDir = path.join(dataDir, 'backups');
+      fs.mkdirSync(backupsDir, { recursive: true });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupFileName = `db_backup_pre_v${nextTargetVersion}_${timestamp}.sqlite`;
+      backupPath = path.join(backupsDir, backupFileName);
+      sqlite.backup(backupPath);
+    } catch (err) {
+      console.warn('[DB] Pre-migration backup warning:', err.message);
+    }
+  }
 
   const insertMigrationRecord = sqlite.prepare(`
     INSERT INTO _schema_migrations (version, name, appliedAt, backupPath)

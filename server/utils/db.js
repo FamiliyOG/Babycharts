@@ -60,9 +60,11 @@ export function checkDatabaseIntegrity() {
  * Initialize database schema and run pending migrations
  */
 function initSchema() {
-  runMigrations(sqlite, DATA_DIR).catch((err) => {
+  try {
+    runMigrations(sqlite, DATA_DIR);
+  } catch (err) {
     console.error('[DB] Migration execution error:', err.message);
-  });
+  }
   const integrity = checkDatabaseIntegrity();
   if (!integrity.ok) {
     console.warn('[DB] Integrity check warning:', integrity);

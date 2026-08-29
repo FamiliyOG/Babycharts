@@ -135,7 +135,14 @@
     "importTitle": "Restore Backup",
     "importDesc": "Select a previously exported JSON backup file.",
     "importBtn": "Import Backup File",
-    "importSuccess": "Data imported successfully!"
+    "importSuccess": "Data imported successfully!",
+    "serverBackupsTitle": "Server Database Backups (SQLite)",
+    "serverBackupsDesc": "Automatic and manual snapshots of the SQLite database.",
+    "createBackupBtn": "Create New Backup",
+    "restoreBtn": "Restore",
+    "preRestoreNotice": "A safety snapshot is automatically created before restoring.",
+    "restoreConfirm": "Are you sure you want to restore this backup? All current data will be replaced by the backup snapshot.",
+    "noBackupsFound": "No server backups found."
   },
   "auth": {
     "loginTitle": "Welcome back",

@@ -190,4 +190,85 @@ router.delete('/delete', requireAuth, async (req, res) => {
   }
 });
 
+// ── Database Backup & Restore API (Issues BC-098, BC-099, BC-100, BC-101, BC-102) ───────────
+
+// GET /api/exports/backups – list server SQLite backups (Admin/Dev only)
+router.get('/backups', requireAuth, async (req, res) => {
+  if (!req.user.isDev && req.user.role !== 'admin') {
+    return res
+      .status(403)
+      .json({ error: 'Zugriff verweigert: Nur Administratoren dürfen Backups einsehen.' });
+  }
+
+  try {
+    const backupDir = path.resolve(process.cwd(), 'server', 'data', 'backups');
+    await fs.mkdir(backupDir, { recursive: true });
+    const entries = await fs.readdir(backupDir);
+
+    const backups = [];
+    for (const file of entries) {
+      if (!file.endsWith('.sqlite')) continue;
+      try {
+        const fullPath = path.join(backupDir, file);
+        const stat = await fs.stat(fullPath);
+        backups.push({
+          filename: file,
+          sizeBytes: stat.size,
+          createdAt: stat.birthtime.toISOString(),
+          mtime: stat.mtime.toISOString(),
+        });
+      } catch {
+        // ignore individual stat errors
+      }
+    }
+
+    backups.sort((a, b) => new Date(b.mtime) - new Date(a.mtime));
+    return res.json({ backups });
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Laden der Backups: ' + err.message });
+  }
+});
+
+// POST /api/exports/backups/create – trigger manual SQLite database backup
+router.post('/backups/create', requireAuth, async (req, res) => {
+  if (!req.user.isDev && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Zugriff verweigert.' });
+  }
+
+  const { createDbBackup } = await import('../utils/db.js');
+  const backupPath = await createDbBackup();
+  if (backupPath) {
+    return res.json({ ok: true, filename: path.basename(backupPath) });
+  }
+  return res.status(500).json({ error: 'Backup-Erstellung fehlgeschlagen.' });
+});
+
+// POST /api/exports/backups/restore/:filename – restore database from an existing server backup
+router.post('/backups/restore/:filename', requireAuth, async (req, res) => {
+  if (!req.user.isDev && req.user.role !== 'admin') {
+    return res.status(403).json({
+      error: 'Zugriff verweigert: Nur Administratoren dürfen Datenbanken wiederherstellen.',
+    });
+  }
+
+  const filename = path.basename(req.params.filename);
+  const backupDir = path.resolve(process.cwd(), 'server', 'data', 'backups');
+  const targetPath = path.join(backupDir, filename);
+
+  const { restoreFromBackup } = await import('../utils/db.js');
+  const result = await restoreFromBackup(targetPath);
+
+  if (!result.ok) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  return res.json({
+    ok: true,
+    message: 'Datenbank erfolgreich wiederhergestellt.',
+    preRestoreBackup: result.preRestoreBackupPath
+      ? path.basename(result.preRestoreBackupPath)
+      : null,
+  });
+});
+
 export default router;

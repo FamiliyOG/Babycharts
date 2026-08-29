@@ -494,8 +494,61 @@ export function writeDb(data) {
 let isBackupInProgress = false;
 
 /**
+ * Prunes historical backups based on configurable retention days and max count (BC-098, BC-099)
+ */
+export async function pruneBackups(backupDir) {
+  try {
+    const settings = getSettings();
+    const maxCount = Number(settings.backupMaxCount) > 0 ? Number(settings.backupMaxCount) : 15;
+    const retentionDays =
+      Number(settings.backupRetentionDays) > 0 ? Number(settings.backupRetentionDays) : 14;
+
+    const dirEntries = await fs.promises.readdir(backupDir);
+    const backupFiles = dirEntries.filter(
+      (f) =>
+        (f.startsWith('babycharts-backup-') || f.startsWith('db_backup_')) && f.endsWith('.sqlite')
+    );
+
+    const now = Date.now();
+    const maxAgeMs = retentionDays * 24 * 60 * 60 * 1000;
+
+    const fileStats = [];
+    for (const f of backupFiles) {
+      try {
+        const fullPath = path.join(backupDir, f);
+        const stat = await fs.promises.stat(fullPath);
+        fileStats.push({ name: f, path: fullPath, mtime: stat.mtimeMs });
+      } catch {
+        // ignore
+      }
+    }
+
+    // Sort newest first
+    fileStats.sort((a, b) => b.mtime - a.mtime);
+
+    // Delete files exceeding count limit or older than retentionDays (always keep at least 1 newest)
+    for (let i = 0; i < fileStats.length; i++) {
+      if (i === 0) continue; // Keep at least one backup
+      const file = fileStats[i];
+      const isOverCount = i >= maxCount;
+      const isExpired = now - file.mtime > maxAgeMs;
+
+      if (isOverCount || isExpired) {
+        try {
+          await fs.promises.unlink(file.path);
+        } catch {
+          // ignore individual deletion errors
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Backup] Pruning warning:', err.message);
+  }
+}
+
+/**
  * Create a timestamped backup of SQLite database in server/data/backups/
- * Non-blocking, asynchronous execution with throttling/concurrency guard.
+ * Non-blocking, asynchronous execution with throttling/concurrency guard. (BC-089, BC-098)
  */
 export async function createDbBackup() {
   if (isBackupInProgress) {
@@ -508,30 +561,12 @@ export async function createDbBackup() {
     const backupDir = path.join(DATA_DIR, 'backups');
     await fs.promises.mkdir(backupDir, { recursive: true });
 
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const backupFileName = `babycharts-backup-${dateStr}.sqlite`;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFileName = `babycharts-backup-${timestamp}.sqlite`;
     const backupPath = path.join(backupDir, backupFileName);
 
-    // better-sqlite3 backup returns a Promise if no callback is supplied or when called asynchronously
     await sqlite.backup(backupPath);
-
-    // Prune backups older than 7 days
-    const dirEntries = await fs.promises.readdir(backupDir);
-    const files = dirEntries.filter(
-      (f) => f.startsWith('babycharts-backup-') && f.endsWith('.sqlite')
-    );
-    if (files.length > 7) {
-      files.sort((a, b) => a.localeCompare(b));
-      const toDelete = files.slice(0, -7);
-      for (const file of toDelete) {
-        try {
-          await fs.promises.unlink(path.join(backupDir, file));
-        } catch {
-          // ignore individual deletion errors
-        }
-      }
-    }
+    await pruneBackups(backupDir);
 
     return backupPath;
   } catch (err) {
@@ -539,6 +574,170 @@ export async function createDbBackup() {
     return null;
   } finally {
     isBackupInProgress = false;
+  }
+}
+
+/**
+ * Validates SQLite backup file integrity and structure before restore (BC-101)
+ * @param {string} filePath - Absolute path to SQLite file
+ * @returns {Promise<{ ok: boolean, error?: string, counts?: object }>}
+ */
+export async function validateBackupFile(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, error: 'Die Backup-Datei existiert nicht.' };
+    }
+
+    // Check file header magic bytes: SQLite format 3\000
+    const fd = await fs.promises.open(filePath, 'r');
+    const headerBuf = Buffer.alloc(16);
+    await fd.read(headerBuf, 0, 16, 0);
+    await fd.close();
+
+    const magic = headerBuf.toString('utf8', 0, 15);
+    if (magic !== 'SQLite format 3') {
+      return { ok: false, error: 'Ungültiges Dateiformat. Keine gültige SQLite3-Datenbank.' };
+    }
+
+    // Open read-only test connection to inspect integrity & schema
+    const testDb = new Database(filePath, { readonly: true, fileMustExist: true });
+    try {
+      const integrity = testDb.pragma('quick_check', { simple: true });
+      if (integrity !== 'ok') {
+        return { ok: false, error: `Integritätsprüfung fehlgeschlagen: ${integrity}` };
+      }
+
+      const tables = testDb
+        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+        .all()
+        .map((t) => t.name);
+
+      const requiredTables = ['users', 'families', 'profiles'];
+      const missingTables = requiredTables.filter((t) => !tables.includes(t));
+      if (missingTables.length > 0) {
+        return {
+          ok: false,
+          error: `Unvollständiges Schema. Fehlende Tabellen: ${missingTables.join(', ')}`,
+        };
+      }
+
+      const userCount = testDb.prepare('SELECT COUNT(*) as c FROM users').get().c;
+      const profileCount = testDb.prepare('SELECT COUNT(*) as c FROM profiles').get().c;
+
+      return {
+        ok: true,
+        counts: { users: userCount, profiles: profileCount },
+      };
+    } finally {
+      testDb.close();
+    }
+  } catch (err) {
+    return { ok: false, error: `Validierungsfehler: ${err.message}` };
+  }
+}
+
+/**
+ * Restores database from a validated backup file, automatically creating a pre-restore backup (BC-101, BC-102)
+ * @param {string} sourceBackupPath
+ * @returns {Promise<{ ok: boolean, error?: string, preRestoreBackupPath?: string }>}
+ */
+export async function restoreFromBackup(sourceBackupPath) {
+  const validation = await validateBackupFile(sourceBackupPath);
+  if (!validation.ok) {
+    return { ok: false, error: validation.error };
+  }
+
+  try {
+    // 1. Create automatic pre-restore backup snapshot (BC-102)
+    const backupDir = path.join(DATA_DIR, 'backups');
+    await fs.promises.mkdir(backupDir, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const preRestoreBackupPath = path.join(backupDir, `db_backup_pre_restore_${timestamp}.sqlite`);
+    await sqlite.backup(preRestoreBackupPath);
+
+    // 2. Perform restore by reading source backup into active SQLite DB
+    const sourceDb = new Database(sourceBackupPath, { readonly: true });
+    try {
+      const sourceUsers = sourceDb.prepare('SELECT * FROM users').all();
+      const sourceFamilies = sourceDb.prepare('SELECT * FROM families').all();
+      const sourceInvites = sourceDb.prepare('SELECT * FROM invites').all();
+      const sourceProfiles = sourceDb.prepare('SELECT * FROM profiles').all();
+
+      const sourceMembers = sourceDb.prepare('SELECT * FROM family_members').all();
+      const sourceMeasurements = sourceDb.prepare('SELECT * FROM measurements').all();
+      const sourceHealthLogs = sourceDb.prepare('SELECT * FROM health_logs').all();
+
+      // Execute atomic restore transaction
+      sqlite.transaction(() => {
+        // Clear active tables
+        sqlite.exec(`
+          DELETE FROM audit_logs;
+          DELETE FROM media_files;
+          DELETE FROM export_log;
+          DELETE FROM health_logs;
+          DELETE FROM measurements;
+          DELETE FROM profiles;
+          DELETE FROM used_invites;
+          DELETE FROM invites;
+          DELETE FROM family_members;
+          DELETE FROM families;
+          DELETE FROM users;
+        `);
+
+        // Insert restored users
+        const insUser = sqlite.prepare(`
+          INSERT INTO users (id, email, password, name, avatar, isDev, role, language, twoFactorSecret, tempTwoFactorSecret, tempTwoFactorExpires, recoveryCodes, tokenVersion, passwordResetTokenHash, passwordResetExpires, createdAt, updatedAt)
+          VALUES (@id, @email, @password, @name, @avatar, @isDev, @role, @language, @twoFactorSecret, @tempTwoFactorSecret, @tempTwoFactorExpires, @recoveryCodes, @tokenVersion, @passwordResetTokenHash, @passwordResetExpires, @createdAt, @updatedAt)
+        `);
+        for (const u of sourceUsers) insUser.run(u);
+
+        // Insert restored families & members
+        const insFamily = sqlite.prepare(`
+          INSERT INTO families (id, name, avatar, ownerId, createdAt, updatedAt)
+          VALUES (@id, @name, @avatar, @ownerId, @createdAt, @updatedAt)
+        `);
+        for (const f of sourceFamilies) insFamily.run(f);
+
+        const insMember = sqlite.prepare(`
+          INSERT INTO family_members (familyId, userId, role, joinedAt)
+          VALUES (@familyId, @userId, @role, @joinedAt)
+        `);
+        for (const m of sourceMembers) insMember.run(m);
+
+        // Insert restored invites
+        const insInvite = sqlite.prepare(`
+          INSERT INTO invites (code, familyId, role, createdBy, createdAt, expiresAt, maxUses, usesCount)
+          VALUES (@code, @familyId, @role, @createdBy, @createdAt, @expiresAt, @maxUses, @usesCount)
+        `);
+        for (const inv of sourceInvites) insInvite.run(inv);
+
+        // Insert restored profiles, measurements, health logs
+        const insProfile = sqlite.prepare(`
+          INSERT INTO profiles (id, familyId, name, birthdate, gender, avatar, notes, schedule, vaccinations, teeth, milestones, customMilestones, version, deletedAt, createdAt, updatedAt)
+          VALUES (@id, @familyId, @name, @birthdate, @gender, @avatar, @notes, @schedule, @vaccinations, @teeth, @milestones, @customMilestones, @version, @deletedAt, @createdAt, @updatedAt)
+        `);
+        for (const p of sourceProfiles) insProfile.run(p);
+
+        const insMeasurement = sqlite.prepare(`
+          INSERT INTO measurements (id, profileId, date, weight, length, headCircumference, checkup, notes, deletedAt, createdAt)
+          VALUES (@id, @profileId, @date, @weight, @length, @headCircumference, @checkup, @notes, @deletedAt, @createdAt)
+        `);
+        for (const m of sourceMeasurements) insMeasurement.run(m);
+
+        const insHealthLog = sqlite.prepare(`
+          INSERT INTO health_logs (id, profileId, dateTime, temperature, medication, symptoms, notes, deletedAt, createdAt)
+          VALUES (@id, @profileId, @dateTime, @temperature, @medication, @symptoms, @notes, @deletedAt, @createdAt)
+        `);
+        for (const h of sourceHealthLogs) insHealthLog.run(h);
+      })();
+    } finally {
+      sourceDb.close();
+    }
+
+    return { ok: true, preRestoreBackupPath };
+  } catch (err) {
+    console.error('[Restore] Database restore error:', err.message);
+    return { ok: false, error: err.message };
   }
 }
 

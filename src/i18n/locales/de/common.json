@@ -135,7 +135,14 @@
     "importTitle": "Sicherung wiederherstellen",
     "importDesc": "Wählen Sie eine zuvor exportierte JSON-Backup-Datei aus.",
     "importBtn": "Backup-Datei importieren",
-    "importSuccess": "Daten wurden erfolgreich importiert!"
+    "importSuccess": "Daten wurden erfolgreich importiert!",
+    "serverBackupsTitle": "Server-Datenbank Sicherungen (SQLite)",
+    "serverBackupsDesc": "Automatische und manuelle Snapshots der SQLite-Datenbank.",
+    "createBackupBtn": "Neues Backup erstellen",
+    "restoreBtn": "Wiederherstellen",
+    "preRestoreNotice": "Vor dem Einspielen wird automatisch ein Sicherheits-Snapshot erstellt.",
+    "restoreConfirm": "Möchten Sie dieses Backup wirklich einspielen? Alle aktuellen Daten werden durch den Stand des Backups ersetzt.",
+    "noBackupsFound": "Keine Server-Backups gefunden."
   },
   "auth": {
     "loginTitle": "Willkommen zurück",

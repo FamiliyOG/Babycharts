@@ -6,7 +6,6 @@ import {
   FileText,
   Sparkles,
   Database as DbIcon,
-  ShieldCheck,
   Smartphone,
   Download,
   Share,
@@ -187,26 +186,50 @@ export default function ExportImportModal({
           )}
         </div>
 
-        {/* Live Database Engine Status Badge (Dev Account only) */}
+        {/* Server SQLite Database Backups & Restore Management (Issues BC-098, BC-100, BC-101, BC-102) */}
         {isDev && (
-          <div className="mb-4 p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/50 flex items-center justify-between shadow-xs">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-cyan-100 dark:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300">
-                <DbIcon className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-cyan-950 dark:text-cyan-200">
-                  Datenbank-Engine
+          <div className="mb-4 p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/50 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-xl bg-cyan-100 dark:bg-cyan-900/60 text-cyan-700 dark:text-cyan-300">
+                  <DbIcon className="w-4 h-4" />
                 </div>
-                <div className="text-[11px] text-cyan-700 dark:text-cyan-400 font-medium">
-                  SQLite (Write-Ahead Logging / WAL)
+                <div>
+                  <div className="text-xs font-bold text-cyan-950 dark:text-cyan-200">
+                    {t('exportImport.serverBackupsTitle')}
+                  </div>
+                  <div className="text-[10px] text-cyan-700 dark:text-cyan-400 font-medium">
+                    {t('exportImport.serverBackupsDesc')}
+                  </div>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('/api/exports/backups/create', {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (res.ok) {
+                      setImportStatus({
+                        success: true,
+                        text: '✅ Backup erfolgreich auf dem Server erstellt.',
+                      });
+                    }
+                  } catch (err) {
+                    setImportStatus({ success: false, text: `❌ Fehler: ${err.message}` });
+                  }
+                }}
+                className="px-2.5 py-1 text-[11px] font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors cursor-pointer shadow-xs"
+              >
+                {t('exportImport.createBackupBtn')}
+              </button>
             </div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/60 shadow-xs">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              Aktiv &amp; Sicher
-            </span>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 bg-white/70 dark:bg-slate-900/70 p-2 rounded-xl border border-cyan-100 dark:border-cyan-900/40">
+              💡 {t('exportImport.preRestoreNotice')}
+            </div>
           </div>
         )}
 

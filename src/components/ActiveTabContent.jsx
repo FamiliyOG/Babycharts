@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import TodayDashboard from './TodayDashboard.jsx';
 import GrowthChart from './GrowthChart.jsx';
 import MeasurementTable from './MeasurementTable.jsx';

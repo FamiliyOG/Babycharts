@@ -4,8 +4,6 @@
  * Handles authentication headers, request sanitization, response parsing, and standard error handling.
  */
 
-const BASE_URL = '/api';
-
 export class ApiError extends Error {
   constructor(message, status = 500, code = 'API_ERROR', details = null) {
     super(message);
@@ -37,6 +35,60 @@ export function clearAuthToken() {
 }
 
 /**
+ * Validates endpoint against allowed relative paths to prevent CSRF / SSRF (SonarQube jssecurity:S8476).
+ */
+function validateAndResolveEndpoint(endpoint) {
+  if (typeof endpoint !== 'string' || !endpoint.trim()) {
+    throw new TypeError('Ungültiger API-Endpunkt.');
+  }
+
+  // Strictly sanitize input path
+  const sanitized = endpoint
+    .replace(/^([a-zA-Z][a-zA-Z\d+.-]*:|\/\/)/g, '')
+    .replaceAll('..', '')
+    .replace(/^\/?(api\/)?/, '');
+
+  if (!sanitized || /^(\/|\.\.)/.test(sanitized)) {
+    throw new Error('Ungültiger oder unsicherer API-Pfad.');
+  }
+
+  return `/api/${sanitized}`;
+}
+
+function buildApiUrl(endpoint, params) {
+  const basePath = validateAndResolveEndpoint(endpoint);
+
+  if (params && typeof params === 'object') {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(encodeURIComponent(key), String(value));
+      }
+    });
+    const queryString = searchParams.toString();
+    if (queryString) {
+      return `${basePath}?${queryString}`;
+    }
+  }
+
+  return basePath;
+}
+
+async function parseResponseBody(response) {
+  const contentType = response.headers.get('content-type');
+  if (contentType?.includes('application/json')) {
+    return response.json().catch(() => null);
+  }
+
+  const text = await response.text().catch(() => '');
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+/**
  * Universal request wrapper for internal API endpoints.
  *
  * @param {string} endpoint - Relative path (e.g. '/profiles' or '/auth/me')
@@ -45,25 +97,9 @@ export function clearAuthToken() {
  */
 export async function apiClient(endpoint, options = {}) {
   try {
-    let url = endpoint.startsWith('/api')
-      ? endpoint
-      : `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-
-    // Append query params if provided
-    if (options.params) {
-      const searchParams = new URLSearchParams();
-      Object.entries(options.params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          searchParams.append(key, String(value));
-        }
-      });
-      const queryString = searchParams.toString();
-      if (queryString) {
-        url += (url.includes('?') ? '&' : '?') + queryString;
-      }
-    }
-
+    const safeUrl = buildApiUrl(endpoint, options.params);
     const token = getAuthToken();
+
     const headers = {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -76,25 +112,13 @@ export async function apiClient(endpoint, options = {}) {
       headers,
     };
 
-    const response = await fetch(url, fetchOptions);
+    const response = await fetch(safeUrl, fetchOptions);
 
-    if (response.status === 401) {
-      // Trigger event or let caller decide on session expiration
+    if (response.status === 401 && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('babycharts:unauthorized'));
     }
 
-    let responseData = null;
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      responseData = await response.json().catch(() => null);
-    } else {
-      const text = await response.text().catch(() => '');
-      try {
-        responseData = JSON.parse(text);
-      } catch {
-        responseData = text;
-      }
-    }
+    const responseData = await parseResponseBody(response);
 
     if (!response.ok) {
       const errorMessage =

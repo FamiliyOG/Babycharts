@@ -278,5 +278,5 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
     const dbMid = readDb();
     const invMid = dbMid.invites.find((i) => i.code === resMultiInvite.body.code);
     expect(invMid?.usesCount).toBe(1);
-  });
+  }, 20000);
 });

@@ -36,7 +36,7 @@ export default function TodayDashboard({
     return (
       U_CHECKUPS.find(
         (u) => !completedCheckups.has(u.id) && u.periodMonthsMax >= currentMonths - 1
-      ) || U_CHECKUPS[U_CHECKUPS.length - 1]
+      ) || U_CHECKUPS.at(-1)
     );
   }, [ageInfo, activeChild, measurements]);
 
@@ -49,6 +49,16 @@ export default function TodayDashboard({
 
   // Latest measurement record
   const latestMeasurement = measurements[0] || null;
+
+  // Format age description cleanly without nested ternaries
+  const ageDescription = useMemo(() => {
+    if (!ageInfo) return '';
+    const yearsPart =
+      ageInfo.years > 0 ? `${ageInfo.years} ${t('growth.yearsUnit') || 'Jahre'} ` : '';
+    const monthsPart = `${ageInfo.months} ${t('growth.monthsUnit') || 'Monate'}`;
+    const daysPart = `(${ageInfo.totalDays} ${t('growth.days') || 'Tage'})`;
+    return `${yearsPart}${monthsPart} ${daysPart}`;
+  }, [ageInfo, t]);
 
   if (!activeChild) return null;
 
@@ -63,11 +73,7 @@ export default function TodayDashboard({
               <span>{t('dashboard.today') || 'Heute im Überblick'}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{activeChild.name}</h1>
-            <p className="text-sm text-slate-300 mt-1">
-              {ageInfo
-                ? `${ageInfo.years > 0 ? `${ageInfo.years} ${t('growth.yearsUnit') || 'Jahre'} ` : ''}${ageInfo.months} ${t('growth.monthsUnit') || 'Monate'} (${ageInfo.totalDays} ${t('growth.days') || 'Tage'})`
-                : ''}
-            </p>
+            <p className="text-sm text-slate-300 mt-1">{ageDescription}</p>
           </div>
           {onOpenQuickAdd && (
             <button

@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 /**
- * Unified, Accessible Modal Container (BC-130).
- * Implements WCAG keyboard dismissal (Escape), backdrop click, focus trapping, and responsive layouts.
+ * Accessible Modal Container using HTML5 <dialog> element.
+ * Standardizes modal layouts, focus trap, escape key handling, and mobile safe areas.
  */
 export default function ModalContainer({
   isOpen,
@@ -11,41 +11,42 @@ export default function ModalContainer({
   title,
   subtitle,
   children,
-  maxWidth = 'max-w-md',
+  maxWidth = 'max-w-lg',
   showCloseButton = true,
 }) {
-  const modalRef = useRef(null);
+  const dialogRef = useRef(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    const dialogElement = dialogRef.current;
+    if (!dialogElement) return;
 
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        onClose?.();
+    if (isOpen) {
+      if (!dialogElement.open) {
+        dialogElement.showModal?.() || dialogElement.setAttribute('open', '');
       }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    } else if (dialogElement.open) {
+      dialogElement.close?.() || dialogElement.removeAttribute('open');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200"
+    <dialog
+      ref={dialogRef}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose?.();
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
+        if (e.target === e.currentTarget) {
+          onClose?.();
+        }
       }}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onClose?.();
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
+      className="fixed inset-0 z-50 m-auto flex items-center justify-center p-4 bg-transparent backdrop:bg-slate-950/80 backdrop:backdrop-blur-xs max-w-none max-h-none w-full h-full border-0 animate-in fade-in duration-200"
+      aria-labelledby={title ? 'modal-title' : undefined}
     >
       <div
-        ref={modalRef}
         className={`w-full ${maxWidth} bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}
       >
         {(title || showCloseButton) && (
@@ -63,15 +64,15 @@ export default function ModalContainer({
                 type="button"
                 onClick={onClose}
                 className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
-                aria-label="Modal schließen"
+                aria-label="Schließen"
               >
                 <X className="w-5 h-5" />
               </button>
             )}
           </div>
         )}
-        <div className="p-5 max-h-[85vh] overflow-y-auto">{children}</div>
+        <div className="p-5">{children}</div>
       </div>
-    </div>
+    </dialog>
   );
 }

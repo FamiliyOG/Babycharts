@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Edit2, Trash2, Calendar, Award, Scale, Ruler, Circle } from 'lucide-react';
 import { calculateAge, calculateBMI, estimatePercentile } from '../utils/percentileCalc.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import EmptyState from './EmptyState.jsx';
 
 export default function MeasurementTable({
   activeChild,
@@ -22,9 +23,14 @@ export default function MeasurementTable({
 
   if (sortedMeasurements.length === 0) {
     return (
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8 text-center text-slate-400">
-        <p className="text-sm">{t('measurements.tableNoData')}</p>
-      </div>
+      <EmptyState
+        icon={Scale}
+        title={t('measurements.tableNoData') || 'Keine Messwerte erfasst'}
+        description={
+          t('measurements.emptyDescription') ||
+          'Fügen Sie die erste Messung hinzu, um Perzentilen und Verlaufskurven zu berechnen.'
+        }
+      />
     );
   }
 

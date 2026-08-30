@@ -1,63 +1,17 @@
-/**
- * src/utils/api.js
- * API client for BabyCharts supporting JWT auth, families, and profiles.
- */
+import { apiClient, setAuthToken, clearAuthToken } from '../api/client.js';
 
 const BASE = '/api';
 
-function getAuthHeader() {
-  const token = localStorage.getItem('babycharts_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function safeFetch(url, options = {}) {
-  try {
-    // Validate request path to prevent URL forging / SSRF (jssecurity:S8476)
-    if (typeof url !== 'string' || !url.startsWith('/api')) {
-      throw new Error('Invalid internal API URL');
-    }
-
-    const headers = {
-      'Content-Type': 'application/json',
-      ...getAuthHeader(),
-      ...options.headers,
-    };
-
-    const res = await fetch(url, {
-      credentials: 'same-origin',
-      ...options,
-      headers,
-    });
-
-    if (res.status === 401) {
-      // Optional: notify or let caller handle unauthorized
-    }
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => null);
-      return { ok: false, status: res.status, error: errorData?.error || 'Request failed' };
-    }
-
-    const rawText = await res.text();
-    let data = null;
-    try {
-      data = JSON.parse(rawText);
-    } catch {
-      data = null;
-    }
-    return { ok: true, data };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
+  const result = await apiClient(url, options);
+  return result;
 }
 
 // ── Auth Endpoints ──────────────────────────────────────────────────────────
 
 function handleAuthTokenResponse(res) {
   if (res.ok && res.data?.token && typeof res.data.token === 'string') {
-    // Sanitize JWT token to prevent storage poisoning (jssecurity:S8475)
-    const cleanToken = res.data.token.replace(/[^a-zA-Z0-9._-]/g, '');
-    localStorage.setItem('babycharts_token', cleanToken);
+    setAuthToken(res.data.token);
   }
   return res;
 }
@@ -133,7 +87,7 @@ export async function updateMe(updates) {
 }
 
 export function logoutUser() {
-  localStorage.removeItem('babycharts_token');
+  clearAuthToken();
 }
 
 // ── Families Endpoints ──────────────────────────────────────────────────────

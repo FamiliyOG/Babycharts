@@ -6,6 +6,8 @@ import './i18n/index.js';
 import App from './App.jsx';
 import ReportPrintPage from './components/ReportPrintPage.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { logClientError } from './utils/api.js';
 
 // Global Client Error Catchers & iOS PWA Pinch/Double-Tap Zoom Protection
@@ -93,9 +95,13 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>{puppeteerChildId ? <ReportPrintPage /> : <App />}</ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <ToastProvider>{puppeteerChildId ? <ReportPrintPage /> : <App />}</ToastProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>
 );
 

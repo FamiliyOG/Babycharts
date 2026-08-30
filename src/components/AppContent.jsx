@@ -9,6 +9,9 @@ import VaccinationTracker from './VaccinationTracker.jsx';
 import TeethTracker from './TeethTracker.jsx';
 import MilestoneTracker from './MilestoneTracker.jsx';
 import HealthTracker from './HealthTracker.jsx';
+import { ErrorBoundary } from './ErrorBoundary.jsx';
+import { LoadingSpinner } from './LoadingState.jsx';
+import EmptyState from './EmptyState.jsx';
 
 export default function AppContent({
   isLoading,
@@ -32,7 +35,7 @@ export default function AppContent({
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -128,63 +131,66 @@ export default function AppContent({
           </button>
         </div>
 
-        {/* Tab 1: Growth Chart & Measurement History */}
-        {activeTab === 'growth' && (
-          <>
-            <GrowthChart activeChild={activeChild} measurements={activeChildMeasurements} />
-            <MeasurementTable
+        {/* Tab Content with Resilient Widget Error Boundary (BC-132) */}
+        <ErrorBoundary isWidget>
+          {/* Tab 1: Growth Chart & Measurement History */}
+          {activeTab === 'growth' && (
+            <>
+              <GrowthChart activeChild={activeChild} measurements={activeChildMeasurements} />
+              <MeasurementTable
+                activeChild={activeChild}
+                measurements={activeChildMeasurements}
+                onEditMeasurement={handleEditMeasurement}
+                onDeleteMeasurement={handleDeleteMeasurement}
+              />
+            </>
+          )}
+
+          {/* Tab: U-Heft Vorsorge-Roadmap */}
+          {activeTab === 'ucheckups' && (
+            <UCheckupTracker
               activeChild={activeChild}
               measurements={activeChildMeasurements}
-              onEditMeasurement={handleEditMeasurement}
-              onDeleteMeasurement={handleDeleteMeasurement}
+              onAddCheckupClick={handleOpenAddMeasurement}
             />
-          </>
-        )}
+          )}
 
-        {/* Tab: U-Heft Vorsorge-Roadmap */}
-        {activeTab === 'ucheckups' && (
-          <UCheckupTracker
-            activeChild={activeChild}
-            measurements={activeChildMeasurements}
-            onAddCheckupClick={handleOpenAddMeasurement}
-          />
-        )}
+          {/* Tab 2: STIKO Vaccination Tracker */}
+          {activeTab === 'vaccines' && (
+            <VaccinationTracker
+              activeChild={activeChild}
+              onUpdateChild={handleSaveProfile}
+              canEdit={canEdit}
+            />
+          )}
 
-        {/* Tab 2: STIKO Vaccination Tracker */}
-        {activeTab === 'vaccines' && (
-          <VaccinationTracker
-            activeChild={activeChild}
-            onUpdateChild={handleSaveProfile}
-            canEdit={canEdit}
-          />
-        )}
+          {/* Tab 3: Primary Teeth Eruption Tracker */}
+          {activeTab === 'teeth' && (
+            <TeethTracker
+              activeChild={activeChild}
+              onUpdateChild={handleSaveProfile}
+              canEdit={canEdit}
+            />
+          )}
 
-        {/* Tab 3: Primary Teeth Eruption Tracker */}
-        {activeTab === 'teeth' && (
-          <TeethTracker
-            activeChild={activeChild}
-            onUpdateChild={handleSaveProfile}
-            canEdit={canEdit}
-          />
-        )}
+          {/* Tab 4: Milestones Timeline */}
+          {activeTab === 'milestones' && (
+            <MilestoneTracker
+              activeChild={activeChild}
+              onUpdateChild={handleSaveProfile}
+              canEdit={canEdit}
+            />
+          )}
 
-        {/* Tab 4: Milestones Timeline */}
-        {activeTab === 'milestones' && (
-          <MilestoneTracker
-            activeChild={activeChild}
-            onUpdateChild={handleSaveProfile}
-            canEdit={canEdit}
-          />
-        )}
-
-        {/* Tab 5: Health & Fever Diary */}
-        {activeTab === 'health' && (
-          <HealthTracker
-            activeChild={activeChild}
-            onUpdateChild={handleSaveProfile}
-            canEdit={canEdit}
-          />
-        )}
+          {/* Tab 5: Health & Fever Diary */}
+          {activeTab === 'health' && (
+            <HealthTracker
+              activeChild={activeChild}
+              onUpdateChild={handleSaveProfile}
+              canEdit={canEdit}
+            />
+          )}
+        </ErrorBoundary>
       </div>
     );
   }

@@ -176,6 +176,10 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/exports', exportsRouter);
 app.use('/api/media', mediaRouter);
 
+// ── Central API Error Handler (BC-127) ───────────────────────────────────────
+import { globalErrorHandler } from './middleware/errorHandler.js';
+app.use('/api', globalErrorHandler);
+
 // Trigger manual PDF export for a specific child via API (requires auth & family access)
 app.post('/api/exports/trigger/:childId', requireAuth, async (req, res) => {
   const { generatePdfForChild } = await import('./pdfGenerator.js');

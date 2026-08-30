@@ -7,6 +7,8 @@ import { Router } from 'express';
 import { readDb, writeDb, getProfileById, restoreProfile, softDeleteProfile } from '../utils/db.js';
 import { rescheduleAll } from '../scheduler.js';
 import { optionalAuth, requireAuth, getUserFamilyRole } from '../middleware/auth.js';
+import { validateBody } from '../middleware/validate.js';
+import { ProfileInputSchema } from '../validators/schemas.js';
 
 const router = Router();
 
@@ -155,7 +157,7 @@ function checkFamilyWritePermission(familyId, userId, db, actionLabel) {
 }
 
 // POST – single profile creation (strictly verifies family membership & editor/admin role)
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, validateBody(ProfileInputSchema), (req, res) => {
   const data = req.body;
   if (!data.id || !data.name) {
     return res.status(400).json({ error: 'id and name are required' });

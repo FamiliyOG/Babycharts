@@ -58,7 +58,8 @@
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.12",
-    "speakeasy": "^2.0.0"
+    "speakeasy": "^2.0.0",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

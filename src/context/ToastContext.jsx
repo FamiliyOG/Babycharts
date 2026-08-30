@@ -3,6 +3,8 @@ import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
+let toastCounter = 0;
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
@@ -12,7 +14,8 @@ export function ToastProvider({ children }) {
 
   const addToast = useCallback(
     ({ message, type = 'info', duration = 4000 }) => {
-      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      toastCounter += 1;
+      const id = `toast-${Date.now()}-${toastCounter}`;
       setToasts((prev) => [...prev, { id, message, type }]);
 
       if (duration > 0) {

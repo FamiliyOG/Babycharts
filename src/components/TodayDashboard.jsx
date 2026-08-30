@@ -173,9 +173,18 @@ export default function TodayDashboard({
               </div>
             ) : (
               <div className="mt-3">
-                <span className="inline-block px-3 py-1.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs font-semibold">
-                  + {t('measurements.addTitle') || 'Erste Messung eintragen'}
-                </span>
+                {onOpenAddMeasurement && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenAddMeasurement();
+                    }}
+                    className="inline-block px-3 py-1.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs font-semibold"
+                  >
+                    + {t('measurements.addTitle') || 'Erste Messung eintragen'}
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -22,10 +22,18 @@ export default function ModalContainer({
 
     if (isOpen) {
       if (!dialogElement.open) {
-        dialogElement.showModal?.() || dialogElement.setAttribute('open', '');
+        if (typeof dialogElement.showModal === 'function') {
+          dialogElement.showModal();
+        } else {
+          dialogElement.setAttribute('open', '');
+        }
       }
     } else if (dialogElement.open) {
-      dialogElement.close?.() || dialogElement.removeAttribute('open');
+      if (typeof dialogElement.close === 'function') {
+        dialogElement.close();
+      } else {
+        dialogElement.removeAttribute('open');
+      }
     }
   }, [isOpen]);
 
@@ -38,14 +46,22 @@ export default function ModalContainer({
         e.preventDefault();
         onClose?.();
       }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
           onClose?.();
         }
       }}
       className="fixed inset-0 z-50 m-auto flex items-center justify-center p-4 bg-transparent backdrop:bg-slate-950/80 backdrop:backdrop-blur-xs max-w-none max-h-none w-full h-full border-0 animate-in fade-in duration-200"
       aria-labelledby={title ? 'modal-title' : undefined}
     >
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Modal schließen"
+        className="fixed inset-0 -z-10 w-full h-full bg-transparent border-0 cursor-default"
+        onClick={onClose}
+      />
       <div
         className={`w-full ${maxWidth} bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}
       >

@@ -61,8 +61,12 @@ export function ToastProvider({ children }) {
             error: 'bg-rose-900/90 border-rose-700 text-rose-100 shadow-rose-950/50',
             info: 'bg-slate-900/90 border-slate-700 text-slate-100 shadow-slate-950/50',
           };
-          const Icon =
-            toast.type === 'success' ? CheckCircle2 : toast.type === 'error' ? AlertCircle : Info;
+          const typeIcons = {
+            success: CheckCircle2,
+            error: AlertCircle,
+            info: Info,
+          };
+          const Icon = typeIcons[toast.type] || Info;
 
           return (
             <div

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Scale, HeartPulse, Sparkles, Syringe, Plus, ClipboardList } from 'lucide-react';
+import { Scale, HeartPulse, Sparkles, Syringe, ClipboardList } from 'lucide-react';
 import { ToothIcon } from './ToothIcon.jsx';
 import ModalContainer from './ModalContainer.jsx';
 

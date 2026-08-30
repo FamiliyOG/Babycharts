@@ -434,7 +434,19 @@ export function readDb() {
   };
 }
 
+const ALLOWED_PRUNE_TABLES = new Set([
+  'users',
+  'families',
+  'family_members',
+  'invitations',
+  'profiles',
+  'settings',
+]);
+
 function pruneStaleRows(tableName, validItems = []) {
+  if (!ALLOWED_PRUNE_TABLES.has(tableName)) {
+    throw new Error(`Invalid table name for prune: ${tableName}`);
+  }
   const existingIds = new Set(validItems.map((item) => item.id));
   const currentDbRows = sqlite.prepare(`SELECT id FROM ${tableName}`).all();
   const deleteStmt = sqlite.prepare(`DELETE FROM ${tableName} WHERE id = ?`);

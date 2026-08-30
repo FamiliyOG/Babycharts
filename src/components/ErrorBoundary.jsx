@@ -67,7 +67,7 @@ function ErrorFallbackView({ error, resetError, isWidget = false }) {
 
   return (
     <div
-      className="min-h-[400px] flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 m-4"
+      className="min-h-100 flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 m-4"
       role="alert"
     >
       <div className="max-w-md w-full text-center">

@@ -58,8 +58,12 @@
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.12",
+    "react-router-dom": "^7.18.3",
     "speakeasy": "^2.0.0",
     "zod": "^4.5.4"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -80,7 +84,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.11.0",
     "html-validate": "^11.10.0",
-    "jscpd": "^5.0.16",
+    "jscpd": "^5.1.0",
     "jsdom": "^30.0.1",
     "knip": "^6.33.0",
     "oxlint": "^1.80.0",

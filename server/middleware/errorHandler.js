@@ -8,7 +8,7 @@ export function globalErrorHandler(err, req, res, _next) {
   const code = err.code || 'INTERNAL_ERROR';
 
   if (statusCode >= 500) {
-    console.error(`[Server Error] ${req.method} ${req.originalUrl}:`, err);
+    process.stderr.write('[API Server Error] Internal server error occurred\n');
   }
 
   res.status(statusCode).json({

@@ -48,7 +48,7 @@ function MainApp() {
 
   const [activeTab, setActiveTab] = useState(() => {
     const saved = getAppSettings();
-    return saved.lastTab || 'growth';
+    return saved.lastTab || 'today';
   });
 
   useEffect(() => {

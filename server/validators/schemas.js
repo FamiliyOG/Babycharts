@@ -55,15 +55,17 @@ export const ProfileInputSchema = z.object({
 });
 
 // User Auth Schemas
+const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/;
+
 export const RegisterSchema = z.object({
-  email: z.string().email('Ungültige E-Mail-Adresse'),
+  email: z.string().trim().regex(EMAIL_REGEX, 'Ungültige E-Mail-Adresse'),
   password: z.string().min(8, 'Passwort muss mindestens 8 Zeichen lang sein'),
   name: z.string().min(1, 'Name ist erforderlich').max(100),
   language: z.enum(['de', 'en', 'th']).optional().default('de'),
 });
 
 export const LoginSchema = z.object({
-  email: z.string().email('Ungültige E-Mail-Adresse'),
+  email: z.string().trim().regex(EMAIL_REGEX, 'Ungültige E-Mail-Adresse'),
   password: z.string().min(1, 'Passwort ist erforderlich'),
   twoFactorToken: z.string().optional(),
 });
@@ -74,7 +76,7 @@ export const ChangePasswordSchema = z.object({
 });
 
 export const RequestPasswordResetSchema = z.object({
-  email: z.string().email('Ungültige E-Mail-Adresse'),
+  email: z.string().trim().regex(EMAIL_REGEX, 'Ungültige E-Mail-Adresse'),
 });
 
 export const ResetPasswordSchema = z.object({

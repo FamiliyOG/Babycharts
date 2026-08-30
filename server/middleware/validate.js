@@ -4,7 +4,7 @@ import { ZodError } from 'zod';
  * Express middleware for validating request body against a Zod schema.
  * Formats validation errors into a standardized response contract.
  *
- * @param {import('zod').ZodSchema} schema
+ * @param {import('zod').ZodType} schema
  * @returns {import('express').RequestHandler}
  */
 export function validateBody(schema) {
@@ -33,7 +33,7 @@ export function validateBody(schema) {
 /**
  * Express middleware for validating request query parameters against a Zod schema.
  *
- * @param {import('zod').ZodSchema} schema
+ * @param {import('zod').ZodType} schema
  * @returns {import('express').RequestHandler}
  */
 export function validateQuery(schema) {

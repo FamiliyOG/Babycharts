@@ -30,6 +30,7 @@ import authRouter from './routes/auth.js';
 import familiesRouter from './routes/families.js';
 import mediaRouter from './routes/media.js';
 import { requireAuth, getUserFamilyRole } from './middleware/auth.js';
+import { globalErrorHandler } from './middleware/errorHandler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.join(__dirname, '..', 'dist');
@@ -177,7 +178,6 @@ app.use('/api/exports', exportsRouter);
 app.use('/api/media', mediaRouter);
 
 // ── Central API Error Handler (BC-127) ───────────────────────────────────────
-import { globalErrorHandler } from './middleware/errorHandler.js';
 app.use('/api', globalErrorHandler);
 
 // Trigger manual PDF export for a specific child via API (requires auth & family access)

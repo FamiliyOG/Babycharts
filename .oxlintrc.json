@@ -1,7 +1,16 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "oxc", "unicorn", "import", "promise"],
-  "ignorePatterns": ["dist/**", "node_modules/**", "pdf_exports/**", "server/data/**"],
+  "ignorePatterns": [
+    "dist/**",
+    "coverage/**",
+    "reports/**",
+    "playwright-report/**",
+    "test-results/**",
+    "node_modules/**",
+    "pdf_exports/**",
+    "server/data/**"
+  ],
   "env": {
     "browser": true,
     "node": true,

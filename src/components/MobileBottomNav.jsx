@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { TrendingUp, Syringe, Sparkles, HeartPulse, Plus, ClipboardList } from 'lucide-react';
+import { Home, TrendingUp, Syringe, Sparkles, HeartPulse, Plus } from 'lucide-react';
 import { ToothIcon } from './ToothIcon.jsx';
 
 export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) {
   const { t } = useTranslation();
 
   const leftTabs = [
+    { id: 'today', label: t('dashboard.today') || 'Heute', shortLabel: 'Heute', icon: Home },
     { id: 'growth', label: t('nav.growth'), shortLabel: t('nav.shortGrowth'), icon: TrendingUp },
     {
       id: 'vaccines',
@@ -13,10 +14,10 @@ export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) 
       shortLabel: t('nav.shortVaccines'),
       icon: Syringe,
     },
-    { id: 'teeth', label: t('nav.teeth'), shortLabel: t('nav.shortTeeth'), icon: ToothIcon },
   ];
 
   const rightTabs = [
+    { id: 'teeth', label: t('nav.teeth'), shortLabel: t('nav.shortTeeth'), icon: ToothIcon },
     {
       id: 'milestones',
       label: t('nav.milestones'),
@@ -24,12 +25,6 @@ export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) 
       icon: Sparkles,
     },
     { id: 'health', label: t('nav.health'), shortLabel: t('nav.shortHealth'), icon: HeartPulse },
-    {
-      id: 'ucheckups',
-      label: t('nav.uCheckups'),
-      shortLabel: t('nav.shortUCheckups'),
-      icon: ClipboardList,
-    },
   ];
 
   const renderTabButton = (tab) => {

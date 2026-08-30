@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Reusable Skeleton & Loading Loader Component (BC-128).
  */

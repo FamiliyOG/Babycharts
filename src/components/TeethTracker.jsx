@@ -125,7 +125,11 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
         <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-2">
           <span>{jawLabel}</span>
           <span className="text-[10px] text-slate-500 font-normal">
-            ({isUpper ? 'Zähne 55–65' : 'Zähne 85–75'})
+            (
+            {isUpper
+              ? t('teeth.upperTeethRange', 'Zähne 55–65')
+              : t('teeth.lowerTeethRange', 'Zähne 85–75')}
+            )
           </span>
         </div>
 

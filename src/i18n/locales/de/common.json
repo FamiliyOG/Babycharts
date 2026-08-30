@@ -38,7 +38,15 @@
     "recorded": "erfasst",
     "vaccinesRecommended": "{{count}} Impfungen laut STIKO-Kalender empfohlen",
     "allVaccinesUpToDate": "Alle Standard-Impfungen aktuell eingetragen",
-    "noDateRecorded": "Kein Datum vorhanden"
+    "noDateRecorded": "Kein Datum vorhanden",
+    "milestonesRecorded": "{{count}} besondere Entwicklungsschritte festgehalten",
+    "documentMilestones": "Wichtige Momente & Fotos dokumentieren",
+    "teethErupted": "{{count}} von 20 Milchzähnen durchgebrochen",
+    "documentTeeth": "Zahndurchbruch im 20-Zähne-Gebiss festhalten",
+    "noAcuteIllness": "Keine akuten Krankheitseinträge",
+    "logHealth": "Fieber, Symptome & Medikamente protokollieren",
+    "symptomEntry": "Symptomeintrag",
+    "lastEntryOn": "Letzter Eintrag am {{date}}"
   },
   "roles": {
     "admin": "Administrator",
@@ -72,13 +80,24 @@
     "unitCm": "cm",
     "required": "Pflichtfeld",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "days": "Tage",
+    "months": "Monate",
+    "years": "Jahre",
+    "monthsShort": "Mon.",
+    "yearsShort": "Jahre"
   },
   "header": {
     "selectChild": "Kind auswählen",
     "addChild": "Kind hinzufügen",
     "switchFamily": "Familie wechseln",
     "manageFamily": "Familie verwalten",
+    "familyAndMembers": "Familie & Mitglieder",
+    "security2Fa": "2FA Sicherheit",
+    "twoFaActive": "Aktiv",
+    "twoFaInactive": "Aus",
+    "changeAvatar": "Profilbild ändern",
+    "removeAvatar": "Profilbild entfernen",
     "login": "Anmelden",
     "logout": "Abmelden",
     "security": "Sicherheit & 2FA",
@@ -277,7 +296,14 @@
     "loadingMembers": "Lade Mitglieder...",
     "switchFamilyLabel": "Familie wechseln:",
     "joinAnotherFamily": "Weiterer Familie beitreten",
-    "joinCodePlaceholderShort": "Code eingeben (z. B. BABY99)"
+    "joinCodePlaceholderShort": "Code eingeben (z. B. BABY99)",
+    "yourRole": "Ihre Rolle: {{role}}",
+    "roleFullAdmin": "Administrator (Volle Rechte)",
+    "roleFullEditor": "Elternteil (Schreibrechte)",
+    "roleFullViewer": "Besucher (Nur Leserechte)",
+    "roleBadgeAdmin": "Admin",
+    "roleBadgeEditor": "Elternteil",
+    "roleBadgeViewer": "Besucher"
   },
   "growth": {
     "title": "Wachstumskurven (WHO-Perzentilen)",
@@ -318,7 +344,11 @@
     "monthsUnit": "M.",
     "yearsUnit": "J.",
     "ageLabel": "Alter",
-    "xAxisTitle": "Alter (Monate / Jahre)"
+    "xAxisTitle": "Alter (Monate / Jahre)",
+    "sourceLabel": "Quelle: WHO Child Growth Standards ({{gender}})",
+    "boyGender": "Jungen ♂",
+    "girlGender": "Mädchen ♀",
+    "zoomPanTip": "Tipp: Mit Mausrad/Pinch zoomen & ziehen (Pan) oder die Zoom-Buttons nutzen"
   },
   "health": {
     "title": "Gesundheits- & Symptomtagebuch",
@@ -404,36 +434,60 @@
         "desc": "Greift gezielt kleine Gegenstände mit Daumen und Zeigefinger."
       },
       "pull-to-stand": {
-        "title": "Hochziehen in den Stand",
-        "desc": "Zieht sich an Möbeln oder Gittern selbstständig auf die Beine."
+        "title": "An Möbeln hochziehen & Stehen",
+        "desc": "Zieht sich selbstständig am Tisch oder Gitterbett in den Stand."
+      },
+      "stand-up": {
+        "title": "An Möbeln hochziehen & Stehen",
+        "desc": "Zieht sich selbstständig am Tisch oder Gitterbett in den Stand."
       },
       "wave-bye": {
         "title": "Winken & Klatschen",
         "desc": "Macht 'Winke-Winke' oder klatscht begeistert in die Händchen."
       },
-      "first-steps": {
-        "title": "Erste freie Schritte",
-        "desc": "Die ersten mutigen Schritte ganz ohne Festhalten!"
+      "first-word": {
+        "title": "Erstes gesprochenes Wort",
+        "desc": "Sagt das erste gezielte Wort (z. B. Mama, Papa, Da)."
       },
       "first-words": {
         "title": "Erste Worte (z.B. Mama, Papa)",
         "desc": "Verwendet gezielt Wörter für bestimmte Personen oder Dinge."
+      },
+      "first-steps": {
+        "title": "Erste freie Schritte",
+        "desc": "Geht die ersten Schritte ganz alleine ohne Festhalten!"
+      },
+      "first-birthday": {
+        "title": "1. Geburtstag 🎂",
+        "desc": "Der erste große Geburtstag und die erste Kerze auf dem Kuchen."
       },
       "stack-blocks": {
         "title": "Turm aus Bauklötzen bauen",
         "desc": "Stapelt erfolgreich mehrere Klötze übereinander."
       },
       "drink-cup": {
-        "title": "Selbstständig aus Becher trinken",
+        "title": "Selbstständig aus dem Becher trinken",
         "desc": "Trinkt ohne fremde Hilfe aus einem normalen Becher."
+      },
+      "two-words": {
+        "title": "Zwei-Wort-Sätze bilden",
+        "desc": "Verbindet Wörter wie „Auto da“, „Mehr Milch“ oder „Mama mit“."
+      },
+      "two-word-sentences": {
+        "title": "Zwei-Wort-Sätze",
+        "desc": "Kombiniert Wörter sinnvoll (z.B. 'Auto fahren', 'Mehr Milch')."
       },
       "run": {
         "title": "Sicheres Rennen & Laufen",
         "desc": "Flitzt sicher durch die Wohnung oder über den Spielplatz."
       },
-      "two-word-sentences": {
-        "title": "Zwei-Wort-Sätze",
-        "desc": "Kombiniert Wörter sinnvoll (z.B. 'Auto fahren', 'Mehr Milch')."
+      "run-jump": {
+        "title": "Sicheres Rennen & Hüpfen",
+        "desc": "Sicher rennen, klettern und beidbeinig hüpfen."
+      },
+      "potty-training": {
+        "title": "Töpfchen-Training / Trocken werden",
+        "desc": "Gibt Bescheid und nutzt das Töpfchen oder die Toilette."
       },
       "spoon-eating": {
         "title": "Selbstständig mit Löffel essen",
@@ -463,6 +517,8 @@
     "erupted": "Durchgebrochen am",
     "upperJaw": "OBERKIEFER (MAXILLA)",
     "lowerJaw": "UNTERKIEFER (MANDIBULA)",
+    "upperTeethRange": "Zähne 55–65",
+    "lowerTeethRange": "Zähne 85–75",
     "teethCount": "Zähne durchgebrochen",
     "tooth": "Zahn",
     "eruptedLabel": "Durchgebrochen",
@@ -579,42 +635,52 @@
     "pending": "Ausstehend",
     "items": {
       "U1": {
+        "name": "U1 (Neugeborenen-Erstuntersuchung)",
         "period": "Direkt nach der Geburt",
         "desc": "Erste Lebenszeichen, Apgar-Test, Vitamin K"
       },
       "U2": {
+        "name": "U2 (Basisuntersuchung)",
         "period": "3. bis 10. Lebenstag",
         "desc": "Ganzkörper-Untersuchung, Hörtest, Blutprobe auf Stoffwechselkrankheiten"
       },
       "U3": {
+        "name": "U3 (4.-5. Woche)",
         "period": "4. bis 5. Lebenswoche",
         "desc": "Hüftsonographie, Kontrolle der Motorik und Gewichtszunahme"
       },
       "U4": {
+        "name": "U4 (3.-4. Monat)",
         "period": "3. bis 4. Lebensmonat",
         "desc": "Bewegungsfähigkeit, Seh- und Hörvermögen, Impfberatung"
       },
       "U5": {
+        "name": "U5 (6.-7. Monat)",
         "period": "6. bis 7. Lebensmonat",
         "desc": "Gezieltes Greifen, Drehen, Beweglichkeit"
       },
       "U6": {
+        "name": "U6 (1. Geburtstag)",
         "period": "10. bis 12. Lebensmonat",
         "desc": "Krabbeln, freies Sitzen, erste Worte, Sprachverständnis"
       },
       "U7": {
+        "name": "U7 (2. Geburtstag)",
         "period": "21. bis 24. Lebensmonat",
         "desc": "Zwei-Wort-Sätze, Laufen, Sprach- und Verhaltensentwicklung"
       },
       "U7a": {
+        "name": "U7a (3. Geburtstag)",
         "period": "34. bis 36. Lebensmonat",
         "desc": "Sehtest, Gebiss, 3-Wort-Sätze, Sozialverhalten"
       },
       "U8": {
+        "name": "U8 (4. Geburtstag)",
         "period": "46. bis 48. Lebensmonat",
         "desc": "Feinmotorik, Aussprache, Selbstständigkeit"
       },
       "U9": {
+        "name": "U9 (5. Geburtstag)",
         "period": "60. bis 64. Lebensmonat",
         "desc": "Vorschuluntersuchung, Vorbereitung auf den Schuleintritt"
       }

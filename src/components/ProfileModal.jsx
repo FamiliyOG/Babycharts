@@ -109,7 +109,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
         weight: parsedWeightKg,
         length: parsedLength,
         headCircumference: parsedHead,
-        notes: 'Geburtsdaten (U1)',
+        notes: t('profileModal.birthDataTitle', 'Geburtsdaten (U1)'),
       };
 
       const existingBirthIdx = measurements.findIndex((m) => m.checkup === 'U1');
@@ -179,8 +179,8 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
               <button
                 type="button"
                 onClick={handleRemoveAvatar}
-                title="Foto entfernen"
-                aria-label="Foto entfernen"
+                title={t('header.removeAvatar', 'Foto entfernen')}
+                aria-label={t('header.removeAvatar', 'Foto entfernen')}
                 className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md transition-all active:scale-95 z-10"
               >
                 <Trash2 className="w-3 h-3" />
@@ -188,7 +188,7 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
             )}
             <label
               htmlFor="child-avatar-upload"
-              title="Foto hinzufügen / ändern"
+              title={t('header.changeAvatar', 'Foto hinzufügen / ändern')}
               className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center cursor-pointer transition-opacity text-cyan-300"
             >
               <Camera className="w-5 h-5" />

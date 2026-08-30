@@ -12,16 +12,23 @@ export function getRoleBadgeClass(role) {
   return 'bg-slate-900 text-slate-400 border-slate-700';
 }
 
-export function getRoleLabel(role) {
-  if (role === 'admin') return '👑 Admin';
-  if (role === 'editor') return '✏️ Elternteil';
-  return '👁️ Besucher';
+export function getRoleLabel(role, t = null) {
+  if (role === 'admin') return `👑 ${t ? t('family.roleBadgeAdmin', 'Admin') : 'Admin'}`;
+  if (role === 'editor')
+    return `✏️ ${t ? t('family.roleBadgeEditor', 'Elternteil') : 'Elternteil'}`;
+  return `👁️ ${t ? t('family.roleBadgeViewer', 'Besucher') : 'Besucher'}`;
 }
 
-export function getFullRoleLabel(role) {
-  if (role === 'admin') return 'Administrator (Volle Rechte)';
-  if (role === 'editor') return 'Elternteil (Schreibrechte)';
-  return 'Besucher (Nur Leserechte)';
+export function getFullRoleLabel(role, t = null) {
+  if (role === 'admin')
+    return t
+      ? t('family.roleFullAdmin', 'Administrator (Volle Rechte)')
+      : 'Administrator (Volle Rechte)';
+  if (role === 'editor')
+    return t
+      ? t('family.roleFullEditor', 'Elternteil (Schreibrechte)')
+      : 'Elternteil (Schreibrechte)';
+  return t ? t('family.roleFullViewer', 'Besucher (Nur Leserechte)') : 'Besucher (Nur Leserechte)';
 }
 
 export default function MemberList({
@@ -103,7 +110,7 @@ export default function MemberList({
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getRoleBadgeClass(member.role)}`}
                     >
-                      {getRoleLabel(member.role)}
+                      {getRoleLabel(member.role, t)}
                     </span>
                   )}
 

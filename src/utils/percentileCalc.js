@@ -3,14 +3,20 @@ import { WHO_DATA } from '../data/whoPercentiles.js';
 /**
  * Calculates exact age in months and days between birthdate and target date
  */
-export function calculateAge(birthdateStr, targetDateStr = null) {
-  if (!birthdateStr) return { months: 0, days: 0, totalDays: 0, text: '0 Monate' };
+export function calculateAge(birthdateStr, targetDateStr = null, t = null) {
+  if (!birthdateStr) {
+    const zeroDays = t ? `0 ${t('common.days', 'Tage')}` : '0 Tage';
+    return { months: 0, days: 0, totalDays: 0, text: zeroDays };
+  }
 
   const birthDate = new Date(birthdateStr);
   const targetDate = targetDateStr ? new Date(targetDateStr) : new Date();
 
   const diffTime = targetDate.getTime() - birthDate.getTime();
-  if (diffTime < 0) return { months: 0, days: 0, totalDays: 0, text: '0 Tage' };
+  if (diffTime < 0) {
+    const zeroDays = t ? `0 ${t('common.days', 'Tage')}` : '0 Tage';
+    return { months: 0, days: 0, totalDays: 0, text: zeroDays };
+  }
 
   const totalDays = Math.floor(diffTime / (1000 * 3600 * 24));
   const monthsDecimal = +(totalDays / 30.4375).toFixed(1);
@@ -31,13 +37,17 @@ export function calculateAge(birthdateStr, targetDateStr = null) {
 
   const totalMonths = years * 12 + months;
 
+  const yearsUnit = t ? t('common.yearsShort', 'Jahre') : 'Jahre';
+  const monthsUnit = t ? t('common.monthsShort', 'Mon.') : 'Mon.';
+  const daysUnit = t ? t('common.days', 'Tage') : 'Tage';
+
   let text = '';
   if (years > 0) {
-    text = `${years} Jahre ${months} Mon.`;
+    text = `${years} ${yearsUnit} ${months} ${monthsUnit}`;
   } else if (totalMonths > 0) {
-    text = `${totalMonths} Mon. ${days} Tage`;
+    text = `${totalMonths} ${monthsUnit} ${days} ${daysUnit}`;
   } else {
-    text = `${days} Tage`;
+    text = `${days} ${daysUnit}`;
   }
 
   return {

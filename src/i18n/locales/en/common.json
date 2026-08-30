@@ -36,9 +36,17 @@
     "allCheckupsDone": "All regular checkups completed",
     "stikoVaccines": "Recommended Vaccines",
     "recorded": "recorded",
-    "vaccinesRecommended": "{{count}} vaccinations recommended according to schedule",
-    "allVaccinesUpToDate": "All routine vaccinations currently recorded",
-    "noDateRecorded": "No date recorded"
+    "vaccinesRecommended": "{{count}} vaccinations recommended by STIKO schedule",
+    "allVaccinesUpToDate": "All standard vaccinations currently up to date",
+    "noDateRecorded": "No date recorded",
+    "milestonesRecorded": "{{count}} special developmental milestones recorded",
+    "documentMilestones": "Document important moments & photos",
+    "teethErupted": "{{count}} of 20 milk teeth erupted",
+    "documentTeeth": "Track tooth eruption in 20-tooth dentition",
+    "noAcuteIllness": "No acute illness entries",
+    "logHealth": "Log fever, symptoms & medications",
+    "symptomEntry": "Symptom entry",
+    "lastEntryOn": "Last entry on {{date}}"
   },
   "roles": {
     "admin": "Administrator",
@@ -72,13 +80,24 @@
     "unitCm": "cm",
     "required": "Required",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "days": "days",
+    "months": "months",
+    "years": "years",
+    "monthsShort": "mo.",
+    "yearsShort": "yrs."
   },
   "header": {
     "selectChild": "Select child",
     "addChild": "Add child",
     "switchFamily": "Switch family",
     "manageFamily": "Manage family",
+    "familyAndMembers": "Family & Members",
+    "security2Fa": "2FA Security",
+    "twoFaActive": "Active",
+    "twoFaInactive": "Off",
+    "changeAvatar": "Change Profile Picture",
+    "removeAvatar": "Remove Profile Picture",
     "login": "Sign in",
     "logout": "Sign out",
     "security": "Security & 2FA",
@@ -277,7 +296,14 @@
     "loadingMembers": "Loading members...",
     "switchFamilyLabel": "Switch family:",
     "joinAnotherFamily": "Join another family",
-    "joinCodePlaceholderShort": "Enter code (e.g. BABY99)"
+    "joinCodePlaceholderShort": "Enter code (e.g. BABY99)",
+    "yourRole": "Your Role: {{role}}",
+    "roleFullAdmin": "Administrator (Full Access)",
+    "roleFullEditor": "Parent / Editor (Write Access)",
+    "roleFullViewer": "Viewer (Read Only)",
+    "roleBadgeAdmin": "Admin",
+    "roleBadgeEditor": "Editor",
+    "roleBadgeViewer": "Viewer"
   },
   "growth": {
     "title": "Growth Charts (WHO Percentiles)",
@@ -318,7 +344,11 @@
     "monthsUnit": "mo.",
     "yearsUnit": "yr.",
     "ageLabel": "Age",
-    "xAxisTitle": "Age (Months / Years)"
+    "xAxisTitle": "Age (Months / Years)",
+    "sourceLabel": "Source: WHO Child Growth Standards ({{gender}})",
+    "boyGender": "Boys ♂",
+    "girlGender": "Girls ♀",
+    "zoomPanTip": "Tip: Use mouse wheel/pinch to zoom & drag (pan) or use the zoom buttons"
   },
   "health": {
     "title": "Health & Symptom Tracker",
@@ -407,17 +437,29 @@
         "title": "Pull to stand",
         "desc": "Pulls up to standing position using furniture or rails."
       },
+      "stand-up": {
+        "title": "Pull up & stand with support",
+        "desc": "Pulls up to standing position independently using furniture or cot."
+      },
       "wave-bye": {
         "title": "Wave & Clap",
         "desc": "Waves 'bye-bye' or claps hands excitedly."
       },
-      "first-steps": {
-        "title": "First independent steps",
-        "desc": "The first brave steps completely unsupported!"
+      "first-word": {
+        "title": "First spoken word",
+        "desc": "Says the first purposeful word (e.g. Mama, Papa, Da)."
       },
       "first-words": {
         "title": "First words (e.g. Mama, Dada)",
         "desc": "Uses specific words purposefully for people or objects."
+      },
+      "first-steps": {
+        "title": "First independent steps",
+        "desc": "Takes the first brave steps completely unsupported!"
+      },
+      "first-birthday": {
+        "title": "1st Birthday 🎂",
+        "desc": "The first big birthday and the first candle on the cake."
       },
       "stack-blocks": {
         "title": "Stack building blocks",
@@ -427,13 +469,25 @@
         "title": "Drink from cup independently",
         "desc": "Drinks from a regular cup without help."
       },
-      "run": {
-        "title": "Running steadily",
-        "desc": "Runs smoothly across the room or playground."
+      "two-words": {
+        "title": "Form two-word sentences",
+        "desc": "Combines words meaningfully (e.g., 'more milk', 'big dog')."
       },
       "two-word-sentences": {
         "title": "Two-word sentences",
         "desc": "Combines words meaningfully (e.g., 'more milk', 'big dog')."
+      },
+      "run": {
+        "title": "Running steadily",
+        "desc": "Runs smoothly across the room or playground."
+      },
+      "run-jump": {
+        "title": "Running & jumping with ease",
+        "desc": "Runs safely, climbs, and jumps with both feet."
+      },
+      "potty-training": {
+        "title": "Potty training / Daytime dryness",
+        "desc": "Communicates needs and uses potty or toilet."
       },
       "spoon-eating": {
         "title": "Eat with spoon independently",
@@ -458,12 +512,14 @@
     }
   },
   "teeth": {
-    "title": "Teething Diary",
-    "subtitle": "Click on any tooth to record eruption date and notes.",
+    "title": "Teething Log",
+    "subtitle": "Click on a tooth to record its eruption with date and notes.",
     "erupted": "Erupted on",
     "upperJaw": "UPPER JAW (MAXILLA)",
     "lowerJaw": "LOWER JAW (MANDIBLE)",
-    "teethCount": "Teeth erupted",
+    "upperTeethRange": "Teeth 55–65",
+    "lowerTeethRange": "Teeth 85–75",
+    "teethCount": "teeth erupted",
     "tooth": "Tooth",
     "eruptedLabel": "Erupted",
     "notYet": "Not yet erupted",
@@ -579,42 +635,52 @@
     "pending": "Pending",
     "items": {
       "U1": {
+        "name": "U1 (Newborn Initial Screening)",
         "period": "Right after birth",
         "desc": "First vital signs, Apgar score, Vitamin K"
       },
       "U2": {
+        "name": "U2 (Basic Examination)",
         "period": "3rd to 10th day of life",
         "desc": "Full body examination, hearing screening, metabolic screening"
       },
       "U3": {
+        "name": "U3 (4th-5th Week)",
         "period": "4th to 5th week of life",
         "desc": "Hip ultrasound, motor skills check, and weight gain monitoring"
       },
       "U4": {
+        "name": "U4 (3rd-4th Month)",
         "period": "3rd to 4th month of life",
         "desc": "Mobility, vision and hearing development, vaccination consultation"
       },
       "U5": {
+        "name": "U5 (6th-7th Month)",
         "period": "6th to 7th month of life",
         "desc": "Targeted grasping, rolling over, active mobility"
       },
       "U6": {
+        "name": "U6 (1st Birthday)",
         "period": "10th to 12th month of life",
         "desc": "Crawling, sitting unsupported, first words, language comprehension"
       },
       "U7": {
+        "name": "U7 (2nd Birthday)",
         "period": "21st to 24th month of life",
         "desc": "Two-word sentences, walking, language and behavioral development"
       },
       "U7a": {
+        "name": "U7a (3rd Birthday)",
         "period": "34th to 36th month of life",
         "desc": "Vision check, dentition, 3-word sentences, social interaction"
       },
       "U8": {
+        "name": "U8 (4th Birthday)",
         "period": "46th to 48th month of life",
         "desc": "Fine motor skills, pronunciation, independence"
       },
       "U9": {
+        "name": "U9 (5th Birthday)",
         "period": "60th to 64th month of life",
         "desc": "Preschool checkup, school readiness assessment"
       }

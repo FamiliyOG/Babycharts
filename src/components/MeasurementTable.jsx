@@ -70,7 +70,7 @@ export default function MeasurementTable({
       {/* ── MOBILE CARD VIEW (< md screens) ─────────────────────────────────── */}
       <div className="md:hidden divide-y divide-slate-800/80">
         {sortedMeasurements.map((m) => {
-          const age = calculateAge(activeChild.birthdate, m.date);
+          const age = calculateAge(activeChild.birthdate, m.date, t);
           const bmiVal = calculateBMI(m.weight, m.length);
           const weightPct = m.weight
             ? estimatePercentile(m.weight, activeChild.gender, 'weight', age.monthsDecimal)
@@ -197,7 +197,7 @@ export default function MeasurementTable({
           </thead>
           <tbody className="divide-y divide-slate-800/60 text-slate-200">
             {sortedMeasurements.map((m) => {
-              const age = calculateAge(activeChild.birthdate, m.date);
+              const age = calculateAge(activeChild.birthdate, m.date, t);
               const bmiVal = calculateBMI(m.weight, m.length);
 
               const weightPct = m.weight

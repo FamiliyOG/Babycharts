@@ -379,7 +379,10 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
               <span
                 className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${getRoleBadgeClass(userRole)}`}
               >
-                Ihre Rolle: {getFullRoleLabel(userRole)}
+                {t('family.yourRole', {
+                  role: getFullRoleLabel(userRole, t),
+                  defaultValue: `Ihre Rolle: ${getFullRoleLabel(userRole, t)}`,
+                })}
               </span>
             </div>
           </div>

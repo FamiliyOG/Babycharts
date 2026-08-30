@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Reusable Empty State Component (BC-129).
  * Displays a friendly icon, title, description, and optional action button.

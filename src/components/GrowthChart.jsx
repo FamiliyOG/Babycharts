@@ -475,11 +475,21 @@ export default function GrowthChart({ activeChild }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/60 pt-3">
-        <span>Quelle: WHO Child Growth Standards ({isGirl ? 'Mädchen ♀' : 'Jungen ♂'})</span>
+        <span>
+          {t('growth.sourceLabel', {
+            gender: isGirl
+              ? t('growth.girlGender', 'Mädchen ♀')
+              : t('growth.boyGender', 'Jungen ♂'),
+            defaultValue: `Quelle: WHO Child Growth Standards (${isGirl ? 'Mädchen ♀' : 'Jungen ♂'})`,
+          })}
+        </span>
         <span className="flex items-center gap-1 text-cyan-600 dark:text-cyan-300">
           <Info className="w-3 h-3 text-cyan-500" />
           <span>
-            Tipp: Mit Mausrad/Pinch zoomen &amp; ziehen (Pan) oder die Zoom-Buttons nutzen
+            {t(
+              'growth.zoomPanTip',
+              'Tipp: Mit Mausrad/Pinch zoomen & ziehen (Pan) oder die Zoom-Buttons nutzen'
+            )}
           </span>
         </span>
       </div>

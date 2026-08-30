@@ -37,10 +37,18 @@ function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
         </h3>
         {nextCheckup ? (
           <div className="mt-2">
-            <p className="text-base font-extrabold text-white">{nextCheckup.name}</p>
+            <p className="text-base font-extrabold text-white">
+              {t(`uCheckups.items.${nextCheckup.id}.name`) !==
+              `uCheckups.items.${nextCheckup.id}.name`
+                ? t(`uCheckups.items.${nextCheckup.id}.name`)
+                : nextCheckup.name}
+            </p>
             <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-cyan-400" />
-              {nextCheckup.periodText}
+              {t(`uCheckups.items.${nextCheckup.id}.period`) !==
+              `uCheckups.items.${nextCheckup.id}.period`
+                ? t(`uCheckups.items.${nextCheckup.id}.period`)
+                : nextCheckup.periodText}
             </p>
           </div>
         ) : (
@@ -50,7 +58,11 @@ function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
         )}
       </div>
       <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
-        {nextCheckup?.description || ''}
+        {nextCheckup
+          ? t(`uCheckups.items.${nextCheckup.id}.desc`) !== `uCheckups.items.${nextCheckup.id}.desc`
+            ? t(`uCheckups.items.${nextCheckup.id}.desc`)
+            : nextCheckup.description || ''
+          : ''}
       </div>
     </button>
   );
@@ -197,8 +209,11 @@ function MilestonesCard({ milestoneStats, onNavigateTab, t }) {
       </div>
       <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
         {milestoneStats.recordedCount > 0
-          ? `${milestoneStats.recordedCount} besondere Entwicklungsschritte festgehalten`
-          : 'Wichtige Momente & Fotos dokumentieren'}
+          ? t('dashboard.milestonesRecorded', {
+              count: milestoneStats.recordedCount,
+              defaultValue: `${milestoneStats.recordedCount} besondere Entwicklungsschritte festgehalten`,
+            })
+          : t('dashboard.documentMilestones', 'Wichtige Momente & Fotos dokumentieren')}
       </div>
     </button>
   );
@@ -231,8 +246,11 @@ function TeethCard({ teethStats, onNavigateTab, t }) {
       </div>
       <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
         {teethStats.eruptedCount > 0
-          ? `${teethStats.eruptedCount} von 20 Milchzähnen durchgebrochen`
-          : 'Zahndurchbruch im 20-Zähne-Gebiss festhalten'}
+          ? t('dashboard.teethErupted', {
+              count: teethStats.eruptedCount,
+              defaultValue: `${teethStats.eruptedCount} von 20 Milchzähnen durchgebrochen`,
+            })
+          : t('dashboard.documentTeeth', 'Zahndurchbruch im 20-Zähne-Gebiss festhalten')}
       </div>
     </button>
   );
@@ -260,7 +278,7 @@ function HealthCard({ latestHealthEntry, onNavigateTab, t }) {
             <p className="text-base font-extrabold text-white">
               {latestHealthEntry.temperature
                 ? `${latestHealthEntry.temperature} °C`
-                : 'Symptomeintrag'}
+                : t('dashboard.symptomEntry', 'Symptomeintrag')}
             </p>
             <p className="text-xs text-slate-400 mt-0.5 truncate">
               {latestHealthEntry.symptoms || latestHealthEntry.medication || latestHealthEntry.date}
@@ -270,15 +288,18 @@ function HealthCard({ latestHealthEntry, onNavigateTab, t }) {
           <div className="mt-2 flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
             <span className="text-sm font-medium text-slate-300">
-              Keine akuten Krankheitseinträge
+              {t('dashboard.noAcuteIllness', 'Keine akuten Krankheitseinträge')}
             </span>
           </div>
         )}
       </div>
       <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
         {latestHealthEntry
-          ? `Letzter Eintrag am ${latestHealthEntry.date}`
-          : 'Fieber, Symptome & Medikamente protokollieren'}
+          ? t('dashboard.lastEntryOn', {
+              date: latestHealthEntry.date,
+              defaultValue: `Letzter Eintrag am ${latestHealthEntry.date}`,
+            })
+          : t('dashboard.logHealth', 'Fieber, Symptome & Medikamente protokollieren')}
       </div>
     </button>
   );

@@ -118,59 +118,63 @@ export default function UserMenuDropdown({
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-68 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 z-50 animate-fadeIn text-xs text-slate-800 dark:text-slate-100">
-          <div className="p-3 border-b border-slate-200 dark:border-slate-800/80 mb-2 flex items-center gap-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl">
-            <button
-              type="button"
-              className="relative group shrink-0 cursor-pointer p-0 bg-transparent border-none text-left"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!isUploading) fileInputRef.current?.click();
-              }}
-              title="Profilbild hochladen / ändern"
-              aria-label="Profilbild hochladen oder ändern"
-            >
-              {user.avatar ? (
-                <img
-                  src={getAuthorizedMediaUrl(user.avatar)}
-                  alt={user.name}
-                  className="w-11 h-11 rounded-2xl object-cover border border-cyan-500/40 shadow-xs"
-                />
-              ) : (
-                <div className="w-11 h-11 rounded-2xl bg-cyan-950/80 border border-cyan-800/50 flex items-center justify-center text-cyan-400 font-bold text-sm shadow-xs">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div
-                className={`absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center transition-opacity text-cyan-300 z-10 ${
-                  isUploading ? 'opacity-100' : ''
-                }`}
-              >
-                <Camera className="w-4 h-4" />
-              </div>
-              <div
-                className={`absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md transition-transform active:scale-95 flex items-center justify-center z-10 ${
-                  isUploading ? 'opacity-50' : ''
-                }`}
-              >
-                <Camera className="w-2.5 h-2.5" />
-              </div>
-            </button>
-            {user.avatar && (
+          {/* User info Header */}
+          <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-950/60 rounded-2xl mb-3 border border-slate-200/80 dark:border-slate-800/80">
+            <div className="relative group shrink-0">
               <button
                 type="button"
-                onClick={async (e) => {
-                  e.preventDefault();
+                className="relative block rounded-2xl focus:outline-none cursor-pointer"
+                onClick={(e) => {
                   e.stopPropagation();
-                  const res = await onUpdateProfile({ avatar: null });
-                  if (!res?.ok) setAvatarError(res?.error || 'Fehler beim Löschen.');
+                  if (!isUploading) fileInputRef.current?.click();
                 }}
-                title="Profilbild entfernen"
-                aria-label="Profilbild entfernen"
-                className="absolute -top-1 -right-1 p-0.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center z-20"
+                title={t('header.changeAvatar', 'Profilbild hochladen / ändern')}
+                aria-label={t('header.changeAvatar', 'Profilbild hochladen oder ändern')}
               >
-                <Trash2 className="w-2.5 h-2.5" />
+                {user.avatar ? (
+                  <img
+                    src={getAuthorizedMediaUrl(user.avatar)}
+                    alt={user.name}
+                    className="w-11 h-11 rounded-2xl object-cover border border-cyan-500/40 shadow-xs"
+                  />
+                ) : (
+                  <div className="w-11 h-11 rounded-2xl bg-cyan-950/80 border border-cyan-800/50 flex items-center justify-center text-cyan-400 font-bold text-sm shadow-xs">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div
+                  className={`absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center transition-opacity text-cyan-300 z-10 ${
+                    isUploading ? 'opacity-100' : ''
+                  }`}
+                >
+                  <Camera className="w-4 h-4" />
+                </div>
+                <div
+                  className={`absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md transition-transform active:scale-95 flex items-center justify-center z-10 ${
+                    isUploading ? 'opacity-50' : ''
+                  }`}
+                >
+                  <Camera className="w-2.5 h-2.5" />
+                </div>
               </button>
-            )}
+              {user.avatar && (
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const res = await onUpdateProfile({ avatar: null });
+                    if (!res?.ok)
+                      setAvatarError(res?.error || t('errors.serverError', 'Fehler beim Löschen.'));
+                  }}
+                  title={t('header.removeAvatar', 'Profilbild entfernen')}
+                  aria-label={t('header.removeAvatar', 'Profilbild entfernen')}
+                  className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center z-20"
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                </button>
+              )}
+            </div>
             <div className="min-w-0 flex-1">
               <div className="font-bold text-slate-900 dark:text-slate-100 truncate">
                 {user.name}
@@ -206,7 +210,7 @@ export default function UserMenuDropdown({
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left font-medium cursor-pointer"
             >
               <Users className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              <span>Familie &amp; Mitglieder</span>
+              <span>{t('header.familyAndMembers', 'Familie & Mitglieder')}</span>
             </button>
 
             <button
@@ -222,15 +226,15 @@ export default function UserMenuDropdown({
             >
               <div className="flex items-center gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>2FA Sicherheit</span>
+                <span>{t('header.security2Fa', '2FA Sicherheit')}</span>
               </div>
               {user?.twoFactorEnabled ? (
                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800/60">
-                  Aktiv
+                  {t('header.twoFaActive', 'Aktiv')}
                 </span>
               ) : (
                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
-                  Aus
+                  {t('header.twoFaInactive', 'Aus')}
                 </span>
               )}
             </button>

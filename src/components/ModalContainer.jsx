@@ -37,6 +37,9 @@ export default function ModalContainer({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose?.();
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -44,7 +47,6 @@ export default function ModalContainer({
       <div
         ref={modalRef}
         className={`w-full ${maxWidth} bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}
-        onClick={(e) => e.stopPropagation()}
       >
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between p-5 border-b border-slate-800">

@@ -84,9 +84,10 @@ export default function TodayDashboard({
       {/* Grid of Key Insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Card 1: Next U-Checkup */}
-        <div
+        <button
+          type="button"
           onClick={() => onNavigateTab?.('ucheckups')}
-          className="p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
+          className="text-left w-full p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -114,17 +115,18 @@ export default function TodayDashboard({
               </p>
             )}
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
+          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
             {nextCheckup?.description || ''}
           </div>
-        </div>
+        </button>
 
         {/* Card 2: Latest Measurements */}
-        <div
+        <button
+          type="button"
           onClick={() => onNavigateTab?.('growth')}
-          className="p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
+          className="text-left w-full p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
         >
-          <div>
+          <div className="w-full">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
                 <Scale className="w-5 h-5" />
@@ -165,31 +167,25 @@ export default function TodayDashboard({
               </div>
             ) : (
               <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenAddMeasurement?.();
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs font-semibold"
-                >
+                <span className="inline-block px-3 py-1.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs font-semibold">
                   + {t('measurements.addTitle') || 'Erste Messung eintragen'}
-                </button>
+                </span>
               </div>
             )}
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center gap-1.5">
+          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center gap-1.5 w-full">
             <Calendar className="w-3.5 h-3.5 text-cyan-400" />
             <span>{latestMeasurement ? latestMeasurement.date : 'Kein Datum vorhanden'}</span>
           </div>
-        </div>
+        </button>
 
         {/* Card 3: Vaccinations & Health */}
-        <div
+        <button
+          type="button"
           onClick={() => onNavigateTab?.('vaccines')}
-          className="p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
+          className="text-left w-full p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
         >
-          <div>
+          <div className="w-full">
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
                 <Syringe className="w-5 h-5" />
@@ -209,12 +205,12 @@ export default function TodayDashboard({
               </span>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
+          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
             {pendingVaccinationsCount > 0
               ? `${pendingVaccinationsCount} Impfungen laut STIKO-Kalender empfohlen`
               : 'Alle Standard-Impfungen aktuell eingetragen'}
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );

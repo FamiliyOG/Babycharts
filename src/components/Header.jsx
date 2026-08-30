@@ -214,7 +214,7 @@ export default function Header({
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-linear-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-lg shadow-cyan-950/60 transition-all active:scale-95 cursor-pointer"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span>Anmelden / Registrieren</span>
+                  <span>{t('header.login', 'Anmelden')}</span>
                 </button>
               </div>
             )}

@@ -402,7 +402,9 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
         {/* Switch active family if user has multiple families */}
         {families.length > 1 && (
           <div className="mb-6 p-4 rounded-2xl bg-slate-950 border border-slate-800">
-            <div className="text-xs font-semibold text-slate-400 mb-2">Familie wechseln:</div>
+            <div className="text-xs font-semibold text-slate-400 mb-2">
+              {t('family.switchFamilyLabel', 'Familie wechseln:')}
+            </div>
             <div className="flex flex-wrap gap-2">
               {families.map((fam) => {
                 const isActive = fam.id === activeFamily?.id;
@@ -457,7 +459,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
         <div className="pt-4 border-t border-slate-800/80 mb-6">
           <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <KeyRound className="w-4 h-4 text-slate-400" />
-            <span>Weiterer Familie beitreten</span>
+            <span>{t('family.joinAnotherFamily', 'Weiterer Familie beitreten')}</span>
           </h3>
           <form onSubmit={handleJoinFamily} className="flex gap-2">
             <input
@@ -467,7 +469,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
               maxLength={10}
               value={joinCodeInput}
               onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
-              placeholder="Code eingeben (z. B. BABY99)"
+              placeholder={t('family.joinCodePlaceholderShort', 'Code eingeben (z. B. BABY99)')}
               className="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-cyan-300 uppercase tracking-wider focus:outline-none focus:border-cyan-500"
             />
             <button

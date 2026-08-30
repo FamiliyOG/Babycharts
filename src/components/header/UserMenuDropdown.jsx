@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Camera, Trash2, Users, ShieldCheck, LogOut } from 'lucide-react';
 import { useModalDismissal } from '../../utils/useModalDismissal.js';
 import { compressImage } from '../../utils/imageCompressor.js';
@@ -39,6 +40,7 @@ export default function UserMenuDropdown({
   onUpdateProfile,
   isMobile = false,
 }) {
+  const { t } = useTranslation();
   const { dialogRef } = useModalDismissal(isOpen, onToggle);
   const [avatarError, setAvatarError] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -247,7 +249,7 @@ export default function UserMenuDropdown({
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-left font-medium cursor-pointer"
             >
               <LogOut className="w-4 h-4 text-rose-500" />
-              <span>Abmelden</span>
+              <span>{t('header.logout', 'Abmelden')}</span>
             </button>
           </div>
         </div>

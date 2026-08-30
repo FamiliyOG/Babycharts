@@ -8,7 +8,6 @@ import {
   Database as DbIcon,
   Smartphone,
   Download,
-  Share,
   Check,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -107,7 +106,7 @@ export default function ExportImportModal({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition-all active:scale-95 shrink-0"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Jetzt installieren</span>
+          <span>{t('exportImport.pwaInstallBtn', 'Jetzt installieren')}</span>
         </button>
       );
     }
@@ -123,7 +122,7 @@ export default function ExportImportModal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Schließen"
+          aria-label={t('common.close', 'Schließen')}
           className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
         >
           <X className="w-5 h-5" />
@@ -142,12 +141,15 @@ export default function ExportImportModal({
               </div>
               <div>
                 <div className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
-                  App auf Startbildschirm installieren
+                  {t('exportImport.pwaTitle', 'App auf Startbildschirm installieren')}
                 </div>
                 <div className="text-[11px] text-indigo-700 dark:text-indigo-400 font-medium">
                   {isInstalled
-                    ? 'Als eigenständige PWA installiert'
-                    : 'BabyCharts als native App auf dem Smartphone nutzen'}
+                    ? t('exportImport.pwaDescInstalled', 'Als eigenständige PWA installiert')
+                    : t(
+                        'exportImport.pwaDescNotInstalled',
+                        'BabyCharts als native App auf dem Smartphone nutzen'
+                      )}
                 </div>
               </div>
             </div>
@@ -158,22 +160,25 @@ export default function ExportImportModal({
           {!isInstalled && (
             <div className="mt-3 pt-3 border-t border-indigo-200/80 dark:border-indigo-900/50 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
               <p className="font-semibold text-indigo-900 dark:text-indigo-300">
-                Anleitung für Ihr Smartphone:
+                {t('exportImport.pwaGuideTitle', 'Anleitung für Ihr Smartphone:')}
               </p>
               <div className="flex items-start gap-1.5">
-                <span className="font-bold text-indigo-500">Android / Samsung:</span>
+                <span className="font-bold text-indigo-500">
+                  {t('exportImport.pwaAndroid', 'Android / Samsung:')}
+                </span>
                 <span>
-                  Oben rechts auf das Menü (<strong>⋮</strong>) tippen &rarr;{' '}
-                  <strong>„App installieren“</strong> oder{' '}
-                  <strong>„Zum Startbildschirm hinzufügen“</strong>.
+                  {t(
+                    'exportImport.pwaAndroidStep',
+                    'Oben rechts auf das Menü (⋮) tippen → „App installieren“ oder „Zum Startbildschirm hinzufügen“.'
+                  )}
                 </span>
               </div>
               <div className="flex items-start gap-1.5">
-                <span className="font-bold text-pink-500">iPhone (iOS Safari):</span>
+                <span className="font-bold text-pink-500">
+                  {t('exportImport.pwaIos', 'iPhone (iOS Safari):')}
+                </span>
                 <span>
-                  Unten auf <strong>Teilen</strong> (
-                  <Share className="w-3 h-3 inline text-blue-400" />) tippen &rarr;{' '}
-                  <strong>„Zum Home-Bildschirm“</strong>.
+                  {t('exportImport.pwaIosStep', 'Unten auf Teilen tippen → „Zum Home-Bildschirm“.')}
                 </span>
               </div>
             </div>
@@ -318,10 +323,13 @@ export default function ExportImportModal({
               <div>
                 <div className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Entwickler-Tools (Dev Account)</span>
+                  <span>{t('exportImport.devToolsTitle', 'Entwickler-Tools (Dev Account)')}</span>
                 </div>
                 <div className="text-[11px] text-amber-700 dark:text-amber-400/90 font-medium">
-                  Demo-Datensätze (Noah &amp; Mia) mit Beispielwerten laden
+                  {t(
+                    'exportImport.devToolsDesc',
+                    'Demo-Datensätze (Noah & Mia) mit Beispielwerten laden'
+                  )}
                 </div>
               </div>
               <button
@@ -335,7 +343,7 @@ export default function ExportImportModal({
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-colors active:scale-95 shrink-0"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Demo-Daten</span>
+                <span>{t('exportImport.demoDataBtn', 'Demo-Daten')}</span>
               </button>
             </div>
           )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Trash2, Crown } from 'lucide-react';
 import { getAuthorizedMediaUrl } from '../../utils/api.js';
 
@@ -32,6 +33,7 @@ export default function MemberList({
   handleRoleChange,
   handleRemoveMember,
 }) {
+  const { t } = useTranslation();
   return (
     <div className="mb-6">
       <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">
@@ -62,9 +64,11 @@ export default function MemberList({
                   )}
                   <div>
                     <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                      <span>{member.name || 'Benutzer'}</span>
+                      <span>{member.name || t('common.profile', 'Benutzer')}</span>
                       {isCurrentUser && (
-                        <span className="text-[10px] text-cyan-400 font-normal">(Sie)</span>
+                        <span className="text-[10px] text-cyan-400 font-normal">
+                          {t('family.youBadge', '(Sie)')}
+                        </span>
                       )}
                     </div>
                     <div className="text-[10px] text-slate-500">{member.email}</div>
@@ -78,7 +82,7 @@ export default function MemberList({
                       type="button"
                       onClick={() => handleTransferOwnership(member.userId, member.name)}
                       className="p-1 rounded-lg text-amber-500 hover:text-amber-400 hover:bg-amber-950/40 transition-colors cursor-pointer"
-                      title="Inhaberschaft an dieses Mitglied übertragen"
+                      title={t('family.transferOwnership', 'Eigentümer übertragen')}
                     >
                       <Crown className="w-3.5 h-3.5" />
                     </button>
@@ -91,9 +95,9 @@ export default function MemberList({
                       aria-label={`Rolle für ${member.name} ändern`}
                       className="bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-bold rounded-lg px-2 py-1 focus:outline-none focus:border-cyan-500 cursor-pointer"
                     >
-                      <option value="admin">👑 Administrator</option>
-                      <option value="editor">✏️ Elternteil (Editor)</option>
-                      <option value="viewer">👁️ Besucher (Viewer)</option>
+                      <option value="admin">👑 {t('roles.admin', 'Administrator')}</option>
+                      <option value="editor">✏️ {t('roles.editor', 'Elternteil')}</option>
+                      <option value="viewer">👁️ {t('roles.viewer', 'Besucher')}</option>
                     </select>
                   ) : (
                     <span
@@ -108,7 +112,7 @@ export default function MemberList({
                       type="button"
                       onClick={() => handleRemoveMember(member.userId, member.name)}
                       className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                      title="Mitglied entfernen"
+                      title={t('family.removeMember', 'Mitglied entfernen')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -118,7 +122,9 @@ export default function MemberList({
             );
           })
         ) : (
-          <div className="text-xs text-slate-500 p-2">Lade Mitglieder...</div>
+          <div className="text-xs text-slate-500 p-2">
+            {t('family.loadingMembers', 'Lade Mitglieder...')}
+          </div>
         )}
       </div>
     </div>

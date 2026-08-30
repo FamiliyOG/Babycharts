@@ -9,6 +9,7 @@
     "loadDemoData": "Demo-Daten laden"
   },
   "nav": {
+    "today": "Heute",
     "overview": "Übersicht",
     "growth": "Wachstumskurven",
     "milestones": "Meilensteine",
@@ -17,12 +18,27 @@
     "vaccinations": "Impfkalender",
     "uCheckups": "U-Heft Vorsorge",
     "family": "Familie",
+    "shortToday": "Heute",
     "shortGrowth": "Kurven",
     "shortVaccines": "Impfen",
     "shortTeeth": "Zähne",
     "shortMilestones": "Momente",
     "shortHealth": "Fieber",
     "shortUCheckups": "U-Heft"
+  },
+  "dashboard": {
+    "today": "Heute",
+    "todayOverview": "Heute im Überblick",
+    "daysUnit": "Tage",
+    "viewAction": "Ansehen",
+    "viewCurves": "Kurven",
+    "viewVaccines": "Impfpass",
+    "allCheckupsDone": "Alle Vorsorgeuntersuchungen abgeschlossen",
+    "stikoVaccines": "STIKO-Impfungen",
+    "recorded": "erfasst",
+    "vaccinesRecommended": "{{count}} Impfungen laut STIKO-Kalender empfohlen",
+    "allVaccinesUpToDate": "Alle Standard-Impfungen aktuell eingetragen",
+    "noDateRecorded": "Kein Datum vorhanden"
   },
   "roles": {
     "admin": "Administrator",
@@ -40,6 +56,7 @@
     "copy": "Kopieren",
     "loading": "Laden...",
     "add": "Hinzufügen",
+    "view": "Ansehen",
     "export": "Exportieren",
     "import": "Importieren",
     "settings": "Einstellungen",

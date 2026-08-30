@@ -9,6 +9,7 @@
     "loadDemoData": "โหลดข้อมูลทดสอบ"
   },
   "nav": {
+    "today": "วันนี้",
     "overview": "ภาพรวม",
     "growth": "กราฟการเติบโต",
     "milestones": "พัฒนาการ",
@@ -17,12 +18,27 @@
     "vaccinations": "สมุดบันทึกวัคซีน",
     "uCheckups": "การตรวจสุขภาพ (U1-U9)",
     "family": "ครอบครัว",
+    "shortToday": "วันนี้",
     "shortGrowth": "กราฟ",
     "shortVaccines": "วัคซีน",
     "shortTeeth": "ฟัน",
     "shortMilestones": "ช่วงเวลา",
     "shortHealth": "ไข้",
     "shortUCheckups": "ตรวจสุขภาพ"
+  },
+  "dashboard": {
+    "today": "วันนี้",
+    "todayOverview": "ภาพรวมวันนี้",
+    "daysUnit": "วัน",
+    "viewAction": "ดูรายละเอียด",
+    "viewCurves": "กราฟ",
+    "viewVaccines": "วัคซีน",
+    "allCheckupsDone": "การตรวจสุขภาพตามเกณฑ์ครบถ้วนแล้ว",
+    "stikoVaccines": "วัคซีนที่แนะนำ",
+    "recorded": "บันทึกแล้ว",
+    "vaccinesRecommended": "แนะนำให้รับวัคซีน {{count}} รายการตามเกณฑ์",
+    "allVaccinesUpToDate": "บันทึกวัคซีนตามเกณฑ์ครบถ้วนแล้ว",
+    "noDateRecorded": "ไม่มีวันที่บันทึก"
   },
   "roles": {
     "admin": "ผู้ดูแลระบบ",
@@ -40,6 +56,7 @@
     "copy": "คัดลอก",
     "loading": "กำลังโหลด...",
     "add": "เพิ่ม",
+    "view": "ดู",
     "export": "ส่งออก",
     "import": "นำเข้า",
     "settings": "การตั้งค่า",

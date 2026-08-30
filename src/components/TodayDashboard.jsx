@@ -9,13 +9,17 @@ import {
   ChevronRight,
   Clock,
   CheckCircle2,
+  HeartPulse,
 } from 'lucide-react';
+import { ToothIcon } from './ToothIcon.jsx';
 import { U_CHECKUPS } from '../data/uCheckups.js';
 import { STIKO_VACCINATIONS } from '../data/vaccinations.js';
+import { STANDARD_MILESTONES } from '../data/milestones.js';
+import { MILK_TEETH } from '../data/teeth.js';
 
 /**
  * Modern Today Dashboard (BC-223).
- * Serves as the central homepage summarizing upcoming checkups, vaccinations, latest measurements and milestones.
+ * Serves as the central homepage summarizing upcoming checkups, vaccinations, latest measurements, milestones, teeth & fever stats.
  */
 export default function TodayDashboard({
   activeChild,
@@ -47,16 +51,36 @@ export default function TodayDashboard({
     return Math.max(0, STIKO_VACCINATIONS.length - recorded.length);
   }, [activeChild]);
 
+  // Milestones statistics
+  const milestoneStats = useMemo(() => {
+    const customList = activeChild?.customMilestones || [];
+    const totalCount = STANDARD_MILESTONES.length + customList.length;
+    const recordedCount = Object.keys(activeChild?.milestones || {}).length;
+    return { recordedCount, totalCount };
+  }, [activeChild]);
+
+  // Teeth statistics
+  const teethStats = useMemo(() => {
+    const teethMap = activeChild?.teeth || {};
+    const eruptedCount = Object.keys(teethMap).length;
+    return { eruptedCount, totalCount: MILK_TEETH.length };
+  }, [activeChild]);
+
+  // Health / Fever status
+  const latestHealthEntry = useMemo(() => {
+    const log = activeChild?.symptomLog || [];
+    return log.length > 0 ? log[0] : null;
+  }, [activeChild]);
+
   // Latest measurement record
   const latestMeasurement = measurements[0] || null;
 
-  // Format age description cleanly without nested ternaries
+  // Format age description cleanly
   const ageDescription = useMemo(() => {
     if (!ageInfo) return '';
-    const yearsPart =
-      ageInfo.years > 0 ? `${ageInfo.years} ${t('growth.yearsUnit') || 'Jahre'} ` : '';
-    const monthsPart = `${ageInfo.months} ${t('growth.monthsUnit') || 'Monate'}`;
-    const daysPart = `(${ageInfo.totalDays} ${t('growth.days') || 'Tage'})`;
+    const yearsPart = ageInfo.years > 0 ? `${ageInfo.years} ${t('growth.yearsUnit', 'J.')} ` : '';
+    const monthsPart = `${ageInfo.months} ${t('growth.monthsUnit', 'M.')}`;
+    const daysPart = `(${ageInfo.totalDays} ${t('dashboard.daysUnit', 'Tage')})`;
     return `${yearsPart}${monthsPart} ${daysPart}`;
   }, [ageInfo, t]);
 
@@ -70,7 +94,7 @@ export default function TodayDashboard({
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold mb-2">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{t('dashboard.today') || 'Heute im Überblick'}</span>
+              <span>{t('dashboard.todayOverview', 'Heute im Überblick')}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{activeChild.name}</h1>
             <p className="text-sm text-slate-300 mt-1">{ageDescription}</p>
@@ -81,7 +105,7 @@ export default function TodayDashboard({
               onClick={onOpenQuickAdd}
               className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm shadow-lg shadow-cyan-950 transition-all cursor-pointer hover:scale-105 active:scale-95"
             >
-              <span>+ {t('common.add') || 'Eintrag hinzufügen'}</span>
+              <span>+ {t('common.add', 'Eintrag hinzufügen')}</span>
             </button>
           )}
         </div>
@@ -101,11 +125,11 @@ export default function TodayDashboard({
                 <ClipboardList className="w-5 h-5" />
               </div>
               <span className="text-xs font-semibold text-cyan-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                {t('common.view') || 'Ansehen'} <ChevronRight className="w-3.5 h-3.5" />
+                {t('common.view', 'Ansehen')} <ChevronRight className="w-3.5 h-3.5" />
               </span>
             </div>
             <h3 className="text-sm font-bold text-slate-200">
-              {t('ucheckups.title') || 'U-Vorsorgeuntersuchung'}
+              {t('uCheckups.title', 'U-Vorsorgeuntersuchung')}
             </h3>
             {nextCheckup ? (
               <div className="mt-2">
@@ -117,7 +141,7 @@ export default function TodayDashboard({
               </div>
             ) : (
               <p className="text-xs text-slate-400 mt-2">
-                Alle Vorsorgeuntersuchungen abgeschlossen
+                {t('dashboard.allCheckupsDone', 'Alle Vorsorgeuntersuchungen abgeschlossen')}
               </p>
             )}
           </div>
@@ -138,16 +162,16 @@ export default function TodayDashboard({
                 <Scale className="w-5 h-5" />
               </div>
               <span className="text-xs font-semibold text-cyan-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                {t('common.view') || 'Kurven'} <ChevronRight className="w-3.5 h-3.5" />
+                {t('dashboard.viewCurves', 'Kurven')} <ChevronRight className="w-3.5 h-3.5" />
               </span>
             </div>
             <h3 className="text-sm font-bold text-slate-200">
-              {t('measurements.tableTitle') || 'Letzte Messung'}
+              {t('measurements.tableTitle', 'Messwert-Historie')}
             </h3>
             {latestMeasurement ? (
               <div className="mt-2 space-y-1">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs text-slate-400">{t('growth.weight') || 'Gewicht'}:</span>
+                  <span className="text-xs text-slate-400">{t('growth.weight', 'Gewicht')}:</span>
                   <span className="text-sm font-bold text-white">
                     {latestMeasurement.weight
                       ? `${Math.round(latestMeasurement.weight * 1000)} g`
@@ -155,14 +179,16 @@ export default function TodayDashboard({
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs text-slate-400">{t('growth.length') || 'Größe'}:</span>
+                  <span className="text-xs text-slate-400">
+                    {t('growth.length', 'Körperlänge')}:
+                  </span>
                   <span className="text-sm font-bold text-white">
                     {latestMeasurement.length ? `${latestMeasurement.length} cm` : '—'}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs text-slate-400">
-                    {t('growth.headCircumference') || 'Kopf'}:
+                    {t('growth.headCircumference', 'Kopfumfang')}:
                   </span>
                   <span className="text-sm font-bold text-white">
                     {latestMeasurement.headCircumference
@@ -182,7 +208,7 @@ export default function TodayDashboard({
                     }}
                     className="inline-block px-3 py-1.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs font-semibold"
                   >
-                    + {t('measurements.addTitle') || 'Erste Messung eintragen'}
+                    + {t('measurements.addTitle', 'Messwert eintragen')}
                   </button>
                 )}
               </div>
@@ -190,7 +216,11 @@ export default function TodayDashboard({
           </div>
           <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center gap-1.5 w-full">
             <Calendar className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{latestMeasurement ? latestMeasurement.date : 'Kein Datum vorhanden'}</span>
+            <span>
+              {latestMeasurement
+                ? latestMeasurement.date
+                : t('dashboard.noDateRecorded', 'Kein Datum vorhanden')}
+            </span>
           </div>
         </button>
 
@@ -206,24 +236,136 @@ export default function TodayDashboard({
                 <Syringe className="w-5 h-5" />
               </div>
               <span className="text-xs font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                {t('common.view') || 'Impfpass'} <ChevronRight className="w-3.5 h-3.5" />
+                {t('dashboard.viewVaccines', 'Impfpass')} <ChevronRight className="w-3.5 h-3.5" />
               </span>
             </div>
             <h3 className="text-sm font-bold text-slate-200">
-              {t('vaccinations.title') || 'STIKO-Impfungen'}
+              {t('vaccinations.title', 'Impfpass & STIKO-Empfehlungen')}
             </h3>
             <div className="mt-2 flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               <span className="text-sm font-bold text-white">
                 {Object.keys(activeChild.vaccinations || {}).length} / {STIKO_VACCINATIONS.length}{' '}
-                {t('vaccinations.recorded') || 'erfasst'}
+                {t('dashboard.recorded', 'erfasst')}
               </span>
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
             {pendingVaccinationsCount > 0
-              ? `${pendingVaccinationsCount} Impfungen laut STIKO-Kalender empfohlen`
-              : 'Alle Standard-Impfungen aktuell eingetragen'}
+              ? t('dashboard.vaccinesRecommended', {
+                  count: pendingVaccinationsCount,
+                  defaultValue: `${pendingVaccinationsCount} Impfungen laut STIKO-Kalender empfohlen`,
+                })
+              : t('dashboard.allVaccinesUpToDate', 'Alle Standard-Impfungen aktuell eingetragen')}
+          </div>
+        </button>
+
+        {/* Card 4: Milestones */}
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('milestones')}
+          className="text-left w-full p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-amber-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
+        >
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                {t('common.view', 'Ansehen')} <ChevronRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+            <h3 className="text-sm font-bold text-slate-200">
+              {t('nav.milestones', 'Meilensteine')}
+            </h3>
+            <div className="mt-2 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-amber-400" />
+              <span className="text-sm font-bold text-white">
+                {milestoneStats.recordedCount} / {milestoneStats.totalCount}{' '}
+                {t('dashboard.recorded', 'erfasst')}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
+            {milestoneStats.recordedCount > 0
+              ? `${milestoneStats.recordedCount} besondere Entwicklungsschritte festgehalten`
+              : 'Wichtige Momente & Fotos dokumentieren'}
+          </div>
+        </button>
+
+        {/* Card 5: Milk Teeth */}
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('teeth')}
+          className="text-left w-full p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-pink-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
+        >
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-2xl bg-pink-500/10 border border-pink-500/20 text-pink-400 flex items-center justify-center">
+                <ToothIcon className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-pink-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                {t('common.view', 'Ansehen')} <ChevronRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+            <h3 className="text-sm font-bold text-slate-200">{t('nav.teeth', 'Milchzähne')}</h3>
+            <div className="mt-2 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-pink-400" />
+              <span className="text-sm font-bold text-white">
+                {teethStats.eruptedCount} / {teethStats.totalCount}{' '}
+                {t('teeth.teethCount', 'Zähne durchgebrochen')}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
+            {teethStats.eruptedCount > 0
+              ? `${teethStats.eruptedCount} von 20 Milchzähnen durchgebrochen`
+              : 'Zahndurchbruch im 20-Zähne-Gebiss festhalten'}
+          </div>
+        </button>
+
+        {/* Card 6: Health & Fever */}
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('health')}
+          className="text-left w-full p-5 rounded-3xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-rose-500/50 transition-all cursor-pointer group shadow-lg flex flex-col justify-between"
+        >
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                <HeartPulse className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-semibold text-rose-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                {t('common.view', 'Ansehen')} <ChevronRight className="w-3.5 h-3.5" />
+              </span>
+            </div>
+            <h3 className="text-sm font-bold text-slate-200">{t('nav.health', 'Gesundheit')}</h3>
+            {latestHealthEntry ? (
+              <div className="mt-2">
+                <p className="text-base font-extrabold text-white">
+                  {latestHealthEntry.temperature
+                    ? `${latestHealthEntry.temperature} °C`
+                    : 'Symptomeintrag'}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5 truncate">
+                  {latestHealthEntry.symptoms ||
+                    latestHealthEntry.medication ||
+                    latestHealthEntry.date}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-2 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <span className="text-sm font-medium text-slate-300">
+                  Keine akuten Krankheitseinträge
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
+            {latestHealthEntry
+              ? `Letzter Eintrag am ${latestHealthEntry.date}`
+              : 'Fieber, Symptome & Medikamente protokollieren'}
           </div>
         </button>
       </div>

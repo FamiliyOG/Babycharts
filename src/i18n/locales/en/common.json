@@ -9,6 +9,7 @@
     "loadDemoData": "Load Demo Data"
   },
   "nav": {
+    "today": "Today",
     "overview": "Overview",
     "growth": "Growth Charts",
     "milestones": "Milestones",
@@ -17,12 +18,27 @@
     "vaccinations": "Vaccines",
     "uCheckups": "Checkups (U1-U9)",
     "family": "Family",
+    "shortToday": "Today",
     "shortGrowth": "Charts",
     "shortVaccines": "Vaccines",
     "shortTeeth": "Teeth",
     "shortMilestones": "Moments",
     "shortHealth": "Fever",
     "shortUCheckups": "Checkups"
+  },
+  "dashboard": {
+    "today": "Today",
+    "todayOverview": "Today's Overview",
+    "daysUnit": "days",
+    "viewAction": "View",
+    "viewCurves": "Curves",
+    "viewVaccines": "Vaccines",
+    "allCheckupsDone": "All regular checkups completed",
+    "stikoVaccines": "Recommended Vaccines",
+    "recorded": "recorded",
+    "vaccinesRecommended": "{{count}} vaccinations recommended according to schedule",
+    "allVaccinesUpToDate": "All routine vaccinations currently recorded",
+    "noDateRecorded": "No date recorded"
   },
   "roles": {
     "admin": "Administrator",
@@ -40,6 +56,7 @@
     "copy": "Copy",
     "loading": "Loading...",
     "add": "Add",
+    "view": "View",
     "export": "Export",
     "import": "Import",
     "settings": "Settings",

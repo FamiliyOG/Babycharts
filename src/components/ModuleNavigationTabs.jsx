@@ -8,7 +8,7 @@ export default function ModuleNavigationTabs({ activeTab, onSelectTab }) {
   const tabs = [
     {
       id: 'today',
-      label: t('dashboard.today') || 'Heute',
+      label: t('nav.today') || 'Heute',
       icon: Home,
       activeClass:
         'bg-indigo-700 hover:bg-indigo-600 text-white shadow-md shadow-indigo-950/80 ring-2 ring-indigo-400',

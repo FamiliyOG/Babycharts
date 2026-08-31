@@ -14,9 +14,8 @@ export function LoadingSpinner({ size = 'md', className = '' }) {
 
   return (
     <div className={`flex items-center justify-center p-4 ${className}`}>
-      <div
-        className={`${sizeClasses[size] || sizeClasses.md} rounded-full border-cyan-500 border-t-transparent animate-spin`}
-        role="status"
+      <output
+        className={`${sizeClasses[size] || sizeClasses.md} block rounded-full border-cyan-500 border-t-transparent animate-spin`}
         aria-label="Wird geladen..."
       />
     </div>

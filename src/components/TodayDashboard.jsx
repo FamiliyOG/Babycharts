@@ -17,6 +17,13 @@ import { STANDARD_MILESTONES } from '../data/milestones.js';
 import { MILK_TEETH } from '../data/teeth.js';
 
 function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
+  let checkupDesc = '';
+  if (nextCheckup) {
+    const translationKey = `uCheckups.items.${nextCheckup.id}.desc`;
+    const translated = t(translationKey);
+    checkupDesc = translated !== translationKey ? translated : nextCheckup.description || '';
+  }
+
   return (
     <button
       type="button"
@@ -58,11 +65,7 @@ function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
         )}
       </div>
       <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
-        {nextCheckup
-          ? t(`uCheckups.items.${nextCheckup.id}.desc`) !== `uCheckups.items.${nextCheckup.id}.desc`
-            ? t(`uCheckups.items.${nextCheckup.id}.desc`)
-            : nextCheckup.description || ''
-          : ''}
+        {checkupDesc}
       </div>
     </button>
   );

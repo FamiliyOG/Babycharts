@@ -11,9 +11,8 @@ export default function EmptyState({
   className = '',
 }) {
   return (
-    <div
+    <section
       className={`text-center py-12 px-6 rounded-3xl bg-slate-900/40 border border-slate-800/80 max-w-md mx-auto my-6 ${className}`}
-      role="region"
       aria-label={title}
     >
       {Icon && (
@@ -36,6 +35,6 @@ export default function EmptyState({
           {actionText}
         </button>
       )}
-    </div>
+    </section>
   );
 }

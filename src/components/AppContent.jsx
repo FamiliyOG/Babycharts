@@ -22,6 +22,7 @@ export default function AppContent({
   isDev,
   setIsProfileModalOpen,
   handleLoadDemoData,
+  onOpenQuickAdd,
 }) {
   if (isLoading) {
     return (
@@ -51,6 +52,7 @@ export default function AppContent({
             handleEditMeasurement={handleEditMeasurement}
             handleDeleteMeasurement={handleDeleteMeasurement}
             handleSaveProfile={handleSaveProfile}
+            onOpenQuickAdd={onOpenQuickAdd}
             canEdit={canEdit}
           />
         </ErrorBoundary>

@@ -18,6 +18,7 @@ import { Scale, Ruler, Circle, Activity, Info } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import GrowthLegend from './growth/GrowthLegend.jsx';
 import GrowthControls from './growth/GrowthControls.jsx';
+import EmptyState from './EmptyState.jsx';
 
 ChartJS.register(
   LinearScale,
@@ -367,7 +368,7 @@ function buildChartOptions(
   };
 }
 
-export default function GrowthChart({ activeChild }) {
+export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
   const { t } = useTranslation();
   const { isDark } = useTheme();
   const chartRef = useRef(null);
@@ -378,9 +379,26 @@ export default function GrowthChart({ activeChild }) {
 
   if (!activeChild) return null;
 
+  const measurements = activeChild.measurements || [];
+
+  if (measurements.length === 0) {
+    return (
+      <EmptyState
+        icon={Scale}
+        title={t('growth.emptyTitle', 'Noch keine Wachstumskurve verfügbar')}
+        description={t(
+          'growth.emptyDescription',
+          'Tragen Sie den ersten Messwert ein, um die WHO-Perzentilenkurven für Ihr Kind zu visualisieren.'
+        )}
+        actionText={onOpenAddMeasurement ? `+ ${t('measurements.addTitle')}` : undefined}
+        onAction={onOpenAddMeasurement}
+        className="mb-6"
+      />
+    );
+  }
+
   const isGirl = activeChild.gender === 'girl';
   const childColor = isGirl ? '#f43f5e' : '#06b6d4';
-  const measurements = activeChild.measurements || [];
 
   const rawWhoData = WHO_DATA[activeChild.gender]?.[metric] || [];
   const filteredWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);

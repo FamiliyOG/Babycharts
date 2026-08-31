@@ -20,6 +20,7 @@ export default function ActiveTabContent({
   handleEditMeasurement,
   handleDeleteMeasurement,
   handleSaveProfile,
+  onOpenQuickAdd,
   canEdit,
 }) {
   return (
@@ -34,12 +35,17 @@ export default function ActiveTabContent({
                 measurements={activeChildMeasurements}
                 onNavigateTab={setActiveTab}
                 onOpenAddMeasurement={handleOpenAddMeasurement}
+                onOpenQuickAdd={onOpenQuickAdd}
               />
             );
           case 'growth':
             return (
               <>
-                <GrowthChart activeChild={activeChild} measurements={activeChildMeasurements} />
+                <GrowthChart
+                  activeChild={activeChild}
+                  measurements={activeChildMeasurements}
+                  onOpenAddMeasurement={handleOpenAddMeasurement}
+                />
                 <MeasurementTable
                   activeChild={activeChild}
                   measurements={activeChildMeasurements}

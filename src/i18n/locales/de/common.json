@@ -348,6 +348,8 @@
     "percentile": "Perzentile",
     "history": "Messwert-Historie",
     "noMeasurements": "Noch keine Messwerte eingetragen.",
+    "emptyTitle": "Noch keine Wachstumskurve verfügbar",
+    "emptyDescription": "Tragen Sie den ersten Messwert ein, um die WHO-Perzentilenkurven für Ihr Kind zu visualisieren.",
     "weightTitle": "Gewicht nach Alter",
     "lengthTitle": "Körpergröße / Länge nach Alter",
     "headCircumferenceTitle": "Kopfumfang nach Alter",

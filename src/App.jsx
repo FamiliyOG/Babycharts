@@ -331,6 +331,7 @@ function MainApp() {
           isDev={isDev}
           setIsProfileModalOpen={setIsProfileModalOpen}
           handleLoadDemoData={handleLoadDemoData}
+          onOpenQuickAdd={() => setIsQuickAddOpen(true)}
         />
       </main>
 

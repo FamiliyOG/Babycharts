@@ -13,6 +13,10 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('message', (event) => {
+  // CodeQL js/missing-origin-check: Validate message origin and client
+  if (event.origin && event.origin !== self.location.origin) {
+    return;
+  }
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }

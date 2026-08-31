@@ -366,7 +366,7 @@ export default function TodayDashboard({
   const latestMeasurement = measurements[0] || null;
 
   const handleEnableNotifications = async () => {
-    const enabled = await sendLocalNotification(
+    await sendLocalNotification(
       `BabyCharts: Erinnerungen für ${activeChild.name}`,
       `Es stehen ${reminders.totalDueCount} anstehende Vorsorgeuntersuchungen/Impfungen an.`
     );

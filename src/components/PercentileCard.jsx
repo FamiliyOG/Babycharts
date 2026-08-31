@@ -224,7 +224,8 @@ function buildPercentileCards({
 
 export default function PercentileCard({ activeChild, ageInfo }) {
   const { t } = useTranslation();
-  const measurements = activeChild?.measurements || [];
+  const rawMeasurements = activeChild?.measurements;
+  const measurements = Array.isArray(rawMeasurements) ? rawMeasurements : [];
 
   if (measurements.length === 0 || !activeChild) {
     return (

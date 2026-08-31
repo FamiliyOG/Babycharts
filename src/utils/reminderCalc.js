@@ -13,15 +13,34 @@ export function calculateReminders(child) {
   }
 
   const birthTime = new Date(child.birthdate).getTime();
-  const now = new Date().getTime();
+  const now = Date.now();
   const ageMonths = (now - birthTime) / (1000 * 60 * 60 * 24 * 30.4375);
 
-  const completedCheckupIds = new Set(
-    (child.checkups || []).filter((c) => c.completed).map((c) => c.id)
-  );
-  const completedVaccineIds = new Set(
-    (child.vaccinations || []).filter((v) => v.completed).map((v) => v.id)
-  );
+  // Completed U-Checkups from measurements array or child.checkups
+  const completedCheckupIds = new Set([
+    ...(Array.isArray(child.measurements)
+      ? child.measurements.filter((m) => m.checkup).map((m) => m.checkup)
+      : []),
+    ...(Array.isArray(child.checkups)
+      ? child.checkups.filter((c) => c.completed).map((c) => c.id)
+      : []),
+  ]);
+
+  // Completed vaccinations from object map (child.vaccinations[id] = { completed: true }) or array
+  const completedVaccineIds = new Set();
+  if (child.vaccinations && typeof child.vaccinations === 'object') {
+    if (Array.isArray(child.vaccinations)) {
+      child.vaccinations.forEach((v) => {
+        if (v?.completed && v.id) completedVaccineIds.add(v.id);
+      });
+    } else {
+      Object.entries(child.vaccinations).forEach(([vaxId, vaxData]) => {
+        if (vaxData?.completed) {
+          completedVaccineIds.add(vaxId);
+        }
+      });
+    }
+  }
 
   const upcomingCheckups = U_CHECKUPS.map((u) => {
     const isCompleted = completedCheckupIds.has(u.id);

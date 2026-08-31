@@ -360,8 +360,8 @@ export default function TodayDashboard({
   }, [activeChild]);
 
   const reminders = useMemo(() => {
-    return calculateReminders(activeChild);
-  }, [activeChild]);
+    return calculateReminders({ ...activeChild, measurements });
+  }, [activeChild, measurements]);
 
   const latestMeasurement = measurements[0] || null;
 

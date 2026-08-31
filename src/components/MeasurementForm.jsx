@@ -36,6 +36,181 @@ export default function MeasurementForm({
   );
 }
 
+function calculatePercentileEstimates(ageMonths, gender, weightVal, lengthVal, headVal) {
+  const isEligible = ageMonths <= 60;
+  return {
+    pWeight:
+      isEligible && weightVal ? estimatePercentile('weight', gender, ageMonths, weightVal) : null,
+    pLength:
+      isEligible && lengthVal ? estimatePercentile('length', gender, ageMonths, lengthVal) : null,
+    pHead: isEligible && headVal ? estimatePercentile('head', gender, ageMonths, headVal) : null,
+  };
+}
+
+function WarningBanners({ isFutureDate, existingSameDay, t }) {
+  if (!isFutureDate && !existingSameDay) return null;
+  return (
+    <>
+      {isFutureDate && (
+        <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>
+            {t('measurements.futureDateWarning', 'Das Messdatum darf nicht in der Zukunft liegen.')}
+          </span>
+        </div>
+      )}
+      {existingSameDay && (
+        <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-800 text-amber-300 text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>
+            {t(
+              'measurements.duplicateDateWarning',
+              'Für dieses Datum existiert bereits ein Messwert. Beim Speichern wird dieser Eintrag ergänzt/aktualisiert.'
+            )}
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
+
+function MetricInputFields({
+  weightGrams,
+  setWeightGrams,
+  length,
+  setLength,
+  headCircumference,
+  setHeadCircumference,
+  pWeight,
+  pLength,
+  pHead,
+  weightVal,
+  t,
+}) {
+  const weightNum = weightGrams ? Number.parseFloat(weightGrams) : null;
+  const isWeightUnusual = weightNum !== null && (weightNum < 500 || weightNum > 35000);
+
+  const lengthNum = length ? Number.parseFloat(length) : null;
+  const isLengthUnusual = lengthNum !== null && (lengthNum < 30 || lengthNum > 140);
+
+  const headNum = headCircumference ? Number.parseFloat(headCircumference) : null;
+  const isHeadUnusual = headNum !== null && (headNum < 25 || headNum > 60);
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 items-start">
+      {/* Weight */}
+      <div className="flex flex-col">
+        <label
+          htmlFor="measurement-weight-input"
+          className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
+        >
+          {t('measurements.weightLabel')}
+        </label>
+        <div className="relative">
+          <Scale className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+          <input
+            id="measurement-weight-input"
+            type="number"
+            step="1"
+            min="300"
+            max="40000"
+            value={weightGrams}
+            onChange={(e) => setWeightGrams(e.target.value)}
+            placeholder={t('measurements.weightPlaceholder')}
+            className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
+              isWeightUnusual
+                ? 'border-amber-500 text-amber-200'
+                : 'border-slate-800 focus:border-cyan-500'
+            }`}
+          />
+        </div>
+        {pWeight && (
+          <span className="text-[11px] text-emerald-400 mt-1 block">
+            ~ P{pWeight.percentile} ({weightVal?.toFixed(2)} kg)
+          </span>
+        )}
+        {isWeightUnusual && (
+          <span className="text-[10px] text-amber-400 mt-0.5 block">
+            ⚠️ {t('measurements.unusualWeightWarning', 'Ungewöhnlicher Wert (500g–35kg)')}
+          </span>
+        )}
+      </div>
+
+      {/* Length */}
+      <div className="flex flex-col">
+        <label
+          htmlFor="measurement-length-input"
+          className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
+        >
+          {t('measurements.lengthLabel')}
+        </label>
+        <div className="relative">
+          <Ruler className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+          <input
+            id="measurement-length-input"
+            type="number"
+            step="0.1"
+            min="25"
+            max="140"
+            value={length}
+            onChange={(e) => setLength(e.target.value)}
+            placeholder={t('measurements.lengthPlaceholder')}
+            className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
+              isLengthUnusual
+                ? 'border-amber-500 text-amber-200'
+                : 'border-slate-800 focus:border-cyan-500'
+            }`}
+          />
+        </div>
+        {pLength && (
+          <span className="text-[11px] text-emerald-400 mt-1 block">~ P{pLength.percentile}</span>
+        )}
+        {isLengthUnusual && (
+          <span className="text-[10px] text-amber-400 mt-0.5 block">
+            ⚠️ {t('measurements.unusualLengthWarning', 'Ungewöhnlicher Wert (30–140 cm)')}
+          </span>
+        )}
+      </div>
+
+      {/* Head */}
+      <div className="flex flex-col">
+        <label
+          htmlFor="measurement-head-input"
+          className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
+        >
+          {t('measurements.headLabel')}
+        </label>
+        <div className="relative">
+          <Circle className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+          <input
+            id="measurement-head-input"
+            type="number"
+            step="0.1"
+            min="25"
+            max="60"
+            value={headCircumference}
+            onChange={(e) => setHeadCircumference(e.target.value)}
+            placeholder={t('measurements.headPlaceholder')}
+            className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
+              isHeadUnusual
+                ? 'border-amber-500 text-amber-200'
+                : 'border-slate-800 focus:border-cyan-500'
+            }`}
+          />
+        </div>
+        {pHead && (
+          <span className="text-[11px] text-emerald-400 mt-1 block">~ P{pHead.percentile}</span>
+        )}
+        {isHeadUnusual && (
+          <span className="text-[10px] text-amber-400 mt-0.5 block">
+            ⚠️ {t('measurements.unusualHeadWarning', 'Ungewöhnlicher Wert (25–60 cm)')}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MeasurementFormDialog({ isOpen, onClose, onSaveMeasurement, activeChild, initialData }) {
   const { t } = useTranslation();
   const todayIso = new Date().toISOString().split('T')[0];
@@ -54,42 +229,22 @@ function MeasurementFormDialog({ isOpen, onClose, onSaveMeasurement, activeChild
   const isGirl = activeChild?.gender === 'girl';
   const ageInfo = calculateAge(activeChild.birthdate, date);
 
-  // Real-time percentile estimations
   const weightVal = weightGrams ? Number.parseFloat(weightGrams) / 1000 : null;
   const lengthVal = length ? Number.parseFloat(length) : null;
   const headVal = headCircumference ? Number.parseFloat(headCircumference) : null;
 
-  const pWeight =
-    weightVal && ageInfo.totalMonths <= 60
-      ? estimatePercentile('weight', activeChild.gender, ageInfo.totalMonths, weightVal)
-      : null;
-
-  const pLength =
-    lengthVal && ageInfo.totalMonths <= 60
-      ? estimatePercentile('length', activeChild.gender, ageInfo.totalMonths, lengthVal)
-      : null;
-
-  const pHead =
-    headVal && ageInfo.totalMonths <= 60
-      ? estimatePercentile('head', activeChild.gender, ageInfo.totalMonths, headVal)
-      : null;
+  const { pWeight, pLength, pHead } = calculatePercentileEstimates(
+    ageInfo.totalMonths,
+    activeChild.gender,
+    weightVal,
+    lengthVal,
+    headVal
+  );
 
   const isFutureDate = date > todayIso;
-
-  // Duplicate measurement warning (BC-112)
   const existingSameDay = (activeChild?.measurements || []).find(
     (m) => m.date === date && m.id !== initialData?.id
   );
-
-  // Plausibility warning checks (BC-107, BC-108, BC-109)
-  const weightNum = weightGrams ? Number.parseFloat(weightGrams) : null;
-  const isWeightUnusual = weightNum !== null && (weightNum < 500 || weightNum > 35000);
-
-  const lengthNum = length ? Number.parseFloat(length) : null;
-  const isLengthUnusual = lengthNum !== null && (lengthNum < 30 || lengthNum > 140);
-
-  const headNum = headCircumference ? Number.parseFloat(headCircumference) : null;
-  const isHeadUnusual = headNum !== null && (headNum < 25 || headNum > 60);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -106,13 +261,7 @@ function MeasurementFormDialog({ isOpen, onClose, onSaveMeasurement, activeChild
       notes: notes.trim(),
     });
 
-    // Trigger celebration confetti
-    confetti({
-      particleCount: 40,
-      spread: 60,
-      origin: { y: 0.7 },
-    });
-
+    confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
     onClose();
   };
 
@@ -173,142 +322,21 @@ function MeasurementFormDialog({ isOpen, onClose, onSaveMeasurement, activeChild
             </div>
           </div>
 
-          {isFutureDate && (
-            <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>
-                {t(
-                  'measurements.futureDateWarning',
-                  'Das Messdatum darf nicht in der Zukunft liegen.'
-                )}
-              </span>
-            </div>
-          )}
+          <WarningBanners isFutureDate={isFutureDate} existingSameDay={existingSameDay} t={t} />
 
-          {existingSameDay && (
-            <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-800 text-amber-300 text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>
-                {t(
-                  'measurements.duplicateDateWarning',
-                  'Für dieses Datum existiert bereits ein Messwert. Beim Speichern wird dieser Eintrag ergänzt/aktualisiert.'
-                )}
-              </span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 items-start">
-            <div className="flex flex-col">
-              <label
-                htmlFor="measurement-weight-input"
-                className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
-              >
-                {t('measurements.weightLabel')}
-              </label>
-              <div className="relative">
-                <Scale className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                <input
-                  id="measurement-weight-input"
-                  type="number"
-                  step="1"
-                  min="300"
-                  max="40000"
-                  value={weightGrams}
-                  onChange={(e) => setWeightGrams(e.target.value)}
-                  placeholder={t('measurements.weightPlaceholder')}
-                  className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
-                    isWeightUnusual
-                      ? 'border-amber-500 text-amber-200'
-                      : 'border-slate-800 focus:border-cyan-500'
-                  }`}
-                />
-              </div>
-              {pWeight && (
-                <span className="text-[11px] text-emerald-400 mt-1 block">
-                  ~ P{pWeight.percentile} ({weightVal.toFixed(2)} kg)
-                </span>
-              )}
-              {isWeightUnusual && (
-                <span className="text-[10px] text-amber-400 mt-0.5 block">
-                  ⚠️ {t('measurements.unusualWeightWarning', 'Ungewöhnlicher Wert (500g–35kg)')}
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label
-                htmlFor="measurement-length-input"
-                className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
-              >
-                {t('measurements.lengthLabel')}
-              </label>
-              <div className="relative">
-                <Ruler className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                <input
-                  id="measurement-length-input"
-                  type="number"
-                  step="0.1"
-                  min="25"
-                  max="140"
-                  value={length}
-                  onChange={(e) => setLength(e.target.value)}
-                  placeholder={t('measurements.lengthPlaceholder')}
-                  className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
-                    isLengthUnusual
-                      ? 'border-amber-500 text-amber-200'
-                      : 'border-slate-800 focus:border-cyan-500'
-                  }`}
-                />
-              </div>
-              {pLength && (
-                <span className="text-[11px] text-emerald-400 mt-1 block">
-                  ~ P{pLength.percentile}
-                </span>
-              )}
-              {isLengthUnusual && (
-                <span className="text-[10px] text-amber-400 mt-0.5 block">
-                  ⚠️ {t('measurements.unusualLengthWarning', 'Ungewöhnlicher Wert (30–140 cm)')}
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-col">
-              <label
-                htmlFor="measurement-head-input"
-                className="text-xs font-semibold text-slate-300 mb-1.5 sm:h-8 flex items-end leading-tight"
-              >
-                {t('measurements.headLabel')}
-              </label>
-              <div className="relative">
-                <Circle className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                <input
-                  id="measurement-head-input"
-                  type="number"
-                  step="0.1"
-                  min="25"
-                  max="60"
-                  value={headCircumference}
-                  onChange={(e) => setHeadCircumference(e.target.value)}
-                  placeholder={t('measurements.headPlaceholder')}
-                  className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
-                    isHeadUnusual
-                      ? 'border-amber-500 text-amber-200'
-                      : 'border-slate-800 focus:border-cyan-500'
-                  }`}
-                />
-              </div>
-              {pHead && (
-                <span className="text-[11px] text-emerald-400 mt-1 block">
-                  ~ P{pHead.percentile}
-                </span>
-              )}
-              {isHeadUnusual && (
-                <span className="text-[10px] text-amber-400 mt-0.5 block">
-                  ⚠️ {t('measurements.unusualHeadWarning', 'Ungewöhnlicher Wert (25–60 cm)')}
-                </span>
-              )}
-            </div>
-          </div>
+          <MetricInputFields
+            weightGrams={weightGrams}
+            setWeightGrams={setWeightGrams}
+            length={length}
+            setLength={setLength}
+            headCircumference={headCircumference}
+            setHeadCircumference={setHeadCircumference}
+            pWeight={pWeight}
+            pLength={pLength}
+            pHead={pHead}
+            weightVal={weightVal}
+            t={t}
+          />
 
           <div>
             <label

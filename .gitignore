@@ -80,3 +80,4 @@ PACKAGE-CONTENTS.md
 .agents/workflows/release-check.md
 .agents/workflows/review-pr.md
 .agents/workflows/security-review.md
+.agents/workflows/commit.md

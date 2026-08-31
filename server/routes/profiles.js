@@ -4,9 +4,10 @@
  */
 
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import { readDb, writeDb, getProfileById, restoreProfile, softDeleteProfile } from '../utils/db.js';
 import { rescheduleAll } from '../scheduler.js';
-import { optionalAuth, requireAuth, getUserFamilyRole } from '../middleware/auth.js';
+import { optionalAuth, requireAuth, getUserFamilyRole, JWT_SECRET } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { ProfileInputSchema } from '../validators/schemas.js';
 
@@ -57,11 +58,34 @@ router.get('/', optionalAuth, (req, res) => {
   return res.json(db.profiles.filter((p) => !p.familyId));
 });
 
-// GET single profile (restricted to family members or public unassigned profiles)
+// GET single profile (restricted to family members, public unassigned profiles, or temporary doctor-share tokens)
 router.get('/:id', optionalAuth, (req, res) => {
   const db = readDb();
   const profile = db.profiles.find((p) => p.id === req.params.id);
   if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  // Doctor share token support (BC-231, Issue #176)
+  const shareToken = req.query.shareToken;
+  if (typeof shareToken === 'string' && shareToken.trim()) {
+    try {
+      const decoded = jwt.verify(shareToken.trim(), JWT_SECRET);
+      if (decoded.scope === 'doctor_share' && decoded.profileId === profile.id) {
+        return res.json({
+          id: profile.id,
+          name: profile.name,
+          gender: profile.gender,
+          birthdate: profile.birthdate,
+          bloodType: profile.bloodType,
+          measurements: profile.measurements || [],
+          uCheckups: profile.uCheckups || {},
+          vaccines: profile.vaccines || {},
+          isDoctorShareView: true,
+        });
+      }
+    } catch {
+      return res.status(401).json({ error: 'Der Arzt-Freigabelink ist abgelaufen oder ungültig.' });
+    }
+  }
 
   // If profile belongs to a family, verify user's access
   if (profile.familyId) {
@@ -78,6 +102,39 @@ router.get('/:id', optionalAuth, (req, res) => {
   }
 
   return res.json(profile);
+});
+
+// POST /api/profiles/:id/doctor-share – generate 24h temporary read-only QR share token (BC-231, Issue #176)
+router.post('/:id/doctor-share', requireAuth, (req, res) => {
+  const db = readDb();
+  const profile = db.profiles.find((p) => p.id === req.params.id);
+  if (!profile) {
+    return res.status(404).json({ error: 'Profile not found' });
+  }
+
+  if (profile.familyId) {
+    const family = db.families.find((f) => f.id === profile.familyId);
+    const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res.status(403).json({ error: 'Zugriff verweigert.' });
+    }
+  }
+
+  const shareToken = jwt.sign(
+    {
+      scope: 'doctor_share',
+      profileId: profile.id,
+      generatedBy: req.user.id,
+    },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
+  return res.json({
+    shareToken,
+    expiresIn: '24h',
+    shareUrl: `/doctor-view/${profile.id}?token=${shareToken}`,
+  });
 });
 
 // POST – bulk import profiles (scoped strictly to user's authorized family)

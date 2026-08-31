@@ -69,3 +69,30 @@ export function compressImage(file, maxDim = 1200, quality = 0.82) {
     reader.readAsDataURL(file);
   });
 }
+
+/**
+ * Generates an ultra-fast square or scaled thumbnail for profile avatars & milestone previews (BC-239)
+ */
+export function createThumbnail(fileOrDataUrl, size = 160, quality = 0.8) {
+  if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:image/')) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject(new Error('Canvas context unavailable'));
+          ctx.drawImage(img, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = () => reject(new Error('Fehler beim Rendern des Thumbnails.'));
+      img.src = fileOrDataUrl;
+    });
+  }
+  return compressImage(fileOrDataUrl, size, quality);
+}

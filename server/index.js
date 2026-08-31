@@ -29,6 +29,8 @@ import { rescheduleAll, setAppUrl, stopScheduler } from './scheduler.js';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 
+import crypto from 'node:crypto';
+
 import profilesRouter from './routes/profiles.js';
 import settingsRouter from './routes/settings.js';
 import exportsRouter from './routes/exports.js';
@@ -48,6 +50,18 @@ const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1); // Trust reverse proxies (Nginx, Traefik, Cloudflare, Caddy) for Internet + LAN
+
+// ── Request ID & Structured Logging (BC-240, Issue #177) ─────────────────────
+app.use((req, res, next) => {
+  const incomingReqId = req.headers['x-request-id'];
+  const reqId =
+    typeof incomingReqId === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(incomingReqId)
+      ? incomingReqId
+      : crypto.randomUUID();
+  req.id = reqId;
+  res.setHeader('X-Request-Id', reqId);
+  next();
+});
 
 // ── HTTP Security Headers (Issues BC-035, BC-036, BC-037, BC-038) ────────────
 app.use(

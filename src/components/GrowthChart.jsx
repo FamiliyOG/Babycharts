@@ -472,6 +472,26 @@ export default function GrowthChart({ activeChild }) {
           aria-label={`Wachstumskurve: ${METRIC_TITLES[metric]} für ${activeChild.name} (${isGirl ? 'Mädchen' : 'Junge'})`}
           role="img"
         />
+        {/* Screen Reader Accessible Data Alternative (BC-154, BC-153) */}
+        <div className="sr-only">
+          <h4>{`Tabelle der Messwerte: ${METRIC_TITLES[metric]}`}</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Alter (Monate)</th>
+                <th>Messwert</th>
+              </tr>
+            </thead>
+            <tbody>
+              {childPoints.map((pt, idx) => (
+                <tr key={idx}>
+                  <td>{pt.x.toFixed(1)}</td>
+                  <td>{formatMetricDisplayValue(pt.y, metric)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/60 pt-3">

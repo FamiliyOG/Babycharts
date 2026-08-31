@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  X,
   Baby,
   Calendar,
   User,
@@ -13,7 +12,8 @@ import {
   Circle,
   Camera,
 } from 'lucide-react';
-import { useModalDismissal } from '../utils/useModalDismissal.js';
+import ModalContainer from './ModalContainer.jsx';
+import ConfirmModal from './ConfirmModal.jsx';
 import { getAuthorizedMediaUrl } from '../utils/api.js';
 
 export default function ProfileModal({
@@ -28,6 +28,7 @@ export default function ProfileModal({
   return (
     <ProfileModalDialog
       key={initialData ? initialData.id : 'new-profile'}
+      isOpen={isOpen}
       onClose={onClose}
       onSaveProfile={onSaveProfile}
       onDeleteProfile={onDeleteProfile}
@@ -36,15 +37,15 @@ export default function ProfileModal({
   );
 }
 
-function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialData }) {
+function ProfileModalDialog({ isOpen, onClose, onSaveProfile, onDeleteProfile, initialData }) {
   const { t } = useTranslation();
-  const { dialogRef } = useModalDismissal(true, onClose);
   const [name, setName] = useState(() => initialData?.name || '');
   const [gender, setGender] = useState(() => initialData?.gender || 'boy');
   const [avatar, setAvatar] = useState(() => initialData?.avatar || null);
   const [birthdate, setBirthdate] = useState(
     () => initialData?.birthdate || new Date().toISOString().split('T')[0]
   );
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   const initialBirthM =
     (initialData?.measurements || []).find((m) => m.checkup === 'U1') ||
@@ -141,316 +142,293 @@ function ProfileModalDialog({ onClose, onSaveProfile, onDeleteProfile, initialDa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-      <div
-        ref={dialogRef}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto"
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Schließen"
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Modal Header with Avatar */}
-        <div className="flex items-center gap-3.5 mb-5 pr-8">
-          <div className="relative group shrink-0">
-            {avatar ? (
-              <img
-                src={getAuthorizedMediaUrl(avatar)}
-                alt={name || 'Kind'}
-                className="w-13 h-13 rounded-2xl object-cover border border-slate-700 shadow-md"
+    <>
+      <ModalContainer isOpen={isOpen} onClose={onClose} maxWidth="max-w-md" showCloseButton={false}>
+        <div className="relative text-slate-900 dark:text-slate-100 max-h-[82vh] overflow-y-auto pr-1">
+          {/* Modal Header with Avatar */}
+          <div className="flex items-center gap-3.5 mb-5 pr-8">
+            <div className="relative group shrink-0">
+              {avatar ? (
+                <img
+                  src={getAuthorizedMediaUrl(avatar)}
+                  alt={name || 'Kind'}
+                  className="w-13 h-13 rounded-2xl object-cover border border-slate-700 shadow-md"
+                />
+              ) : (
+                <div
+                  className={`p-3.5 rounded-2xl shadow-lg ${
+                    gender === 'girl'
+                      ? 'bg-linear-to-tr from-rose-500 to-pink-500 text-white shadow-rose-950'
+                      : 'bg-linear-to-tr from-cyan-500 to-blue-600 text-white shadow-cyan-950'
+                  }`}
+                >
+                  <Baby className="w-6 h-6" />
+                </div>
+              )}
+              {avatar && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  title={t('header.removeAvatar', 'Foto entfernen')}
+                  aria-label={t('header.removeAvatar', 'Foto entfernen')}
+                  className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md transition-all active:scale-95 z-10"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+              <label
+                htmlFor="child-avatar-upload"
+                title={t('header.changeAvatar', 'Foto hinzufügen / ändern')}
+                className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center cursor-pointer transition-opacity text-cyan-300"
+              >
+                <Camera className="w-5 h-5" />
+              </label>
+              <input
+                id="child-avatar-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
               />
-            ) : (
-              <div
-                className={`p-3.5 rounded-2xl shadow-lg ${
-                  gender === 'girl'
-                    ? 'bg-linear-to-tr from-rose-500 to-pink-500 text-white shadow-rose-950'
-                    : 'bg-linear-to-tr from-cyan-500 to-blue-600 text-white shadow-cyan-950'
-                }`}
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-100">
+                {initialData ? t('profileModal.editTitle') : t('profileModal.createTitle')}
+              </h2>
+              <p className="text-xs text-slate-400">{t('profileModal.subtitle')}</p>
+            </div>
+          </div>
+
+          {avatarError && (
+            <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{avatarError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name */}
+            <div>
+              <label
+                htmlFor="child-name-input"
+                className="block text-xs font-semibold text-slate-300 mb-1"
               >
-                <Baby className="w-6 h-6" />
+                {t('profileModal.nameLabel')} *
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                <input
+                  id="child-name-input"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('profileModal.namePlaceholder')}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                />
               </div>
-            )}
-            {avatar && (
-              <button
-                type="button"
-                onClick={handleRemoveAvatar}
-                title={t('header.removeAvatar', 'Foto entfernen')}
-                aria-label={t('header.removeAvatar', 'Foto entfernen')}
-                className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md transition-all active:scale-95 z-10"
+            </div>
+
+            {/* Gender selection */}
+            <div>
+              <span className="block text-xs font-semibold text-slate-300 mb-1.5">
+                {t('profileModal.genderLabel')} *
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => setGender('boy')}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border font-semibold text-sm transition-all cursor-pointer ${
+                    gender === 'boy'
+                      ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-md shadow-cyan-950'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <span>👦 {t('profileModal.boy')}</span>
+                  {gender === 'boy' && <Check className="w-4 h-4 text-cyan-400" />}
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => setGender('girl')}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border font-semibold text-sm transition-all cursor-pointer ${
+                    gender === 'girl'
+                      ? 'bg-rose-500/20 border-rose-500 text-rose-300 shadow-md shadow-rose-950'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                  }`}
+                >
+                  <span>👧 {t('profileModal.girl')}</span>
+                  {gender === 'girl' && <Check className="w-4 h-4 text-rose-400" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Geburtsdatum */}
+            <div>
+              <label
+                htmlFor="child-birthdate-input"
+                className="block text-xs font-semibold text-slate-300 mb-1"
               >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            )}
-            <label
-              htmlFor="child-avatar-upload"
-              title={t('header.changeAvatar', 'Foto hinzufügen / ändern')}
-              className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center cursor-pointer transition-opacity text-cyan-300"
-            >
-              <Camera className="w-5 h-5" />
-            </label>
-            <input
-              id="child-avatar-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="hidden"
-            />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-100">
-              {initialData ? t('profileModal.editTitle') : t('profileModal.createTitle')}
-            </h2>
-            <p className="text-xs text-slate-400">{t('profileModal.subtitle')}</p>
-          </div>
+                {t('profileModal.birthdateLabel')} *
+              </label>
+              <div className="relative">
+                <Calendar className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                <input
+                  id="child-birthdate-input"
+                  type="date"
+                  required
+                  value={birthdate}
+                  onChange={(e) => setBirthdate(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+            </div>
+
+            {/* Geburtsmesswerte (U1) */}
+            <div className="p-3.5 bg-slate-950/60 border border-slate-800/80 rounded-2xl space-y-3">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                <Scale className="w-3.5 h-3.5" />
+                <span>{t('profileModal.birthDataTitle')}</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label
+                    htmlFor="birth-weight-input"
+                    className="block text-[11px] font-semibold text-slate-400 mb-1 truncate"
+                  >
+                    {t('profileModal.birthWeightLabel')}
+                  </label>
+                  <div className="relative">
+                    <Scale className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
+                    <input
+                      id="birth-weight-input"
+                      type="number"
+                      placeholder={t('profileModal.birthWeightPlaceholder')}
+                      value={birthWeightGrams}
+                      onChange={(e) => setBirthWeightGrams(e.target.value)}
+                      className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="birth-length-input"
+                    className="block text-[11px] font-semibold text-slate-400 mb-1 truncate"
+                  >
+                    {t('profileModal.birthLengthLabel')}
+                  </label>
+                  <div className="relative">
+                    <Ruler className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
+                    <input
+                      id="birth-length-input"
+                      type="number"
+                      step="0.1"
+                      placeholder={t('profileModal.birthLengthPlaceholder')}
+                      value={birthLengthCm}
+                      onChange={(e) => setBirthLengthCm(e.target.value)}
+                      className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="birth-head-input"
+                    className="block text-[11px] font-semibold text-slate-400 mb-1 truncate"
+                  >
+                    {t('profileModal.birthHeadLabel')}
+                  </label>
+                  <div className="relative">
+                    <Circle className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
+                    <input
+                      id="birth-head-input"
+                      type="number"
+                      step="0.1"
+                      placeholder={t('profileModal.birthHeadPlaceholder')}
+                      value={birthHeadCm}
+                      onChange={(e) => setBirthHeadCm(e.target.value)}
+                      className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label
+                htmlFor="child-notes-textarea"
+                className="block text-xs font-semibold text-slate-300 mb-1"
+              >
+                {t('profileModal.notesLabel')}
+              </label>
+              <div className="relative">
+                <FileText className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                <textarea
+                  id="child-notes-textarea"
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t('profileModal.notesPlaceholder')}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+            </div>
+
+            {/* Submit & Delete Actions */}
+            <div className="pt-3 flex items-center justify-between border-t border-slate-800/80">
+              {initialData ? (
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmDeleteOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/50 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{t('profileModal.deleteChild')}</span>
+                </button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors cursor-pointer"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className={`px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-lg transition-all cursor-pointer ${
+                    gender === 'girl'
+                      ? 'bg-linear-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 shadow-rose-950'
+                      : 'bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-cyan-950'
+                  }`}
+                >
+                  {initialData ? t('common.save') : t('common.add')}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
+      </ModalContainer>
 
-        {avatarError && (
-          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
-            <span>⚠️</span>
-            <span>{avatarError}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div>
-            <label
-              htmlFor="child-name-input"
-              className="block text-xs font-semibold text-slate-300 mb-1"
-            >
-              {t('profileModal.nameLabel')} *
-            </label>
-            <div className="relative">
-              <User className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-              <input
-                id="child-name-input"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t('profileModal.namePlaceholder')}
-                className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-              />
-            </div>
-          </div>
-
-          {/* Gender selection */}
-          <div>
-            <span className="block text-xs font-semibold text-slate-300 mb-1.5">
-              {t('profileModal.genderLabel')} *
-            </span>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setGender('boy');
-                }}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                  gender === 'boy'
-                    ? 'bg-cyan-950/80 border-cyan-500 text-cyan-200 shadow-md shadow-cyan-950'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                <svg
-                  className="w-4 h-4 text-cyan-400 fill-none stroke-current stroke-2 shrink-0"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle cx="10" cy="14" r="5" />
-                  <line x1="14" y1="10" x2="21" y2="3" />
-                  <polyline points="15 3 21 3 21 9" />
-                </svg>
-                <span>{t('profileModal.boy')}</span>
-                {gender === 'boy' && <Check className="w-3.5 h-3.5 ml-1 text-cyan-400" />}
-              </button>
-
-              <button
-                type="button"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setGender('girl');
-                }}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                  gender === 'girl'
-                    ? 'bg-pink-950/80 border-pink-500 text-pink-200 shadow-md shadow-pink-950'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                <svg
-                  className="w-4 h-4 text-pink-400 fill-none stroke-current stroke-2 shrink-0"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="8" r="5" />
-                  <line x1="12" y1="13" x2="12" y2="21" />
-                  <line x1="9" y1="17" x2="15" y2="17" />
-                </svg>
-                <span>{t('profileModal.girl')}</span>
-                {gender === 'girl' && <Check className="w-3.5 h-3.5 ml-1 text-pink-400" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Birthdate */}
-          <div>
-            <label
-              htmlFor="child-birthdate-input"
-              className="block text-xs font-semibold text-slate-300 mb-1"
-            >
-              {t('profileModal.birthdateLabel')} *
-            </label>
-            <div className="relative">
-              <Calendar className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-              <input
-                id="child-birthdate-input"
-                type="date"
-                required
-                value={birthdate}
-                onChange={(e) => setBirthdate(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-              />
-            </div>
-          </div>
-
-          {/* Geburtswerte (optional) */}
-          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
-            <span className="block text-xs font-bold text-slate-200 mb-1">
-              {t('profileModal.birthDataTitle')}
-            </span>
-            <div className="grid grid-cols-3 gap-2 items-start">
-              <div className="flex flex-col">
-                <label
-                  htmlFor="birth-weight-input"
-                  className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
-                >
-                  {t('profileModal.birthWeightLabel')}
-                </label>
-                <div className="relative">
-                  <Scale className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
-                  <input
-                    id="birth-weight-input"
-                    type="number"
-                    step="1"
-                    placeholder={t('profileModal.birthWeightPlaceholder')}
-                    value={birthWeightGrams}
-                    onChange={(e) => setBirthWeightGrams(e.target.value)}
-                    className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col">
-                <label
-                  htmlFor="birth-length-input"
-                  className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
-                >
-                  {t('profileModal.birthLengthLabel')}
-                </label>
-                <div className="relative">
-                  <Ruler className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
-                  <input
-                    id="birth-length-input"
-                    type="number"
-                    step="0.1"
-                    placeholder={t('profileModal.birthLengthPlaceholder')}
-                    value={birthLengthCm}
-                    onChange={(e) => setBirthLengthCm(e.target.value)}
-                    className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col">
-                <label
-                  htmlFor="birth-head-input"
-                  className="text-[11px] font-semibold text-slate-400 mb-1.5 h-8 flex items-end leading-tight"
-                >
-                  {t('profileModal.birthHeadLabel')}
-                </label>
-                <div className="relative">
-                  <Circle className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-500" />
-                  <input
-                    id="birth-head-input"
-                    type="number"
-                    step="0.1"
-                    placeholder={t('profileModal.birthHeadPlaceholder')}
-                    value={birthHeadCm}
-                    onChange={(e) => setBirthHeadCm(e.target.value)}
-                    className="w-full pl-8 pr-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label
-              htmlFor="child-notes-textarea"
-              className="block text-xs font-semibold text-slate-300 mb-1"
-            >
-              {t('profileModal.notesLabel')}
-            </label>
-            <div className="relative">
-              <FileText className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-              <textarea
-                id="child-notes-textarea"
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t('profileModal.notesPlaceholder')}
-                className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-              />
-            </div>
-          </div>
-
-          {/* Submit & Delete Actions */}
-          <div className="pt-3 flex items-center justify-between border-t border-slate-800/80">
-            {initialData ? (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex items-center gap-1.5 px-3 py-2 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/50 rounded-xl text-xs font-medium transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{t('profileModal.deleteChild')}</span>
-              </button>
-            ) : (
-              <div />
-            )}
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors cursor-pointer"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="submit"
-                className={`px-5 py-2 rounded-xl text-xs font-semibold text-white shadow-lg transition-all cursor-pointer ${
-                  gender === 'girl'
-                    ? 'bg-linear-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 shadow-rose-950'
-                    : 'bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 shadow-cyan-950'
-                }`}
-              >
-                {initialData ? t('common.save') : t('common.add')}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+      {/* Delete Child Profile Confirmation Modal (BC-208) */}
+      {isConfirmDeleteOpen && (
+        <ConfirmModal
+          isOpen={isConfirmDeleteOpen}
+          onClose={() => setIsConfirmDeleteOpen(false)}
+          onConfirm={handleDelete}
+          title={t('profileModal.deleteChild')}
+          message={t('profileModal.deleteConfirm')}
+          confirmLabel={t('common.delete')}
+          isDestructive
+        />
+      )}
+    </>
   );
 }

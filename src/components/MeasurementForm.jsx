@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  X,
   Scale,
   Ruler,
   Circle,
@@ -14,7 +13,7 @@ import {
 import { calculateAge, estimatePercentile } from '../utils/percentileCalc.js';
 import { U_CHECKUPS } from '../data/uCheckups.js';
 import confetti from 'canvas-confetti';
-import { useModalDismissal } from '../utils/useModalDismissal.js';
+import ModalContainer from './ModalContainer.jsx';
 
 export default function MeasurementForm({
   isOpen,
@@ -28,6 +27,7 @@ export default function MeasurementForm({
   return (
     <MeasurementFormDialog
       key={initialData ? initialData.id : 'new-measurement'}
+      isOpen={isOpen}
       onClose={onClose}
       onSaveMeasurement={onSaveMeasurement}
       activeChild={activeChild}
@@ -36,9 +36,8 @@ export default function MeasurementForm({
   );
 }
 
-function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initialData }) {
+function MeasurementFormDialog({ isOpen, onClose, onSaveMeasurement, activeChild, initialData }) {
   const { t } = useTranslation();
-  const { dialogRef } = useModalDismissal(true, onClose);
   const todayIso = new Date().toISOString().split('T')[0];
 
   const [date, setDate] = useState(() => initialData?.date || todayIso);
@@ -118,20 +117,8 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-      <div
-        ref={dialogRef}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[90vh] overflow-y-auto"
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Schließen"
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
+    <ModalContainer isOpen={isOpen} onClose={onClose} maxWidth="max-w-lg" showCloseButton={false}>
+      <div className="relative text-slate-900 dark:text-slate-100 max-h-[82vh] overflow-y-auto pr-1">
         <div className="flex items-center gap-3 mb-4">
           <div
             className={`p-2.5 rounded-xl ${isGirl ? 'bg-pink-500/20 text-pink-400' : 'bg-cyan-500/20 text-cyan-400'}`}
@@ -145,43 +132,11 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
               <span>{t('header.selectChild')}:</span>
               <span className="font-semibold text-slate-200">{activeChild.name}</span>
-              <span className="inline-flex items-center gap-1">
-                (
-                {isGirl ? (
-                  <>
-                    <svg
-                      className="w-3.5 h-3.5 text-pink-400 fill-none stroke-current stroke-2 shrink-0"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <circle cx="12" cy="8" r="5" />
-                      <line x1="12" y1="13" x2="12" y2="21" />
-                      <line x1="9" y1="17" x2="15" y2="17" />
-                    </svg>
-                    <span>{t('profileModal.girl')}</span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-3.5 h-3.5 text-cyan-400 fill-none stroke-current stroke-2 shrink-0"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <circle cx="10" cy="14" r="5" />
-                      <line x1="14" y1="10" x2="21" y2="3" />
-                      <polyline points="15 3 21 3 21 9" />
-                    </svg>
-                    <span>{t('profileModal.boy')}</span>
-                  </>
-                )}
-                )
-              </span>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Datum & berechnetes Alter */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label
@@ -218,7 +173,6 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             </div>
           </div>
 
-          {/* Date Warnings: Future Date & Duplicate */}
           {isFutureDate && (
             <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -243,9 +197,7 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             </div>
           )}
 
-          {/* Messwerte: Gewicht in Gramm, Größe in cm, Kopfumfang in cm */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 items-start">
-            {/* Gewicht in Gramm */}
             <div className="flex flex-col">
               <label
                 htmlFor="measurement-weight-input"
@@ -283,7 +235,6 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
               )}
             </div>
 
-            {/* Größe / Länge in cm */}
             <div className="flex flex-col">
               <label
                 htmlFor="measurement-length-input"
@@ -321,7 +272,6 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
               )}
             </div>
 
-            {/* Kopfumfang in cm */}
             <div className="flex flex-col">
               <label
                 htmlFor="measurement-head-input"
@@ -360,7 +310,6 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             </div>
           </div>
 
-          {/* U-Untersuchung Zuordnung */}
           <div>
             <label
               htmlFor="measurement-checkup-select"
@@ -386,7 +335,6 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             </div>
           </div>
 
-          {/* Notes */}
           <div>
             <label
               htmlFor="measurement-notes-textarea"
@@ -407,7 +355,6 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
             </div>
           </div>
 
-          {/* Submit */}
           <div className="pt-2 flex justify-end gap-2">
             <button
               type="button"
@@ -429,6 +376,6 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
           </div>
         </form>
       </div>
-    </div>
+    </ModalContainer>
   );
 }

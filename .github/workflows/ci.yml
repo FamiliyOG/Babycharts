@@ -3,8 +3,20 @@ name: CI & Code Quality
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.agents/**'
+      - '.github/workflows/deploy-unraid.md'
   pull_request:
     branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.agents/**'
+  schedule:
+    - cron: '0 1 * * *' # Daily at 01:00 UTC (runs Node 22 compatibility check)
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,7 +35,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        node-version: [22.x, 24.x]
+        node-version: ${{ github.event_name == 'schedule' && fromJSON('["22.x", "24.x"]') || fromJSON('["24.x"]') }}
 
     steps:
       - name: Checkout Repository

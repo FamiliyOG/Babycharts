@@ -3,8 +3,16 @@ name: Security Audit
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.agents/**'
   pull_request:
     branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.agents/**'
   schedule:
     - cron: '0 4 * * 1' # Every Monday at 04:00 UTC
 

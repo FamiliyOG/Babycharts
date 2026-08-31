@@ -4,10 +4,20 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.agents/**'
+      - 'server/**'
 
   push:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.agents/**'
+      - 'server/**'
 
   workflow_dispatch:
 

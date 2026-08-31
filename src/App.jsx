@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import confetti from 'canvas-confetti';
 import Header from './components/Header.jsx';
 import MobileBottomNav from './components/MobileBottomNav.jsx';
@@ -16,6 +17,7 @@ import { generateChildICalendar } from './utils/calendarGenerator.js';
 import { exportChildToCSV } from './utils/csvExporter.js';
 
 function MainApp() {
+  const { t } = useTranslation();
   const {
     user,
     activeFamily,
@@ -62,6 +64,7 @@ function MainApp() {
   const [editingMeasurement, setEditingMeasurement] = useState(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [measurementToDelete, setMeasurementToDelete] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg) => {
@@ -170,9 +173,13 @@ function MainApp() {
     }
   };
 
-  const handleDeleteMeasurement = async (measId) => {
+  const handleDeleteMeasurement = (measId) => {
     if (!activeChild || !canEdit) return;
-    if (!window.confirm('Möchten Sie diesen Messwert wirklich löschen?')) return;
+    setMeasurementToDelete(measId);
+  };
+
+  const handleExecuteDeleteMeasurement = async (measId) => {
+    if (!activeChild || !canEdit || !measId) return;
 
     try {
       const updatedList = (activeChild.measurements || []).filter((m) => m.id !== measId);
@@ -327,7 +334,10 @@ function MainApp() {
         />
       </main>
 
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-400 mb-16 md:mb-0 safe-area-inset-bottom">
+      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-400 mb-16 md:mb-0 safe-area-inset-bottom space-y-2">
+        <p className="max-w-3xl mx-auto px-4 text-[11px] text-slate-500 leading-relaxed">
+          {t('app.medicalDisclaimer')}
+        </p>
         <p>BabyCharts &copy; {new Date().getFullYear()} — WHO Child Growth Standards (0–5 Jahre)</p>
       </footer>
 
@@ -368,6 +378,9 @@ function MainApp() {
         setIs2FaModalOpen={setIs2FaModalOpen}
         isFamilyModalOpen={isFamilyModalOpen}
         setIsFamilyModalOpen={setIsFamilyModalOpen}
+        measurementToDelete={measurementToDelete}
+        setMeasurementToDelete={setMeasurementToDelete}
+        onConfirmDeleteMeasurement={handleExecuteDeleteMeasurement}
         setActiveTab={setActiveTab}
         toastMessage={toastMessage}
       />

@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import ConfirmModal from './ConfirmModal.jsx';
 
 const ProfileModal = lazy(() => import('./ProfileModal.jsx'));
 const MeasurementForm = lazy(() => import('./MeasurementForm.jsx'));
@@ -36,6 +37,9 @@ export default function AppModals({
   setIs2FaModalOpen,
   isFamilyModalOpen,
   setIsFamilyModalOpen,
+  measurementToDelete,
+  setMeasurementToDelete,
+  onConfirmDeleteMeasurement,
   setActiveTab,
   toastMessage,
 }) {
@@ -113,6 +117,19 @@ export default function AppModals({
         <FamilyManagementModal
           isOpen={isFamilyModalOpen}
           onClose={() => setIsFamilyModalOpen(false)}
+        />
+      )}
+
+      {/* Delete Confirmation Modal (BC-208) */}
+      {measurementToDelete && (
+        <ConfirmModal
+          isOpen={Boolean(measurementToDelete)}
+          onClose={() => setMeasurementToDelete(null)}
+          onConfirm={() => onConfirmDeleteMeasurement(measurementToDelete)}
+          title="Messwert löschen"
+          message="Möchten Sie diesen Messwert wirklich unwiderruflich aus dem Verlauf entfernen?"
+          confirmLabel="Löschen"
+          isDestructive
         />
       )}
 

@@ -3,13 +3,28 @@ import { z } from 'zod';
 // Base ID schema (UUID or alphanumeric ID)
 export const IdSchema = z.string().min(1).max(100);
 
-// Metric measurement schema
+// Metric measurement schema (BC-110)
 export const MeasurementSchema = z.object({
   id: z.string().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Datum muss im Format YYYY-MM-DD sein'),
-  weight: z.number().nullable().optional(),
-  length: z.number().nullable().optional(),
-  headCircumference: z.number().nullable().optional(),
+  weight: z
+    .number()
+    .min(0.1, 'Gewicht muss positiv sein (min 0.1 kg)')
+    .max(100, 'Gewicht unrealistisch hoch (> 100 kg)')
+    .nullable()
+    .optional(),
+  length: z
+    .number()
+    .min(10, 'Körpergröße muss positiv sein (min 10 cm)')
+    .max(200, 'Körpergröße unrealistisch hoch (> 200 cm)')
+    .nullable()
+    .optional(),
+  headCircumference: z
+    .number()
+    .min(10, 'Kopfumfang muss positiv sein (min 10 cm)')
+    .max(100, 'Kopfumfang unrealistisch hoch (> 100 cm)')
+    .nullable()
+    .optional(),
   checkup: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 });

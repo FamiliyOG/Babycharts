@@ -5,8 +5,9 @@
     "offlineNotice": "Offline mode active. Changes are stored locally.",
     "welcomeTitle": "Welcome to BabyCharts",
     "welcomeSubtitle": "Add your first child to start tracking WHO growth charts.",
-    "createFirstChild": "Add New Child",
-    "loadDemoData": "Load Demo Data"
+    "createFirstChild": "Create first child",
+    "loadDemoData": "Load demo data",
+    "medicalDisclaimer": "Notice: BabyCharts is intended solely for personal documentation and guidance based on WHO standards and does not replace medical advice, diagnosis, or treatment."
   },
   "pwa": {
     "updateAvailable": "App update available",
@@ -186,7 +187,12 @@
     "notesPlaceholder": "e.g. Recorded at doctor's clinic...",
     "tableTitle": "Measurement History",
     "tableNoData": "No measurements recorded yet.",
-    "deleteConfirm": "Are you sure you want to delete this measurement?"
+    "deleteConfirm": "Are you sure you want to delete this measurement?",
+    "futureDateWarning": "The measurement date cannot be in the future.",
+    "duplicateDateWarning": "A measurement already exists for this date. Saving will update/supplement this entry.",
+    "unusualWeightWarning": "Unusual value (500g–35kg)",
+    "unusualLengthWarning": "Unusual value (30–140 cm)",
+    "unusualHeadWarning": "Unusual value (25–60 cm)"
   },
   "exportImport": {
     "title": "Export & Import Data",

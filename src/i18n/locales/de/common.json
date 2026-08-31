@@ -6,7 +6,8 @@
     "welcomeTitle": "Willkommen bei BabyCharts",
     "welcomeSubtitle": "Legen Sie Ihr erstes Kind an, um die WHO-Wachstumskurven zu starten.",
     "createFirstChild": "Neues Kind anlegen",
-    "loadDemoData": "Demo-Daten laden"
+    "loadDemoData": "Demo-Daten laden",
+    "medicalDisclaimer": "Hinweis: BabyCharts dient ausschließlich der persönlichen Dokumentation und Orientierung anhand der WHO-Standards und ersetzt keine ärztliche Beratung, Diagnose oder Behandlung."
   },
   "pwa": {
     "updateAvailable": "App-Aktualisierung verfügbar",
@@ -186,7 +187,12 @@
     "notesPlaceholder": "z.B. beim Kinderarzt gemessen, nach Impfung...",
     "tableTitle": "Messwert-Historie",
     "tableNoData": "Noch keine Messwerte eingetragen.",
-    "deleteConfirm": "Möchten Sie diesen Messwert wirklich löschen?"
+    "deleteConfirm": "Möchten Sie diesen Messwert wirklich löschen?",
+    "futureDateWarning": "Das Messdatum darf nicht in der Zukunft liegen.",
+    "duplicateDateWarning": "Für dieses Datum existiert bereits ein Messwert. Beim Speichern wird dieser Eintrag ergänzt/aktualisiert.",
+    "unusualWeightWarning": "Ungewöhnlicher Wert (500g–35kg)",
+    "unusualLengthWarning": "Ungewöhnlicher Wert (30–140 cm)",
+    "unusualHeadWarning": "Ungewöhnlicher Wert (25–60 cm)"
   },
   "exportImport": {
     "title": "Daten exportieren & importieren",

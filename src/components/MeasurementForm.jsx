@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Scale, Ruler, Circle, Calendar, FileText, Award } from 'lucide-react';
+import {
+  X,
+  Scale,
+  Ruler,
+  Circle,
+  Calendar,
+  FileText,
+  Award,
+  AlertCircle,
+  AlertTriangle,
+} from 'lucide-react';
 import { calculateAge, estimatePercentile } from '../utils/percentileCalc.js';
 import { U_CHECKUPS } from '../data/uCheckups.js';
 import confetti from 'canvas-confetti';
@@ -65,9 +75,27 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
       ? estimatePercentile('head', activeChild.gender, ageInfo.totalMonths, headVal)
       : null;
 
+  const isFutureDate = date > todayIso;
+
+  // Duplicate measurement warning (BC-112)
+  const existingSameDay = (activeChild?.measurements || []).find(
+    (m) => m.date === date && m.id !== initialData?.id
+  );
+
+  // Plausibility warning checks (BC-107, BC-108, BC-109)
+  const weightNum = weightGrams ? Number.parseFloat(weightGrams) : null;
+  const isWeightUnusual = weightNum !== null && (weightNum < 500 || weightNum > 35000);
+
+  const lengthNum = length ? Number.parseFloat(length) : null;
+  const isLengthUnusual = lengthNum !== null && (lengthNum < 30 || lengthNum > 140);
+
+  const headNum = headCircumference ? Number.parseFloat(headCircumference) : null;
+  const isHeadUnusual = headNum !== null && (headNum < 25 || headNum > 60);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!weightGrams && !length && !headCircumference) return;
+    if (isFutureDate) return;
 
     onSaveMeasurement({
       id: initialData?.id || undefined,
@@ -168,9 +196,14 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                   id="measurement-date-input"
                   type="date"
                   required
+                  max={todayIso}
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
+                  className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
+                    isFutureDate
+                      ? 'border-rose-500 text-rose-300'
+                      : 'border-slate-800 focus:border-cyan-500'
+                  }`}
                 />
               </div>
             </div>
@@ -184,6 +217,31 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
               </div>
             </div>
           </div>
+
+          {/* Date Warnings: Future Date & Duplicate */}
+          {isFutureDate && (
+            <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>
+                {t(
+                  'measurements.futureDateWarning',
+                  'Das Messdatum darf nicht in der Zukunft liegen.'
+                )}
+              </span>
+            </div>
+          )}
+
+          {existingSameDay && (
+            <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-800 text-amber-300 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>
+                {t(
+                  'measurements.duplicateDateWarning',
+                  'Für dieses Datum existiert bereits ein Messwert. Beim Speichern wird dieser Eintrag ergänzt/aktualisiert.'
+                )}
+              </span>
+            </div>
+          )}
 
           {/* Messwerte: Gewicht in Gramm, Größe in cm, Kopfumfang in cm */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 items-start">
@@ -206,12 +264,21 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                   value={weightGrams}
                   onChange={(e) => setWeightGrams(e.target.value)}
                   placeholder={t('measurements.weightPlaceholder')}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
+                  className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
+                    isWeightUnusual
+                      ? 'border-amber-500 text-amber-200'
+                      : 'border-slate-800 focus:border-cyan-500'
+                  }`}
                 />
               </div>
               {pWeight && (
                 <span className="text-[11px] text-emerald-400 mt-1 block">
                   ~ P{pWeight.percentile} ({weightVal.toFixed(2)} kg)
+                </span>
+              )}
+              {isWeightUnusual && (
+                <span className="text-[10px] text-amber-400 mt-0.5 block">
+                  ⚠️ {t('measurements.unusualWeightWarning', 'Ungewöhnlicher Wert (500g–35kg)')}
                 </span>
               )}
             </div>
@@ -231,16 +298,25 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                   type="number"
                   step="0.1"
                   min="25"
-                  max="130"
+                  max="140"
                   value={length}
                   onChange={(e) => setLength(e.target.value)}
                   placeholder={t('measurements.lengthPlaceholder')}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
+                  className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
+                    isLengthUnusual
+                      ? 'border-amber-500 text-amber-200'
+                      : 'border-slate-800 focus:border-cyan-500'
+                  }`}
                 />
               </div>
               {pLength && (
                 <span className="text-[11px] text-emerald-400 mt-1 block">
                   ~ P{pLength.percentile}
+                </span>
+              )}
+              {isLengthUnusual && (
+                <span className="text-[10px] text-amber-400 mt-0.5 block">
+                  ⚠️ {t('measurements.unusualLengthWarning', 'Ungewöhnlicher Wert (30–140 cm)')}
                 </span>
               )}
             </div>
@@ -264,12 +340,21 @@ function MeasurementFormDialog({ onClose, onSaveMeasurement, activeChild, initia
                   value={headCircumference}
                   onChange={(e) => setHeadCircumference(e.target.value)}
                   placeholder={t('measurements.headPlaceholder')}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-cyan-500"
+                  className={`w-full pl-9 pr-3 py-2 bg-slate-950 border rounded-xl text-sm focus:outline-none ${
+                    isHeadUnusual
+                      ? 'border-amber-500 text-amber-200'
+                      : 'border-slate-800 focus:border-cyan-500'
+                  }`}
                 />
               </div>
               {pHead && (
                 <span className="text-[11px] text-emerald-400 mt-1 block">
                   ~ P{pHead.percentile}
+                </span>
+              )}
+              {isHeadUnusual && (
+                <span className="text-[10px] text-amber-400 mt-0.5 block">
+                  ⚠️ {t('measurements.unusualHeadWarning', 'Ungewöhnlicher Wert (25–60 cm)')}
                 </span>
               )}
             </div>

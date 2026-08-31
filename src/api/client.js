@@ -35,43 +35,68 @@ export function clearAuthToken() {
 }
 
 /**
- * Validates endpoint against allowed relative paths to prevent CSRF / SSRF (SonarQube jssecurity:S8476).
+ * Validates and resolves API endpoint path safely against injection attacks (SonarQube jssecurity:S8476).
+ * Only allows clean alphanumeric path segments with dashes, underscores, and forward slashes.
  */
 function validateAndResolveEndpoint(endpoint) {
   if (typeof endpoint !== 'string' || !endpoint.trim()) {
     throw new TypeError('Ungültiger API-Endpunkt.');
   }
 
-  // Strictly sanitize input path
-  const sanitized = endpoint
-    .replace(/^([a-zA-Z][a-zA-Z\d+.-]*:|\/\/)/g, '')
-    .replaceAll('..', '')
-    .replace(/^\/?(api\/)?/, '');
+  // Strip origin, protocol, leading slashes or 'api/' prefix
+  let clean = endpoint
+    .replace(/^[a-zA-Z][a-zA-Z\d+.-]*:\/\/[^/]+/g, '')
+    .replace(/^(\/\/|\/)/g, '')
+    .replace(/^api\//, '');
 
-  if (!sanitized || /^(\/|\.\.)/.test(sanitized)) {
+  // Strip query string if embedded in endpoint string (will be reconstructed safely)
+  const queryIndex = clean.indexOf('?');
+  let embeddedQuery = '';
+  if (queryIndex !== -1) {
+    embeddedQuery = clean.slice(queryIndex + 1);
+    clean = clean.slice(0, queryIndex);
+  }
+
+  // Validate each path segment against strict regex whitelist [a-zA-Z0-9_-]
+  const segments = clean
+    .split('/')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (segments.length === 0) {
     throw new Error('Ungültiger oder unsicherer API-Pfad.');
   }
 
-  return `/api/${sanitized}`;
+  const safeSegments = [];
+  for (const segment of segments) {
+    if (segment === '.' || segment === '..') {
+      throw new Error('Pfadtraversierung ist nicht erlaubt.');
+    }
+    // Allow only safe URL path characters
+    const safeSegment = encodeURIComponent(decodeURIComponent(segment));
+    safeSegments.push(safeSegment);
+  }
+
+  return {
+    pathname: `/api/${safeSegments.join('/')}`,
+    embeddedQuery,
+  };
 }
 
 function buildApiUrl(endpoint, params) {
-  const basePath = validateAndResolveEndpoint(endpoint);
+  const { pathname, embeddedQuery } = validateAndResolveEndpoint(endpoint);
+  const searchParams = new URLSearchParams(embeddedQuery);
 
   if (params && typeof params === 'object') {
-    const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        searchParams.append(encodeURIComponent(key), String(value));
+        searchParams.append(key, String(value));
       }
     });
-    const queryString = searchParams.toString();
-    if (queryString) {
-      return `${basePath}?${queryString}`;
-    }
   }
 
-  return basePath;
+  const queryString = searchParams.toString();
+  return queryString ? `${pathname}?${queryString}` : pathname;
 }
 
 async function parseResponseBody(response) {

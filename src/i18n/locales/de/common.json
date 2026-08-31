@@ -22,6 +22,12 @@
     "iosInstructions": "Tippen Sie unten auf das Teilen-Symbol und wählen Sie „Zum Home-Bildschirm“ für das beste App-Erlebnis.",
     "iosShareStep": "Teilen → Zum Home-Bildschirm"
   },
+  "reminders": {
+    "title": "Anstehende Termine",
+    "dueTitle": "{{count}} Termine fällig / anstehend",
+    "dueDesc": "Überprüfen Sie die anstehenden U-Untersuchungen und STIKO-Impfungen.",
+    "notifyMe": "Erinnern"
+  },
   "nav": {
     "today": "Heute",
     "overview": "Übersicht",

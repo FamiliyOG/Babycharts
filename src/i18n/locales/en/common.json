@@ -22,6 +22,12 @@
     "iosInstructions": "Tap the Share icon below and select 'Add to Home Screen' for the best app experience.",
     "iosShareStep": "Share → Add to Home Screen"
   },
+  "reminders": {
+    "title": "Upcoming Reminders",
+    "dueTitle": "{{count}} Reminders due / upcoming",
+    "dueDesc": "Check your child's upcoming checkups and vaccinations.",
+    "notifyMe": "Remind Me"
+  },
   "nav": {
     "today": "Today",
     "overview": "Overview",

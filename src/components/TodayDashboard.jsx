@@ -15,6 +15,7 @@ import { U_CHECKUPS } from '../data/uCheckups.js';
 import { STIKO_VACCINATIONS } from '../data/vaccinations.js';
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import { MILK_TEETH } from '../data/teeth.js';
+import { calculateReminders, sendLocalNotification } from '../utils/reminderCalc.js';
 
 function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
   let checkupDesc = '';
@@ -358,7 +359,18 @@ export default function TodayDashboard({
     return log.length > 0 ? log[0] : null;
   }, [activeChild]);
 
+  const reminders = useMemo(() => {
+    return calculateReminders(activeChild);
+  }, [activeChild]);
+
   const latestMeasurement = measurements[0] || null;
+
+  const handleEnableNotifications = async () => {
+    const enabled = await sendLocalNotification(
+      `BabyCharts: Erinnerungen für ${activeChild.name}`,
+      `Es stehen ${reminders.totalDueCount} anstehende Vorsorgeuntersuchungen/Impfungen an.`
+    );
+  };
 
   const ageDescription = useMemo(() => {
     if (!ageInfo) return '';
@@ -372,6 +384,49 @@ export default function TodayDashboard({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Due Checkups/Vaccinations Reminder Alert (BC-235) */}
+      {reminders.totalDueCount > 0 && (
+        <aside
+          aria-label={t('reminders.title', 'Anstehende Termine')}
+          className="rounded-3xl bg-amber-500/10 border border-amber-500/30 p-4 sm:p-5 text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-amber-100">
+                {t('reminders.dueTitle', '{{count}} Termine fällig / anstehend', {
+                  count: reminders.totalDueCount,
+                })}
+              </p>
+              <p className="text-xs text-amber-300/80 mt-0.5">
+                {t(
+                  'reminders.dueDesc',
+                  'Überprüfen Sie die anstehenden U-Untersuchungen und STIKO-Impfungen.'
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleEnableNotifications}
+              className="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer shrink-0"
+            >
+              {t('reminders.notifyMe', 'Erinnern')}
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateTab?.('ucheckups')}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-md shrink-0"
+            >
+              {t('common.view', 'Ansehen')} →
+            </button>
+          </div>
+        </aside>
+      )}
+
       {/* Welcome Header Hero Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-cyan-900/60 via-slate-900/90 to-indigo-950/70 border border-cyan-800/40 p-6 sm:p-8 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

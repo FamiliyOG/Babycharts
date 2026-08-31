@@ -17,7 +17,7 @@ self.addEventListener('message', (event) => {
   if (event.origin && event.origin !== self.location.origin) {
     return;
   }
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
@@ -75,9 +75,8 @@ self.addEventListener('fetch', (event) => {
       return fetch(event.request)
         .then((networkResponse) => {
           if (
-            networkResponse &&
-            networkResponse.status === 200 &&
-            networkResponse.type === 'basic' &&
+            networkResponse?.status === 200 &&
+            networkResponse?.type === 'basic' &&
             (url.pathname.startsWith('/assets/') || STATIC_ASSETS.includes(url.pathname))
           ) {
             const responseToCache = networkResponse.clone();

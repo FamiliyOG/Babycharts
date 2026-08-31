@@ -58,34 +58,11 @@ router.get('/', optionalAuth, (req, res) => {
   return res.json(db.profiles.filter((p) => !p.familyId));
 });
 
-// GET single profile (restricted to family members, public unassigned profiles, or temporary doctor-share tokens)
+// GET single profile (restricted to family members or public unassigned profiles)
 router.get('/:id', optionalAuth, (req, res) => {
   const db = readDb();
   const profile = db.profiles.find((p) => p.id === req.params.id);
   if (!profile) return res.status(404).json({ error: 'Profile not found' });
-
-  // Doctor share token support (BC-231, Issue #176)
-  const shareToken = req.query.shareToken;
-  if (typeof shareToken === 'string' && shareToken.trim()) {
-    try {
-      const decoded = jwt.verify(shareToken.trim(), JWT_SECRET);
-      if (decoded.scope === 'doctor_share' && decoded.profileId === profile.id) {
-        return res.json({
-          id: profile.id,
-          name: profile.name,
-          gender: profile.gender,
-          birthdate: profile.birthdate,
-          bloodType: profile.bloodType,
-          measurements: profile.measurements || [],
-          uCheckups: profile.uCheckups || {},
-          vaccines: profile.vaccines || {},
-          isDoctorShareView: true,
-        });
-      }
-    } catch {
-      return res.status(401).json({ error: 'Der Arzt-Freigabelink ist abgelaufen oder ungültig.' });
-    }
-  }
 
   // If profile belongs to a family, verify user's access
   if (profile.familyId) {
@@ -102,6 +79,41 @@ router.get('/:id', optionalAuth, (req, res) => {
   }
 
   return res.json(profile);
+});
+
+// GET /api/profiles/share/doctor-view – Dedicated temporary read-only doctor viewer (BC-231, Issue #176)
+router.get('/share/doctor-view', (req, res) => {
+  const shareToken = req.query.token;
+  if (typeof shareToken !== 'string' || !shareToken.trim()) {
+    return res.status(400).json({ error: 'Token erforderlich.' });
+  }
+
+  try {
+    const decoded = jwt.verify(shareToken.trim(), JWT_SECRET);
+    if (decoded.scope !== 'doctor_share' || !decoded.profileId) {
+      return res.status(403).json({ error: 'Ungültiger Freigabe-Token.' });
+    }
+
+    const db = readDb();
+    const profile = db.profiles.find((p) => p.id === decoded.profileId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profil nicht mehr vorhanden.' });
+    }
+
+    return res.json({
+      id: profile.id,
+      name: profile.name,
+      gender: profile.gender,
+      birthdate: profile.birthdate,
+      bloodType: profile.bloodType,
+      measurements: profile.measurements || [],
+      uCheckups: profile.uCheckups || {},
+      vaccines: profile.vaccines || {},
+      isDoctorShareView: true,
+    });
+  } catch {
+    return res.status(401).json({ error: 'Der Arzt-Freigabelink ist abgelaufen oder ungültig.' });
+  }
 });
 
 // POST /api/profiles/:id/doctor-share – generate 24h temporary read-only QR share token (BC-231, Issue #176)
@@ -133,7 +145,7 @@ router.post('/:id/doctor-share', requireAuth, (req, res) => {
   return res.json({
     shareToken,
     expiresIn: '24h',
-    shareUrl: `/doctor-view/${profile.id}?token=${shareToken}`,
+    shareUrl: `/api/profiles/share/doctor-view?token=${shareToken}`,
   });
 });
 

@@ -13,8 +13,8 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  // CodeQL js/missing-origin-check: Validate message origin and client
-  if (event.origin && event.origin !== self.location.origin) {
+  // Snyk / CodeQL CWE-20: Ensure message is received strictly from same origin
+  if (event.origin !== self.location.origin && event.origin !== '') {
     return;
   }
   if (event.data?.type === 'SKIP_WAITING') {

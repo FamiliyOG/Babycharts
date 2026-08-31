@@ -1,10 +1,12 @@
-import ProfileModal from './ProfileModal.jsx';
-import MeasurementForm from './MeasurementForm.jsx';
-import ExportImportModal from './ExportImportModal.jsx';
-import AuthModal from './AuthModal.jsx';
-import TwoFactorModal from './TwoFactorModal.jsx';
-import FamilyManagementModal from './FamilyManagementModal.jsx';
-import QuickAddModal from './QuickAddModal.jsx';
+import { lazy, Suspense } from 'react';
+
+const ProfileModal = lazy(() => import('./ProfileModal.jsx'));
+const MeasurementForm = lazy(() => import('./MeasurementForm.jsx'));
+const ExportImportModal = lazy(() => import('./ExportImportModal.jsx'));
+const AuthModal = lazy(() => import('./AuthModal.jsx'));
+const TwoFactorModal = lazy(() => import('./TwoFactorModal.jsx'));
+const FamilyManagementModal = lazy(() => import('./FamilyManagementModal.jsx'));
+const QuickAddModal = lazy(() => import('./QuickAddModal.jsx'));
 
 export default function AppModals({
   activeChild,
@@ -38,7 +40,7 @@ export default function AppModals({
   toastMessage,
 }) {
   return (
-    <>
+    <Suspense fallback={null}>
       {/* Quick Add Modal */}
       {isQuickAddOpen && activeChild && (
         <QuickAddModal
@@ -97,16 +99,22 @@ export default function AppModals({
       )}
 
       {/* Auth Login / Register Modal */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {isAuthModalOpen && (
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      )}
 
       {/* 2FA Security Modal */}
-      <TwoFactorModal isOpen={is2FaModalOpen} onClose={() => setIs2FaModalOpen(false)} />
+      {is2FaModalOpen && (
+        <TwoFactorModal isOpen={is2FaModalOpen} onClose={() => setIs2FaModalOpen(false)} />
+      )}
 
       {/* Family Management & Invites Modal */}
-      <FamilyManagementModal
-        isOpen={isFamilyModalOpen}
-        onClose={() => setIsFamilyModalOpen(false)}
-      />
+      {isFamilyModalOpen && (
+        <FamilyManagementModal
+          isOpen={isFamilyModalOpen}
+          onClose={() => setIsFamilyModalOpen(false)}
+        />
+      )}
 
       {/* Toast Notification Banner */}
       {toastMessage && (
@@ -115,6 +123,6 @@ export default function AppModals({
           <span>{toastMessage}</span>
         </div>
       )}
-    </>
+    </Suspense>
   );
 }

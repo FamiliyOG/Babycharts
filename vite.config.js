@@ -61,10 +61,35 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       // html2canvas is only needed for jsPDF's doc.html() method which we never use.
       // Excluding it removes ~200 KB from the lazy PDF chunk.
       external: ['html2canvas'],
+      output: {
+        manualChunks(id) {
+          if (
+            id.includes('node_modules/chart.js') ||
+            id.includes('node_modules/react-chartjs-2') ||
+            id.includes('node_modules/chartjs-plugin-zoom')
+          ) {
+            return 'vendor-chartjs';
+          }
+          if (id.includes('node_modules/jspdf')) {
+            return 'vendor-jspdf';
+          }
+          if (
+            id.includes('node_modules/react') ||
+            id.includes('node_modules/react-dom') ||
+            id.includes('node_modules/@tanstack/react-query')
+          ) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons';
+          }
+        },
+      },
     },
   },
   // Proxy /api requests to the Express server during local development

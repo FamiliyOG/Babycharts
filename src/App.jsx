@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import Header from './components/Header.jsx';
 import MobileBottomNav from './components/MobileBottomNav.jsx';
 import OfflineBanner from './components/OfflineBanner.jsx';
+import PwaPrompts from './components/pwa/PwaPrompts.jsx';
 import AppModals from './components/AppModals.jsx';
 import AppContent from './components/AppContent.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
@@ -370,6 +371,7 @@ function MainApp() {
         setActiveTab={setActiveTab}
         toastMessage={toastMessage}
       />
+      <PwaPrompts />
     </div>
   );
 }

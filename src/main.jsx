@@ -8,6 +8,7 @@ import App from './App.jsx';
 import ReportPrintPage from './components/ReportPrintPage.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
+import { PwaProvider } from './context/PwaContext.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { logClientError } from './utils/api.js';
 
@@ -100,35 +101,12 @@ createRoot(document.getElementById('root')).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <ThemeProvider>
-            <ToastProvider>{puppeteerChildId ? <ReportPrintPage /> : <App />}</ToastProvider>
+            <ToastProvider>
+              <PwaProvider>{puppeteerChildId ? <ReportPrintPage /> : <App />}</PwaProvider>
+            </ToastProvider>
           </ThemeProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>
   </StrictMode>
 );
-
-// Unregister stale service worker to guarantee fresh assets
-if (typeof window !== 'undefined') {
-  if ('serviceWorker' in navigator) {
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        await registration.unregister();
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  if ('caches' in window) {
-    try {
-      const names = await caches.keys();
-      for (const name of names) {
-        await caches.delete(name);
-      }
-    } catch {
-      // ignore
-    }
-  }
-}

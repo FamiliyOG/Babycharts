@@ -8,6 +8,20 @@
     "createFirstChild": "เพิ่มข้อมูลเด็กใหม่",
     "loadDemoData": "โหลดข้อมูลทดสอบ"
   },
+  "pwa": {
+    "updateAvailable": "มีการอัปเดตเวอร์ชันใหม่",
+    "newVersionTitle": "เวอร์ชันใหม่พร้อมใช้งาน!",
+    "newVersionDesc": "คลิกโหลดซ้ำเพื่ออัปเดตแอปพลิเคชัน",
+    "updateBtn": "โหลดซ้ำ",
+    "installApp": "ติดตั้งแอปพลิเคชัน",
+    "installPromptTitle": "ติดตั้ง BabyCharts",
+    "installPromptDesc": "เข้าถึงได้รวดเร็วและใช้งานแบบออฟไลน์ได้อย่างเสถียร",
+    "installBtn": "ติดตั้ง",
+    "iosInstallHint": "เพิ่มไปยังหน้าจอโฮม",
+    "iosTitle": "เพิ่มแอปไปยังหน้าจอโฮม",
+    "iosInstructions": "แตะไอคอนแชร์ด้านล่าง แล้วเลือก „เพิ่มไปยังหน้าจอโฮม“ เพื่อประสบการณ์การใช้งานที่ดีที่สุด",
+    "iosShareStep": "แชร์ → เพิ่มไปยังหน้าจอโฮม"
+  },
   "nav": {
     "today": "วันนี้",
     "overview": "ภาพรวม",

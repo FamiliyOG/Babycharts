@@ -8,6 +8,20 @@
     "createFirstChild": "Neues Kind anlegen",
     "loadDemoData": "Demo-Daten laden"
   },
+  "pwa": {
+    "updateAvailable": "App-Aktualisierung verfügbar",
+    "newVersionTitle": "Neue Version verfügbar!",
+    "newVersionDesc": "Klicken Sie zum Neuladen auf Aktualisieren.",
+    "updateBtn": "Neu laden",
+    "installApp": "App installieren",
+    "installPromptTitle": "BabyCharts installieren",
+    "installPromptDesc": "Schnellerer Zugriff & Offline-Nutzung",
+    "installBtn": "Installieren",
+    "iosInstallHint": "Auf Home-Bildschirm hinzufügen",
+    "iosTitle": "App auf Home-Bildschirm",
+    "iosInstructions": "Tippen Sie unten auf das Teilen-Symbol und wählen Sie „Zum Home-Bildschirm“ für das beste App-Erlebnis.",
+    "iosShareStep": "Teilen → Zum Home-Bildschirm"
+  },
   "nav": {
     "today": "Heute",
     "overview": "Übersicht",

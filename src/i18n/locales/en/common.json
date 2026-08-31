@@ -8,6 +8,20 @@
     "createFirstChild": "Add New Child",
     "loadDemoData": "Load Demo Data"
   },
+  "pwa": {
+    "updateAvailable": "App update available",
+    "newVersionTitle": "New version available!",
+    "newVersionDesc": "Click reload to update the application.",
+    "updateBtn": "Reload",
+    "installApp": "Install App",
+    "installPromptTitle": "Install BabyCharts",
+    "installPromptDesc": "Faster access & reliable offline support",
+    "installBtn": "Install",
+    "iosInstallHint": "Add to Home Screen",
+    "iosTitle": "Add to Home Screen",
+    "iosInstructions": "Tap the Share icon below and select 'Add to Home Screen' for the best app experience.",
+    "iosShareStep": "Share → Add to Home Screen"
+  },
   "nav": {
     "today": "Today",
     "overview": "Overview",

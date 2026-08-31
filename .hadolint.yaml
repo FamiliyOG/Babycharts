@@ -1,0 +1,4 @@
+# Hadolint Configuration for BabyCharts
+# Ignore DL3008: Pin versions in apt-get install (base images are already pinned by sha256 digest)
+ignored:
+  - DL3008

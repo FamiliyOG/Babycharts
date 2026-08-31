@@ -501,8 +501,8 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
               </tr>
             </thead>
             <tbody>
-              {childPoints.map((pt, idx) => (
-                <tr key={idx}>
+              {childPoints.map((pt) => (
+                <tr key={`child-point-${pt.x.toFixed(2)}-${pt.y}`}>
                   <td>{pt.x.toFixed(1)}</td>
                   <td>{formatMetricDisplayValue(pt.y, metric)}</td>
                 </tr>

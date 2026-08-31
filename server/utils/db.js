@@ -878,3 +878,21 @@ export function restoreProfile(id) {
 export function getSettings() {
   return readDb().settings;
 }
+
+/**
+ * Gracefully shuts down the SQLite database (BC-172):
+ * - Runs a WAL checkpoint to flush all pending writes to disk
+ * - Closes the SQLite connection cleanly
+ */
+export function closeDatabase() {
+  try {
+    if (sqlite.open) {
+      console.log('[DB] Checkpointing WAL before shutdown...');
+      sqlite.pragma('wal_checkpoint(TRUNCATE)');
+      sqlite.close();
+      console.log('[DB] SQLite connection closed cleanly.');
+    }
+  } catch (err) {
+    console.error('[DB] Error during SQLite shutdown:', err.message);
+  }
+}

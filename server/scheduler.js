@@ -114,3 +114,14 @@ function shouldRunEveryNDays(profile) {
   const daysPassed = (now - last) / (1000 * 60 * 60 * 24);
   return daysPassed >= intervalDays;
 }
+
+/**
+ * Stop all active scheduler jobs cleanly (BC-173)
+ */
+export function stopScheduler() {
+  for (const [id, task] of activeTasks.entries()) {
+    task.stop();
+    activeTasks.delete(id);
+    console.log(`[Scheduler] Stopped job for child: ${id}`);
+  }
+}

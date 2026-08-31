@@ -22,7 +22,7 @@
   <DonateLink/>
   <Requires/>
   <Config Name="WebUI Port" Target="3001" Default="3001" Mode="tcp" Description="Port für die Web-Oberfläche" Type="Port" Display="always" Required="true" Mask="false">3001</Config>
-  <Config Name="Datenbank &amp; Profile" Target="/app/server/data" Default="/mnt/user/appdata/Babycharts/server/data" Mode="rw" Description="Speicherort für db.json, Backups und Konfiguration" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/Babycharts/server/data</Config>
+  <Config Name="Datenbank &amp; Medien" Target="/app/server/data" Default="/mnt/user/appdata/Babycharts/server/data" Mode="rw" Description="Speicherort für babycharts.sqlite, Backups und verschlüsselte Medien" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/Babycharts/server/data</Config>
   <Config Name="Node Environment" Target="NODE_ENV" Default="production" Mode="" Description="Node Environment" Type="Variable" Display="advanced" Required="false" Mask="false">production</Config>
   <Config Name="JWT Secret" Target="JWT_SECRET" Default="" Mode="" Description="Geheimer Schlüssel zur Verschlüsselung von Sitzungs-Tokens (optional, wird sonst automatisch generiert)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
   <Config Name="App URL" Target="APP_URL" Default="http://localhost:3001" Mode="" Description="Interne App-URL" Type="Variable" Display="advanced" Required="false" Mask="false">http://localhost:3001</Config>

@@ -85,8 +85,8 @@ ENV NODE_ENV=production
 
 EXPOSE 3001
 
-# Healthcheck: verify the server responds
+# Healthcheck: verify the server and database are healthy (BC-169, BC-170)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD node -e "fetch('http://localhost:3001/api/settings').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+    CMD node -e "fetch('http://localhost:3001/api/health').then(r=>r.json()).then(d=>process.exit(d.status==='healthy'?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "server/index.js"]

@@ -17,8 +17,14 @@ import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readDb, writeDb, createDbBackup, checkDatabaseIntegrity } from './utils/db.js';
-import { rescheduleAll, setAppUrl } from './scheduler.js';
+import {
+  readDb,
+  writeDb,
+  createDbBackup,
+  checkDatabaseIntegrity,
+  closeDatabase,
+} from './utils/db.js';
+import { rescheduleAll, setAppUrl, stopScheduler } from './scheduler.js';
 
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
@@ -268,7 +274,7 @@ app.get('{*path}', (req, res, next) => {
 
 // ── Start ────────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('════════════════════════════════════════════════');
     console.log(`  BabyCharts Server started`);
     console.log(`  App URL  : ${APP_URL}`);
@@ -281,12 +287,40 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
 
     // Automated rolling DB backup (on startup and every 24 hours)
     createDbBackup().catch((err) => console.error('[Backup] Startup backup error:', err));
-    setInterval(
+    const backupInterval = setInterval(
       () => {
         createDbBackup().catch((err) => console.error('[Backup] Scheduled backup error:', err));
       },
       24 * 60 * 60 * 1000
     );
+
+    // Graceful Shutdown on SIGTERM & SIGINT (BC-171, BC-172, BC-173)
+    const handleShutdown = (signal) => {
+      console.log(`\n[Server] Received ${signal}. Starting graceful shutdown...`);
+      clearInterval(backupInterval);
+      stopScheduler();
+
+      server.close((err) => {
+        if (err) {
+          console.error('[Server] Error while closing HTTP server:', err);
+        } else {
+          console.log('[Server] HTTP server closed.');
+        }
+        closeDatabase();
+        console.log('[Server] Graceful shutdown complete. Exiting.');
+        process.exit(0);
+      });
+
+      // Force shutdown after 10 seconds if connections are hanging
+      setTimeout(() => {
+        console.error('[Server] Forced shutdown due to timeout.');
+        closeDatabase();
+        process.exit(1);
+      }, 10000).unref();
+    };
+
+    process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+    process.on('SIGINT', () => handleShutdown('SIGINT'));
   });
 }
 

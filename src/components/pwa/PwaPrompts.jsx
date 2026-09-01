@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw, Download, Share, PlusSquare, X } from 'lucide-react';
 import { usePwa } from '../../context/PwaContext.jsx';
@@ -8,17 +8,12 @@ export default function PwaPrompts() {
   const { isInstallable, isIos, isStandalone, hasUpdate, installPwa, applyUpdate, dismissInstall } =
     usePwa();
 
-  const [showIosPrompt, setShowIosPrompt] = useState(false);
-
-  useEffect(() => {
-    // Show iOS install hint once if on iOS Safari and not standalone
-    if (isIos && !isStandalone) {
-      const dismissed = localStorage.getItem('babycharts_ios_pwa_dismissed');
-      if (!dismissed) {
-        setShowIosPrompt(true);
-      }
-    }
-  }, [isIos, isStandalone]);
+  const [showIosPrompt, setShowIosPrompt] = useState(() => {
+    if (!isIos || isStandalone) return false;
+    if (typeof window === 'undefined') return false;
+    const dismissed = localStorage.getItem('babycharts_ios_pwa_dismissed');
+    return !dismissed;
+  });
 
   const dismissIosPrompt = () => {
     setShowIosPrompt(false);

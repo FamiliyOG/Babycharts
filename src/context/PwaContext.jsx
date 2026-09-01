@@ -13,25 +13,29 @@ const PwaContext = createContext({
 export function PwaProvider({ children }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isInstallable, setIsInstallable] = useState(false);
-  const [isIos, setIsIos] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [isStandalone] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      document.referrer.includes('android-app://')
+    );
+  });
+  const [isIos] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent) && !window.MSStream;
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true ||
+      document.referrer.includes('android-app://');
+    return isIosDevice && !standalone;
+  });
   const [hasUpdate, setHasUpdate] = useState(false);
   const [registration, setRegistration] = useState(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
-    // Check if running in standalone mode (installed PWA)
-    const isRunningStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true ||
-      document.referrer.includes('android-app://');
-    setIsStandalone(isRunningStandalone);
-
-    // Detect iOS devices
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent) && !window.MSStream;
-    setIsIos(isIosDevice && !isRunningStandalone);
 
     // Android/Desktop PWA install prompt handler (BC-141)
     const handleBeforeInstall = (e) => {

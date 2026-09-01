@@ -179,26 +179,27 @@ app.post('/api/client-logs', (req, res) => {
   return res.json({ ok: true });
 });
 
-// ── API routes ───────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
+// ── API routes (v1 & legacy aliases for backwards compatibility - BC-203, BC-202) ───
+app.get(['/api/v1/health', '/api/health'], (req, res) => {
   const dbStatus = checkDatabaseIntegrity();
   return res.json({
     status: dbStatus.ok ? 'healthy' : 'degraded',
+    version: 'v1',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     database: dbStatus,
   });
 });
 
-app.use('/api/auth', authRouter);
-app.use('/api/families', familiesRouter);
-app.use('/api/profiles', profilesRouter);
-app.use('/api/settings', settingsRouter);
-app.use('/api/exports', exportsRouter);
-app.use('/api/media', mediaRouter);
+app.use(['/api/v1/auth', '/api/auth'], authRouter);
+app.use(['/api/v1/families', '/api/families'], familiesRouter);
+app.use(['/api/v1/profiles', '/api/profiles'], profilesRouter);
+app.use(['/api/v1/settings', '/api/settings'], settingsRouter);
+app.use(['/api/v1/exports', '/api/exports'], exportsRouter);
+app.use(['/api/v1/media', '/api/media'], mediaRouter);
 
 // ── Central API Error Handler (BC-127) ───────────────────────────────────────
-app.use('/api', globalErrorHandler);
+app.use(['/api/v1', '/api'], globalErrorHandler);
 
 // Trigger manual PDF export for a specific child via API (requires auth & family access)
 app.post('/api/exports/trigger/:childId', requireAuth, async (req, res) => {

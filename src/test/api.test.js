@@ -170,4 +170,16 @@ describe('Server API Endpoints (Supertest)', () => {
       expect(getRes.headers['content-type']).toBe('video/mp4');
     }
   });
+
+  it('GET /api/v1/health returns versioned health payload (BC-203)', async () => {
+    const res = await request(app).get('/api/v1/health');
+    expect(res.status).toBe(200);
+    expect(res.body.version).toBe('v1');
+    expect(res.body.status).toBeDefined();
+  });
+
+  it('GET /api/v1/profiles unauthenticated returns 401 (BC-202)', async () => {
+    const res = await request(app).get('/api/v1/profiles?familyId=fam-v1-test');
+    expect(res.status).toBe(401);
+  });
 });

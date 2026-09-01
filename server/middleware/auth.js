@@ -91,26 +91,6 @@ export function requireAuth(req, res, next) {
 }
 
 /**
- * Middleware (optional auth): Populates req.user if valid token provided, but doesn't block.
- */
-export function optionalAuth(req, res, next) {
-  const token = extractTokenFromRequest(req);
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const db = readDb();
-      const user = db.users.find((u) => u.id === decoded.id);
-      if (user) {
-        req.user = { id: user.id, email: user.email, name: user.name };
-      }
-    } catch {
-      // Ignore token validation failure in optional auth
-    }
-  }
-  next();
-}
-
-/**
  * Helper to get user's role in a family: 'admin' | 'editor' | 'viewer' | null
  */
 export function getUserFamilyRole(family, userId) {

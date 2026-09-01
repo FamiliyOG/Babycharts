@@ -41,7 +41,8 @@ function extractTokenFromRequest(req) {
 
   const cookieHeader = req.headers.cookie;
   if (typeof cookieHeader === 'string') {
-    const match = cookieHeader.match(/(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/);
+    const regex = /(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/;
+    const match = regex.exec(cookieHeader);
     if (match?.[1]) {
       return decodeURIComponent(match[1]);
     }

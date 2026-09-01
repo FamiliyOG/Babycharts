@@ -33,9 +33,8 @@ function requireMediaAuth(req, res, next) {
   if (authHeader?.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
   } else if (req.headers.cookie) {
-    const match = req.headers.cookie.match(
-      /(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/
-    );
+    const regex = /(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/;
+    const match = regex.exec(req.headers.cookie);
     if (match?.[1]) {
       token = decodeURIComponent(match[1]);
     }

@@ -256,7 +256,13 @@
     "submitLogin": "Anmelden",
     "submitRegister": "Konto erstellen",
     "submitForgot": "Reset-Link anfordern",
-    "submitReset": "Passwort ändern"
+    "submitReset": "Passwort ändern",
+    "deleteAccount": "Eigenes Benutzerkonto löschen",
+    "deleteAccountNotice": "Löscht Ihr Konto und alle persönlichen Daten unwiderruflich (DSGVO Art. 17).",
+    "deleteAccountBtn": "Konto löschen",
+    "exportMyDataTitle": "Vollständiger DSGVO-Datenexport",
+    "exportMyDataDesc": "Exportiert alle Ihre Daten, Familien und Messungen als maschinenlesbares JSON-Archiv (Art. 20 DSGVO).",
+    "exportMyDataBtn": "Daten exportieren"
   },
   "twoFactor": {
     "title": "Zwei-Faktor-Authentifizierung (2FA)",

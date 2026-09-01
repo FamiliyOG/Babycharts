@@ -23,11 +23,22 @@ export default function PhotoLightbox({ photo, title, date, notes, onClose }) {
         </button>
 
         <div className="bg-black/60 flex items-center justify-center min-h-75 max-h-[70vh] overflow-hidden">
-          <img
-            src={getAuthorizedMediaUrl(photo)}
-            alt={title}
-            className="w-full h-auto max-h-[70vh] object-contain select-none"
-          />
+          {photo.startsWith('data:video/') || photo.includes('.mp4') || photo.includes('.webm') ? (
+            <video
+              src={getAuthorizedMediaUrl(photo)}
+              controls
+              autoPlay
+              className="w-full h-auto max-h-[70vh] object-contain select-none"
+            >
+              <track kind="captions" />
+            </video>
+          ) : (
+            <img
+              src={getAuthorizedMediaUrl(photo)}
+              alt={title}
+              className="w-full h-auto max-h-[70vh] object-contain select-none"
+            />
+          )}
         </div>
 
         <div className="p-5 sm:p-6 bg-slate-900 border-t border-slate-800">

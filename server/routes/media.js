@@ -117,8 +117,12 @@ router.post('/upload', requireAuth, (req, res) => {
   try {
     const { dataUrl, familyId, filename } = req.body || {};
 
-    if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) {
-      return res.status(400).json({ error: 'Gültiges Bildformat (Data URL) erforderlich.' });
+    if (
+      !dataUrl ||
+      typeof dataUrl !== 'string' ||
+      (!dataUrl.startsWith('data:image/') && !dataUrl.startsWith('data:video/'))
+    ) {
+      return res.status(400).json({ error: 'Gültiges Medienformat (Bild oder Video Data URL) erforderlich.' });
     }
 
     const db = readDb();
@@ -135,21 +139,25 @@ router.post('/upload', requireAuth, (req, res) => {
       }
     }
 
-    // Parse base64 header and data with strict raster image MIME whitelist (excluding SVG to prevent XSS)
-    const matches = dataUrl.match(/^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,(.+)$/i);
+    // Parse base64 header and data with strict whitelist (raster images + web-safe videos, excluding SVG to prevent XSS)
+    const matches = dataUrl.match(/^data:((?:image\/(?:png|jpeg|jpg|webp|gif)|video\/(?:mp4|webm|quicktime)));base64,(.+)$/i);
     if (matches?.length !== 3) {
       return res.status(400).json({
-        error: 'Ungültiges oder nicht unterstütztes Bildformat (nur PNG, JPEG, WebP, GIF).',
+        error: 'Ungültiges oder nicht unterstütztes Medienformat (nur PNG, JPEG, WebP, GIF, MP4, WebM).',
       });
     }
 
+    const rawMime = matches[1].toLowerCase();
     const mimeType =
-      matches[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : matches[1].toLowerCase();
+      rawMime === 'image/jpg' ? 'image/jpeg' : rawMime === 'video/quicktime' ? 'video/mp4' : rawMime;
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, 'base64');
 
-    if (buffer.length > 15 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Datei zu groß. Maximal 15 MB erlaubt.' });
+    const maxLimit = mimeType.startsWith('video/') ? 25 * 1024 * 1024 : 15 * 1024 * 1024;
+    if (buffer.length > maxLimit) {
+      return res.status(400).json({
+        error: `Datei zu groß. Maximal ${mimeType.startsWith('video/') ? '25 MB für Videos' : '15 MB für Bilder'} erlaubt.`,
+      });
     }
 
     // Encrypt using AES-256-GCM
@@ -277,7 +285,7 @@ router.get('/:id', requireMediaAuth, (req, res) => {
     const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
 
     // Whitelist check on mimeType before serving to prevent XSS / MIME sniffing
-    const SAFE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const SAFE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
     const safeMime = SAFE_MIMES.includes(meta.mimeType)
       ? meta.mimeType
       : 'application/octet-stream';

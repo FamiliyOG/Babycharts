@@ -71,28 +71,28 @@ export function compressImage(file, maxDim = 1200, quality = 0.82) {
 }
 
 /**
- * Generates an ultra-fast square or scaled thumbnail for profile avatars & milestone previews (BC-239)
+ * Reads any supported media file (image or video) and returns a Data URL.
+ * Images are automatically compressed to max 1200px.
+ * Videos (mp4/webm) are converted to Base64 Data URL directly up to 25MB (BC-212).
  */
-export function createThumbnail(fileOrDataUrl, size = 160, quality = 0.8) {
-  if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:image/')) {
+export function readMediaAsDataUrl(file, maxImageDim = 1200, imageQuality = 0.82) {
+  if (!file) return Promise.reject(new Error('Keine Datei übergeben.'));
+
+  if (file.type?.startsWith('video/')) {
+    if (file.size > 25 * 1024 * 1024) {
+      return Promise.reject(new Error('Video zu groß. Maximal 25 MB erlaubt.'));
+    }
     return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return reject(new Error('Canvas context unavailable'));
-          ctx.drawImage(img, 0, 0, size, size);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        } catch (err) {
-          reject(err);
-        }
-      };
-      img.onerror = () => reject(new Error('Fehler beim Rendern des Thumbnails.'));
-      img.src = fileOrDataUrl;
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result);
+      reader.onerror = () => reject(new Error('Fehler beim Einlesen des Videos.'));
+      reader.readAsDataURL(file);
     });
   }
-  return compressImage(fileOrDataUrl, size, quality);
+
+  if (file.type?.startsWith('image/')) {
+    return compressImage(file, maxImageDim, imageQuality);
+  }
+
+  return Promise.reject(new Error('Nicht unterstütztes Dateiformat (nur Fotos oder Videos).'));
 }

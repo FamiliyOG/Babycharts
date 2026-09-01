@@ -133,4 +133,41 @@ describe('Server API Endpoints (Supertest)', () => {
       expect(res.body.error).toContain('Sitzung ist abgelaufen');
     }
   });
+
+  it('Media Route: supports video upload (video/mp4, video/webm) with encryption (BC-212)', async () => {
+    const jwt = (await import('jsonwebtoken')).default;
+    const { JWT_SECRET } = await import('../../server/middleware/auth.js');
+    const { readDb } = await import('../../server/utils/db.js');
+
+    const db = readDb();
+    const testUser = db.users[0];
+    if (testUser) {
+      const token = jwt.sign(
+        { id: testUser.id, email: testUser.email, tokenVersion: testUser.tokenVersion || 0 },
+        JWT_SECRET
+      );
+
+      // Base64 dummy mp4 data url
+      const dummyVideoDataUrl = 'data:video/mp4;base64,AAAAHGZ0eXBtcDQyAAAAAG1wNDJpc29tYXZjMQ==';
+      const uploadRes = await request(app)
+        .post('/api/media/upload')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          dataUrl: dummyVideoDataUrl,
+          filename: 'milestone-video.mp4',
+        });
+
+      expect(uploadRes.status).toBe(201);
+      expect(uploadRes.body.ok).toBe(true);
+      expect(uploadRes.body.mediaId).toBeDefined();
+      expect(uploadRes.body.mimeType).toBe('video/mp4');
+
+      // Fetch encrypted media back
+      const getRes = await request(app)
+        .get(uploadRes.body.url)
+        .set('Authorization', `Bearer ${token}`);
+      expect(getRes.status).toBe(200);
+      expect(getRes.headers['content-type']).toBe('video/mp4');
+    }
+  });
 });

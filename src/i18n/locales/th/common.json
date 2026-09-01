@@ -256,7 +256,13 @@
     "submitLogin": "เข้าสู่ระบบ",
     "submitRegister": "สร้างบัญชี",
     "submitForgot": "ขอลิงก์รีเซ็ต",
-    "submitReset": "เปลี่ยนรหัสผ่าน"
+    "submitReset": "เปลี่ยนรหัสผ่าน",
+    "deleteAccount": "ลบบัญชีผู้ใช้",
+    "deleteAccountNotice": "ลบบัญชีของคุณและข้อมูลส่วนบุคคลทั้งหมดอย่างถาวร (GDPR Art. 17)",
+    "deleteAccountBtn": "ลบบัญชี",
+    "exportMyDataTitle": "ส่งออกข้อมูลส่วนบุคคล (GDPR)",
+    "exportMyDataDesc": "ส่งออกข้อมูล ครอบครัว และบันทึกการวัดทั้งหมดของคุณเป็นไฟล์ JSON (GDPR Art. 20)",
+    "exportMyDataBtn": "ส่งออกข้อมูล"
   },
   "twoFactor": {
     "title": "การยืนยันตัวตนแบบสองขั้นตอน (2FA)",

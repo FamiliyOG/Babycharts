@@ -5,7 +5,7 @@ import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-r
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
 import { uploadEncryptedMedia, getAuthorizedMediaUrl, sanitizeMediaUrl } from '../utils/api.js';
-import { compressImage } from '../utils/imageCompressor.js';
+import { readMediaAsDataUrl } from '../utils/imageCompressor.js';
 
 function sanitizePhotoUrl(url) {
   return sanitizeMediaUrl(url);
@@ -56,14 +56,14 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     setPhotoError(null);
     setIsUploadingPhoto(true);
 
-    compressImage(file, 1200, 0.82)
-      .then((compressedDataUrl) => {
-        setMilestonePhoto(compressedDataUrl);
+    readMediaAsDataUrl(file, 1200, 0.82)
+      .then((mediaDataUrl) => {
+        setMilestonePhoto(mediaDataUrl);
         setPhotoError(null);
-        uploadEncryptedMedia(compressedDataUrl, activeChild.familyId, file.name).catch(() => {});
+        uploadEncryptedMedia(mediaDataUrl, activeChild.familyId, file.name).catch(() => {});
       })
       .catch((err) => {
-        setPhotoError(err.message || 'Fehler beim Verarbeiten des Fotos.');
+        setPhotoError(err.message || 'Fehler beim Verarbeiten der Mediendatei.');
       })
       .finally(() => {
         setIsUploadingPhoto(false);
@@ -272,16 +272,22 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                             title={t('common.search') || 'Foto vergrößern'}
                             className="w-full rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950 block group cursor-pointer relative"
                           >
-                            <img
-                              src={getAuthorizedMediaUrl(sanitizePhotoUrl(entry.photo))}
-                              alt={m.title}
-                              onError={() =>
-                                setFailedImageUrls((prev) => ({ ...prev, [entry.photo]: true }))
-                              }
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
+                            {entry.photo.startsWith('data:video/') || entry.photo.includes('.mp4') || entry.photo.includes('.webm') ? (
+                              <div className="w-full h-full flex items-center justify-center bg-black/80">
+                                <span className="text-3xl">🎬</span>
+                              </div>
+                            ) : (
+                              <img
+                                src={getAuthorizedMediaUrl(sanitizePhotoUrl(entry.photo))}
+                                alt={m.title}
+                                onError={() =>
+                                  setFailedImageUrls((prev) => ({ ...prev, [entry.photo]: true }))
+                                }
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            )}
                             <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
-                              🔍 {t('common.search') || 'Vergrößern'}
+                              ▶️ {t('milestones.playMedia', 'Abspielen / Anzeigen')}
                             </div>
                           </button>
                         )}
@@ -410,7 +416,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                       <input
                         id="milestone-photo-input"
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/mp4,video/webm,video/quicktime"
                         disabled={isUploadingPhoto}
                         onChange={handlePhotoUpload}
                         className="hidden"
@@ -428,12 +434,12 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     <span className="text-xs font-medium">
                       {isUploadingPhoto
                         ? t('milestones.uploadingPhoto', 'Verschlüssele & lade hoch...')
-                        : t('milestones.uploadPhoto', 'Foto hochladen (verschlüsselt auf Server)')}
+                        : t('milestones.uploadPhoto', 'Foto oder Video hochladen (verschlüsselt)')}
                     </span>
                     <input
                       id="milestone-photo-input"
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/mp4,video/webm,video/quicktime"
                       disabled={isUploadingPhoto}
                       onChange={handlePhotoUpload}
                       className="hidden"

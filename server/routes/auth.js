@@ -891,6 +891,141 @@ router.post('/change-password', requireAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/auth/delete-account
+ * DELETE /api/auth/account
+ * Completely deletes the authenticated user's account (DSGVO / GDPR Art. 17 / BC-206).
+ * Requires password confirmation.
+ * Protects families:
+ * - If user is the only member/owner of a family, that family and its child profiles are deleted cleanly.
+ * - If family has other members and user is the owner, requires ownership transfer first to protect family data.
+ */
+async function handleDeleteAccount(req, res) {
+  try {
+    const { password } = req.body || {};
+    if (!password || typeof password !== 'string') {
+      return res
+        .status(400)
+        .json({ error: 'Zur Bestätigung der Kontolöschung ist das aktuelle Passwort erforderlich.' });
+    }
+
+    const db = readDb();
+    const userIndex = db.users.findIndex((u) => u.id === req.user.id);
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'Benutzerkonto nicht gefunden.' });
+    }
+
+    const user = db.users[userIndex];
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Das angegebene Passwort ist nicht korrekt.' });
+    }
+
+    // Check families where user is owner
+    const ownedFamilies = (db.families || []).filter((f) => f.ownerId === req.user.id);
+    for (const fam of ownedFamilies) {
+      const otherMembers = (fam.members || []).filter((m) => m.userId !== req.user.id);
+      if (otherMembers.length > 0) {
+        return res.status(400).json({
+          error: `Sie sind Inhaber der Familie "${fam.name}" mit weiteren Mitgliedern. Bitte übertragen Sie zuerst die Inhaberschaft auf ein anderes Mitglied, bevor Sie Ihr Konto löschen.`,
+        });
+      }
+    }
+
+    // Safe to delete owned solo families and their child profiles
+    const ownedSoloFamilyIds = new Set(ownedFamilies.map((f) => f.id));
+    db.families = (db.families || []).filter((f) => !ownedSoloFamilyIds.has(f.id));
+    db.profiles = (db.profiles || []).filter((p) => !ownedSoloFamilyIds.has(p.familyId));
+    db.invites = (db.invites || []).filter((i) => !ownedSoloFamilyIds.has(i.familyId));
+
+    // Remove user membership from any other families
+    for (const fam of db.families || []) {
+      fam.members = (fam.members || []).filter((m) => m.userId !== req.user.id);
+    }
+
+    // Remove user record
+    db.users.splice(userIndex, 1);
+    writeDb(db);
+
+    clearSessionCookie(res);
+
+    return res.json({
+      ok: true,
+      message: 'Ihr Benutzerkonto und alle zugehörigen Daten wurden erfolgreich gelöscht.',
+    });
+  } catch (err) {
+    console.error('[Auth] Delete account error:', err);
+    return res.status(500).json({ error: 'Fehler beim Löschen des Benutzerkontos.' });
+  }
+}
+
+router.delete('/account', requireAuth, handleDeleteAccount);
+router.post('/delete-account', requireAuth, handleDeleteAccount);
+
+/**
+ * GET /api/auth/export-my-data
+ * Exports all personal data and associated records for the authenticated user (DSGVO / GDPR Art. 20 / BC-207).
+ */
+router.get('/export-my-data', requireAuth, (req, res) => {
+  try {
+    const db = readDb();
+    const user = db.users.find((u) => u.id === req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Benutzerkonto nicht gefunden.' });
+    }
+
+    const userFamilies = (db.families || []).filter(
+      (f) => f.ownerId === user.id || (f.members || []).some((m) => m.userId === user.id)
+    );
+    const userFamilyIds = new Set(userFamilies.map((f) => f.id));
+    const userProfiles = (db.profiles || []).filter((p) => p.familyId && userFamilyIds.has(p.familyId));
+
+    const exportData = {
+      exportVersion: '1.0',
+      exportedAt: new Date().toISOString(),
+      account: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        language: user.language || 'de',
+        role: user.role || 'user',
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+      families: userFamilies.map((f) => ({
+        id: f.id,
+        name: f.name,
+        isOwner: f.ownerId === user.id,
+        role: getUserFamilyRole(f, user.id),
+        membersCount: (f.members || []).length,
+        createdAt: f.createdAt,
+      })),
+      profiles: userProfiles.map((p) => ({
+        id: p.id,
+        name: p.name,
+        birthDate: p.birthDate,
+        gender: p.gender,
+        measurements: p.measurements || [],
+        healthRecords: p.healthRecords || [],
+        milestones: p.milestones || [],
+        teeth: p.teeth || [],
+        uCheckups: p.uCheckups || {},
+        vaccinations: p.vaccinations || [],
+      })),
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="babycharts-data-export-${new Date().toISOString().slice(0, 10)}.json"`
+    );
+    return res.json(exportData);
+  } catch (err) {
+    console.error('[Auth] Export data error:', err);
+    return res.status(500).json({ error: 'Fehler beim Exportieren Ihrer Daten.' });
+  }
+});
+
+/**
  * PUT /api/auth/profile
  * Alias for PUT /api/auth/me (BC-054)
  */

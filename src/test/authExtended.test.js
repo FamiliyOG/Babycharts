@@ -202,4 +202,61 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
     });
     expect(newLoginRes.status).toBe(200);
   });
+
+  it('exports all personal data for authenticated user via GET /api/auth/export-my-data (BC-207)', async () => {
+    const email = `${getRand('exp_user')}@example.com`;
+    const password = getRandPass();
+
+    const regRes = await request(app).post('/api/auth/register').send({
+      name: 'Export Test User',
+      email,
+      password,
+    });
+    expect(regRes.status).toBe(201);
+    const token = regRes.body.token;
+
+    const exportRes = await request(app)
+      .get('/api/auth/export-my-data')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(exportRes.status).toBe(200);
+    expect(exportRes.body.account).toBeDefined();
+    expect(exportRes.body.account.email).toBe(email);
+    expect(exportRes.body.families).toBeInstanceOf(Array);
+    expect(exportRes.body.profiles).toBeInstanceOf(Array);
+  });
+
+  it('completely deletes user account and revokes session via DELETE /api/auth/account (BC-206)', async () => {
+    const email = `${getRand('del_user')}@example.com`;
+    const password = getRandPass();
+
+    const regRes = await request(app).post('/api/auth/register').send({
+      name: 'Delete Test User',
+      email,
+      password,
+    });
+    expect(regRes.status).toBe(201);
+    const token = regRes.body.token;
+
+    // Wrong password should fail
+    const failRes = await request(app)
+      .delete('/api/auth/account')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ password: 'WrongPassword123!' });
+    expect(failRes.status).toBe(400);
+
+    // Correct password succeeds
+    const delRes = await request(app)
+      .delete('/api/auth/account')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ password });
+    expect(delRes.status).toBe(200);
+    expect(delRes.body.ok).toBe(true);
+
+    // After deletion, old token is invalid
+    const meRes = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${token}`);
+    expect(meRes.status).toBe(401);
+  });
 });

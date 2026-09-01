@@ -66,6 +66,21 @@ export async function changePassword(currentPassword, newPassword, logoutAllDevi
   return handleAuthTokenResponse(res);
 }
 
+export async function deleteAccount(password) {
+  const res = await safeFetch(`${BASE}/auth/account`, {
+    method: 'DELETE',
+    body: JSON.stringify({ password }),
+  });
+  if (res.ok) {
+    clearAuthToken();
+  }
+  return res;
+}
+
+export async function exportMyData() {
+  return safeFetch(`${BASE}/auth/export-my-data`);
+}
+
 export async function registerUser({ name, email, password, familyName, inviteCode }) {
   const res = await safeFetch(`${BASE}/auth/register`, {
     method: 'POST',

@@ -256,7 +256,13 @@
     "submitLogin": "Sign In",
     "submitRegister": "Create Account",
     "submitForgot": "Request Reset Link",
-    "submitReset": "Change Password"
+    "submitReset": "Change Password",
+    "deleteAccount": "Delete My Account",
+    "deleteAccountNotice": "Permanently deletes your account and all personal data (GDPR Art. 17).",
+    "deleteAccountBtn": "Delete Account",
+    "exportMyDataTitle": "Complete GDPR Data Export",
+    "exportMyDataDesc": "Exports all your data, families and measurements as a machine-readable JSON archive (GDPR Art. 20).",
+    "exportMyDataBtn": "Export Data"
   },
   "twoFactor": {
     "title": "Two-Factor Authentication (2FA)",

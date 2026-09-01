@@ -143,3 +143,23 @@ export function requireFamilyPermission(allowedRoles = ['admin', 'editor']) {
     next();
   };
 }
+
+/**
+ * Middleware: Requires the user to be an Instance Admin (role === 'admin' on user record).
+ */
+export function requireInstanceAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Nicht autorisiert. Bitte einloggen.' });
+  }
+
+  const db = readDb();
+  const user = db.users.find((u) => u.id === req.user.id);
+  if (!user || (user.role !== 'admin' && !user.isDev)) {
+    return res.status(403).json({
+      error:
+        'Zugriff verweigert: Nur Instanz-Administratoren dürfen Server-Einstellungen verwalten.',
+    });
+  }
+
+  next();
+}

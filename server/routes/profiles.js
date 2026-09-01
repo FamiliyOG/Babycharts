@@ -7,7 +7,7 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { readDb, writeDb, getProfileById, restoreProfile, softDeleteProfile } from '../utils/db.js';
 import { rescheduleAll } from '../scheduler.js';
-import { optionalAuth, requireAuth, getUserFamilyRole, JWT_SECRET } from '../middleware/auth.js';
+import { requireAuth, getUserFamilyRole, JWT_SECRET } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { ProfileInputSchema } from '../validators/schemas.js';
 
@@ -24,51 +24,38 @@ function defaultSchedule() {
 }
 
 // GET all profiles (strictly restricted to user's authorized family)
-router.get('/', optionalAuth, (req, res) => {
+router.get('/', requireAuth, (req, res) => {
   const { familyId } = req.query;
   const db = readDb();
 
-  // If user is authenticated, find all families the user belongs to
-  if (req.user) {
-    const userFamilies = db.families.filter(
-      (f) => f.ownerId === req.user.id || f.members?.some((m) => m.userId === req.user.id)
-    );
-    const userFamilyIds = new Set(userFamilies.map((f) => f.id));
+  // Find all families the authenticated user belongs to
+  const userFamilies = db.families.filter(
+    (f) => f.ownerId === req.user.id || f.members?.some((m) => m.userId === req.user.id)
+  );
+  const userFamilyIds = new Set(userFamilies.map((f) => f.id));
 
-    // If a specific familyId is queried, verify the user has access to it
-    if (familyId) {
-      if (!userFamilyIds.has(familyId)) {
-        return res
-          .status(403)
-          .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
-      }
-      return res.json(db.profiles.filter((p) => p.familyId === familyId));
-    }
-
-    // Return profiles across all authorized families for the user
-    return res.json(db.profiles.filter((p) => p.familyId && userFamilyIds.has(p.familyId)));
-  }
-
-  // Non-authenticated access cannot view any family-assigned profiles
+  // If a specific familyId is queried, verify the user has access to it
   if (familyId) {
-    return res.status(401).json({ error: 'Nicht autorisiert. Bitte einloggen.' });
+    if (!userFamilyIds.has(familyId)) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
+    return res.json(db.profiles.filter((p) => p.familyId === familyId));
   }
 
-  // Fallback for non-authenticated public mode: only profiles without familyId
-  return res.json(db.profiles.filter((p) => !p.familyId));
+  // Return profiles across all authorized families for the user
+  return res.json(db.profiles.filter((p) => p.familyId && userFamilyIds.has(p.familyId)));
 });
 
-// GET single profile (restricted to family members or public unassigned profiles)
-router.get('/:id', optionalAuth, (req, res) => {
+// GET single profile (strictly restricted to authorized family members)
+router.get('/:id', requireAuth, (req, res) => {
   const db = readDb();
   const profile = db.profiles.find((p) => p.id === req.params.id);
   if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
   // If profile belongs to a family, verify user's access
   if (profile.familyId) {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Nicht autorisiert. Bitte einloggen.' });
-    }
     const family = db.families.find((f) => f.id === profile.familyId);
     const role = getUserFamilyRole(family, req.user.id);
     if (!role) {
@@ -76,6 +63,11 @@ router.get('/:id', optionalAuth, (req, res) => {
         .status(403)
         .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
     }
+  } else {
+    // Legacy unassigned profiles require user to own a family or be assigned
+    return res
+      .status(403)
+      .json({ error: 'Zugriff verweigert: Profil ist keiner Familie zugewiesen.' });
   }
 
   return res.json(profile);
@@ -157,10 +149,9 @@ router.post('/import', requireAuth, (req, res) => {
   }
   const db = readDb();
 
-  // If user is authenticated, determine target family and verify write permissions
+  // Determine target family: explicitly passed or active user family
   let targetFamilyId = familyId;
   if (!targetFamilyId) {
-    // Find active or first owned/member family
     const userFamily = db.families.find(
       (f) =>
         f.ownerId === req.user.id ||
@@ -171,16 +162,18 @@ router.post('/import', requireAuth, (req, res) => {
     }
   }
 
-  if (targetFamilyId) {
-    const permError = checkFamilyWritePermission(
-      targetFamilyId,
-      req.user.id,
-      db,
-      'keine Profile importieren'
-    );
-    if (permError) {
-      return res.status(permError.status).json({ error: permError.error });
-    }
+  if (!targetFamilyId) {
+    return res.status(400).json({ error: 'familyId ist erforderlich für den Import.' });
+  }
+
+  const permError = checkFamilyWritePermission(
+    targetFamilyId,
+    req.user.id,
+    db,
+    'keine Profile importieren'
+  );
+  if (permError) {
+    return res.status(permError.status).json({ error: permError.error });
   }
 
   const importedMap = new Map();
@@ -188,7 +181,7 @@ router.post('/import', requireAuth, (req, res) => {
     if (!p?.id || !p.name) continue;
     importedMap.set(p.id, {
       ...p,
-      familyId: targetFamilyId || null,
+      familyId: targetFamilyId,
       schedule: p.schedule ?? defaultSchedule(),
     });
   }
@@ -207,7 +200,12 @@ router.post('/import', requireAuth, (req, res) => {
 
 /** Helper to check family write permission */
 function checkFamilyWritePermission(familyId, userId, db, actionLabel) {
-  if (!familyId) return null;
+  if (!familyId) {
+    return {
+      status: 400,
+      error: 'familyId ist erforderlich. Profile müssen einer Familie zugewiesen sein.',
+    };
+  }
   const family = db.families.find((f) => f.id === familyId);
   if (!family) {
     return { status: 404, error: 'Familie nicht gefunden.' };
@@ -225,7 +223,7 @@ function checkFamilyWritePermission(familyId, userId, db, actionLabel) {
   return null;
 }
 
-// POST – single profile creation (strictly verifies family membership & editor/admin role)
+// POST – single profile creation (strictly requires familyId and editor/admin role)
 router.post('/', requireAuth, validateBody(ProfileInputSchema), (req, res) => {
   const data = req.body;
   if (!data.id || !data.name) {
@@ -237,9 +235,22 @@ router.post('/', requireAuth, validateBody(ProfileInputSchema), (req, res) => {
     return res.status(409).json({ error: 'Profile already exists' });
   }
 
-  // Verify family permissions if familyId is specified
+  // Resolve target family: if data.familyId missing, find the user's active/owned family
+  let targetFamilyId = data.familyId;
+  if (!targetFamilyId) {
+    const userFamily = db.families.find(
+      (f) =>
+        f.ownerId === req.user.id ||
+        f.members?.some((m) => m.userId === req.user.id && m.role !== 'viewer')
+    );
+    if (userFamily) {
+      targetFamilyId = userFamily.id;
+    }
+  }
+
+  // Verify family write permissions strictly
   const permError = checkFamilyWritePermission(
-    data.familyId,
+    targetFamilyId,
     req.user.id,
     db,
     'keine neuen Kinder anlegen'
@@ -250,7 +261,7 @@ router.post('/', requireAuth, validateBody(ProfileInputSchema), (req, res) => {
 
   const profile = {
     ...data,
-    familyId: data.familyId || null,
+    familyId: targetFamilyId,
     schedule: data.schedule ?? defaultSchedule(),
   };
 

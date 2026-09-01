@@ -87,7 +87,13 @@
     }
   },
   "sonarlint.analysisExcludes": ".github/**,**/.github/**,coverage/**,**/coverage/**,reports/**,**/reports/**,dist/**,**/dist/**",
-  "axe-linter.excludePatterns": ["**/coverage/**", "**/reports/**", "**/dist/**", "**/playwright-report/**", "**/test-results/**"],
+  "axe-linter.excludePatterns": [
+    "**/coverage/**",
+    "**/reports/**",
+    "**/dist/**",
+    "**/playwright-report/**",
+    "**/test-results/**"
+  ],
   "microsoft-edge-tools.devtools.headless": true,
   "html.customData": [],
   "actionlint.path": "C:/Users/s-hau/.local/bin/actionlint.exe",

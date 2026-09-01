@@ -279,4 +279,22 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
     const invMid = dbMid.invites.find((i) => i.code === resMultiInvite.body.code);
     expect(invMid?.usesCount).toBe(1);
   }, 20000);
+
+  it('rejects unauthenticated GET /api/profiles and GET /api/profiles/:id completely (P0)', async () => {
+    const resAll = await request(app).get('/api/profiles');
+    expect(resAll.status).toBe(401);
+
+    const resSingle = await request(app).get(`/api/profiles/${profileA.id}`);
+    expect(resSingle.status).toBe(401);
+  });
+
+  it('enforces Settings-RBAC: regular user cannot mutate global settings (P0)', async () => {
+    const res = await request(app)
+      .post('/api/settings')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ appLanguage: 'en' });
+
+    expect(res.status).toBe(403);
+    expect(res.body?.error).toContain('Instanz-Administratoren');
+  });
 });

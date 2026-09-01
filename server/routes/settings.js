@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { readDb, writeDb } from '../utils/db.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireInstanceAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -19,8 +19,8 @@ router.get('/', requireAuth, (req, res) => {
   });
 });
 
-// POST /api/settings – update app settings (requires authentication)
-router.post('/', requireAuth, (req, res) => {
+// POST /api/settings – update app settings (strictly requires Instance-Admin RBAC)
+router.post('/', requireAuth, requireInstanceAdmin, (req, res) => {
   const db = readDb();
   const updates = { ...req.body };
 

@@ -27,4 +27,5 @@
   <Config Name="JWT Secret" Target="JWT_SECRET" Default="" Mode="" Description="Geheimer Schlüssel zur Verschlüsselung von Sitzungs-Tokens (optional, wird sonst automatisch generiert)" Type="Variable" Display="advanced" Required="false" Mask="true"/>
   <Config Name="App URL" Target="APP_URL" Default="http://localhost:3001" Mode="" Description="Interne App-URL" Type="Variable" Display="advanced" Required="false" Mask="false">http://localhost:3001</Config>
   <Config Name="Dev Account Email" Target="DEV_EMAIL" Default="" Mode="" Description="E-Mail-Adresse des Dev/Superadmin Accounts (schaltet Dev-Optionen wie Demo-Daten frei)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="Registration Mode" Target="REGISTRATION_MODE" Default="open" Mode="" Description="Registrierungsmodus: open (Standard), invite_only (nur mit Einladungscode) oder disabled" Type="Variable" Display="advanced" Required="false" Mask="false">open</Config>
 </Container>

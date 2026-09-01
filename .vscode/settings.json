@@ -1,0 +1,102 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "css.lint.unknownAtRules": "ignore",
+  "html.validate.scripts": false,
+  "html.validate.styles": false,
+
+  // Completely exclude coverage & generated build artifacts from IDE files, problems and search
+  "files.exclude": {
+    "**/coverage": true,
+    "**/reports": true,
+    "**/dist": true,
+    "**/playwright-report": true,
+    "**/test-results": true
+  },
+  "files.watcherExclude": {
+    "**/dist/**": true,
+    "**/coverage/**": true,
+    "**/reports/**": true,
+    "**/playwright-report/**": true,
+    "**/test-results/**": true
+  },
+  "search.exclude": {
+    "**/dist": true,
+    "**/coverage": true,
+    "**/reports": true,
+    "**/playwright-report": true,
+    "**/test-results": true
+  },
+  "problems.decorations.enabled": true,
+  "htmlvalidate.ignorePatterns": ["**/coverage/**", "**/reports/**", "**/dist/**"],
+
+  // ── Tailwind CSS IntelliSense Optimierungen ─────────────────────────────────
+  "tailwindCSS.includeLanguages": {
+    "javascript": "javascriptreact",
+    "javascriptreact": "javascriptreact",
+    "html": "html"
+  },
+  "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.classAttributes": ["class", "className", "classList"],
+  "tailwindCSS.experimental.classRegex": [
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+
+  // ── OxC (Oxlint / Oxc Tools) Optimierungen ─────────────────────────────────
+  "oxc.enable": true,
+  "oxc.configPath": ".oxlintrc.json",
+  "oxc.run": "onType",
+  "oxc.fmt.enable": false,
+
+  // ── ESLint & Stylelint Integration ──────────────────────────────────────────
+  "eslint.validate": ["javascript", "javascriptreact"],
+  "stylelint.validate": ["css", "postcss"],
+
+  // ── Editor Code Actions ─────────────────────────────────────────────────────
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "sonarlint.connectedMode.project": {
+    "connectionId": "FamilyOG_Babycharts",
+    "projectKey": "FamiliyOG_Babycharts"
+  },
+  "sonarlint.rules": {
+    "githubactions:S6884": {
+      "level": "off"
+    },
+    "secrets:S6884": {
+      "level": "off"
+    }
+  },
+  "sonarlint.analysisExcludes": ".github/**,**/.github/**,coverage/**,**/coverage/**,reports/**,**/reports/**,dist/**,**/dist/**",
+  "axe-linter.excludePatterns": ["**/coverage/**", "**/reports/**", "**/dist/**", "**/playwright-report/**", "**/test-results/**"],
+  "microsoft-edge-tools.devtools.headless": true,
+  "html.customData": [],
+  "actionlint.path": "C:/Users/s-hau/.local/bin/actionlint.exe",
+  "actionlint.executable": "C:/Users/s-hau/.local/bin/actionlint.exe",
+  "snyk.advanced.cliPath": "C:/Users/s-hau/.local/bin/snyk.exe",
+  "snyk.cliPath": "C:/Users/s-hau/.local/bin/snyk.exe",
+  "snyk.executable": "C:/Users/s-hau/.local/bin/snyk.exe",
+  "snyk.path": "C:/Users/s-hau/.local/bin/snyk.exe",
+  "snyk.manageBinariesAutomatically": false,
+  "repodeck.defaultProject": "PVT_kwHOAYo9T84BhoOl",
+  "repodeck.boardField": ""
+}

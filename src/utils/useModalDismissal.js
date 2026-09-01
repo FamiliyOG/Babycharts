@@ -50,18 +50,16 @@ export function useModalDismissal(isOpen, onClose) {
         if (focusableElements.length === 0) return;
 
         const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
+        const lastElement = focusableElements.at(-1);
 
         if (e.shiftKey) {
           if (document.activeElement === firstElement) {
             e.preventDefault();
             lastElement.focus();
           }
-        } else {
-          if (document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement.focus();
-          }
+        } else if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
         }
       }
     };
@@ -83,9 +81,7 @@ export function useModalDismissal(isOpen, onClose) {
       clearTimeout(timer);
       window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('click', handleClickOutside);
-      if (previouslyFocusedElement && previouslyFocusedElement.focus) {
-        previouslyFocusedElement.focus();
-      }
+      previouslyFocusedElement?.focus?.();
     };
   }, [isOpen, onClose]);
 

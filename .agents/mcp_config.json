@@ -23,7 +23,9 @@
       "command": "npx",
       "args": ["-y", "@getsentry/sentry-mcp"],
       "env": {
-        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
+        "SENTRY_ORG": "familiyog",
+        "SENTRY_PROJECT": "javascript-react"
       }
     }
   }

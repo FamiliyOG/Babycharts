@@ -437,6 +437,7 @@
     "customTitleLabel": "Milestone Title",
     "customDescLabel": "Description (optional)",
     "customIconLabel": "Icon / Emoji",
+    "customCategoryLabel": "Category",
     "createCustomTitle": "Create Custom Milestone",
     "createCustomSubtitle": "Create an individual developmental step for your child.",
     "achievedOn": "Achieved on *",

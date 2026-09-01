@@ -437,6 +437,7 @@
     "customTitleLabel": "ชื่อพัฒนาการ",
     "customDescLabel": "รายละเอียด (ไม่บังคับ)",
     "customIconLabel": "ไอคอน / อิโมจิ",
+    "customCategoryLabel": "หมวดหมู่",
     "createCustomTitle": "สร้างพัฒนาการของตนเอง",
     "createCustomSubtitle": "สร้างก้าวพัฒนาการเฉพาะสำหรับลูกของคุณ",
     "achievedOn": "ทำได้เมื่อวันที่ *",

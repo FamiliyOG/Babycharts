@@ -27,6 +27,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
   // Custom milestone form states
   const [customTitle, setCustomTitle] = useState('');
   const [customIcon, setCustomIcon] = useState('⭐');
+  const [customCategory, setCustomCategory] = useState('custom');
   const [customDesc, setCustomDesc] = useState('');
   const [photoError, setPhotoError] = useState(null);
 
@@ -137,7 +138,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
 
     const newMilestone = {
       id: `custom-${Date.now()}`,
-      category: 'custom',
+      category: customCategory || 'custom',
       title: customTitle.trim(),
       icon: customIcon || '⭐',
       description: customDesc.trim(),
@@ -153,6 +154,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     setIsCustomModalOpen(false);
     setCustomTitle('');
     setCustomDesc('');
+    setCustomCategory('custom');
     setCustomIcon('⭐');
   };
 
@@ -608,6 +610,27 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="custom-category"
+                  className="block text-xs font-semibold text-slate-300 mb-1"
+                >
+                  {t('milestones.customCategoryLabel', 'Kategorie')}
+                </label>
+                <select
+                  id="custom-category"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                >
+                  <option value="custom">{t('milestones.filterCustom', 'Eigene')}</option>
+                  <option value="motor">{t('milestones.filterMotor', 'Motorik')}</option>
+                  <option value="language">{t('milestones.filterLanguage', 'Sprache')}</option>
+                  <option value="social">{t('milestones.filterSocial', 'Sozial')}</option>
+                  <option value="nutrition">{t('milestones.filterNutrition', 'Ernährung')}</option>
+                </select>
               </div>
 
               <div>

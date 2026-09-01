@@ -437,6 +437,7 @@
     "customTitleLabel": "Titel des Meilensteins",
     "customDescLabel": "Beschreibung (optional)",
     "customIconLabel": "Icon / Emoji",
+    "customCategoryLabel": "Kategorie",
     "createCustomTitle": "Eigenen Meilenstein anlegen",
     "createCustomSubtitle": "Erstelle einen individuellen Entwicklungsschritt für dein Kind.",
     "achievedOn": "Erreicht am *",

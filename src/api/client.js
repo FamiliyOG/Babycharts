@@ -72,9 +72,11 @@ function validateAndResolveEndpoint(endpoint) {
     if (segment === '.' || segment === '..') {
       throw new Error('Pfadtraversierung ist nicht erlaubt.');
     }
-    // Allow only safe URL path characters
-    const safeSegment = encodeURIComponent(decodeURIComponent(segment));
-    safeSegments.push(safeSegment);
+    const decodedSegment = decodeURIComponent(segment);
+    if (!/^[a-zA-Z0-9_-]+$/.test(decodedSegment)) {
+      throw new Error(`Ungültiges Pfadsegment: ${decodedSegment}`);
+    }
+    safeSegments.push(encodeURIComponent(decodedSegment));
   }
 
   return {

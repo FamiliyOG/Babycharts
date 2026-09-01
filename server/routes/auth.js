@@ -231,6 +231,27 @@ function createInitialFamily(db, userId, userName, requestedFamilyName) {
   return newFamily;
 }
 
+function setSessionCookie(res, token) {
+  const isProd = process.env.NODE_ENV === 'production';
+  // Max age: 30 days
+  const maxAge = 30 * 24 * 60 * 60 * 1000;
+  res.cookie('babycharts_session', token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax',
+    maxAge,
+    path: '/',
+  });
+}
+
+function clearSessionCookie(res) {
+  res.clearCookie('babycharts_session', {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+  });
+}
+
 /**
  * POST /api/auth/register
  * Registers a new user and automatically creates their first family (e.g. "Familie <Name>")
@@ -285,6 +306,8 @@ router.post('/register', registerLimiter, async (req, res) => {
     writeDb(db);
 
     const token = createToken(newUser);
+    setSessionCookie(res, token);
+
     const userRole = getUserFamilyRole(activeFamily, userId);
 
     return res.status(201).json({
@@ -444,6 +467,7 @@ router.post('/login', loginLimiter, validateLoginPayload, async (req, res) => {
 
     const { activeFamily, userFamilies } = getOrCreateActiveFamily(user, db);
     const token = createToken(user);
+    setSessionCookie(res, token);
 
     return res.json({
       token,
@@ -455,6 +479,15 @@ router.post('/login', loginLimiter, validateLoginPayload, async (req, res) => {
     console.error('[Auth] Login error:', err);
     return res.status(500).json({ error: 'Fehler bei der Anmeldung.' });
   }
+});
+
+/**
+ * POST /api/auth/logout
+ * Clears HttpOnly session cookie
+ */
+router.post('/logout', (req, res) => {
+  clearSessionCookie(res);
+  return res.json({ ok: true, message: 'Erfolgreich abgemeldet.' });
 });
 
 /**

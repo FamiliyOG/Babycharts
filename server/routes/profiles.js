@@ -4,6 +4,7 @@
  */
 
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { readDb, writeDb, getProfileById, restoreProfile, softDeleteProfile } from '../utils/db.js';
 import { rescheduleAll } from '../scheduler.js';
@@ -75,18 +76,25 @@ router.get('/:id', requireAuth, (req, res) => {
 
 // GET /api/profiles/share/doctor-view – Dedicated temporary read-only doctor viewer (BC-231, Issue #176)
 router.get('/share/doctor-view', (req, res) => {
-  const shareToken = req.query.token;
-  if (typeof shareToken !== 'string' || !shareToken.trim()) {
+  const rawToken = req.query.token;
+  if (typeof rawToken !== 'string' || !rawToken.trim()) {
     return res.status(400).json({ error: 'Token erforderlich.' });
   }
 
   try {
-    const decoded = jwt.verify(shareToken.trim(), JWT_SECRET);
-    if (decoded.scope !== 'doctor_share' || !decoded.profileId) {
+    const decoded = jwt.verify(rawToken.trim(), JWT_SECRET);
+    if (decoded.scope !== 'doctor_share' || !decoded.profileId || !decoded.shareId) {
       return res.status(403).json({ error: 'Ungültiger Freigabe-Token.' });
     }
 
     const db = readDb();
+    // Check if share was revoked
+    const tokenHash = crypto.createHash('sha256').update(rawToken.trim()).digest('hex');
+    const shareEntry = (db.doctorShares || []).find((s) => s.id === decoded.shareId);
+    if (shareEntry && (shareEntry.revoked || shareEntry.tokenHash !== tokenHash)) {
+      return res.status(401).json({ error: 'Dieser Arzt-Freigabelink wurde widerrufen.' });
+    }
+
     const profile = db.profiles.find((p) => p.id === decoded.profileId);
     if (!profile) {
       return res.status(404).json({ error: 'Profil nicht mehr vorhanden.' });
@@ -108,7 +116,7 @@ router.get('/share/doctor-view', (req, res) => {
   }
 });
 
-// POST /api/profiles/:id/doctor-share – generate 24h temporary read-only QR share token (BC-231, Issue #176)
+// POST /api/profiles/:id/doctor-share – generate temporary read-only QR share token with revocable hash (BC-231, Issue #176)
 router.post('/:id/doctor-share', requireAuth, (req, res) => {
   const db = readDb();
   const profile = db.profiles.find((p) => p.id === req.params.id);
@@ -124,21 +132,80 @@ router.post('/:id/doctor-share', requireAuth, (req, res) => {
     }
   }
 
+  const durationStr = req.body?.duration || '24h';
+  const validDurations = {
+    '15m': 15 * 60 * 1000,
+    '1h': 60 * 60 * 1000,
+    '24h': 24 * 60 * 60 * 1000,
+  };
+  const durationMs = validDurations[durationStr] || validDurations['24h'];
+  const expiresAt = new Date(Date.now() + durationMs).toISOString();
+
+  const shareId = `dshare-${crypto.randomBytes(8).toString('hex')}`;
   const shareToken = jwt.sign(
     {
       scope: 'doctor_share',
+      shareId,
       profileId: profile.id,
       generatedBy: req.user.id,
     },
     JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: durationStr }
   );
 
+  const tokenHash = crypto.createHash('sha256').update(shareToken).digest('hex');
+  if (!db.doctorShares) {
+    db.doctorShares = [];
+  }
+  db.doctorShares.push({
+    id: shareId,
+    profileId: profile.id,
+    tokenHash,
+    expiresAt,
+    createdBy: req.user.id,
+    revoked: false,
+    createdAt: new Date().toISOString(),
+  });
+  writeDb(db);
+
   return res.json({
+    shareId,
     shareToken,
-    expiresIn: '24h',
+    expiresAt,
+    expiresIn: durationStr,
     shareUrl: `/api/profiles/share/doctor-view?token=${shareToken}`,
   });
+});
+
+// POST /api/profiles/:id/doctor-share/:shareId/revoke – Revoke an active doctor share link (BC-231)
+router.post('/:id/doctor-share/:shareId/revoke', requireAuth, (req, res) => {
+  const db = readDb();
+  const profile = db.profiles.find((p) => p.id === req.params.id);
+  if (!profile) {
+    return res.status(404).json({ error: 'Profile not found' });
+  }
+
+  if (profile.familyId) {
+    const family = db.families.find((f) => f.id === profile.familyId);
+    const role = getUserFamilyRole(family, req.user.id);
+    if (!role || role === 'viewer') {
+      return res.status(403).json({ error: 'Zugriff verweigert.' });
+    }
+  }
+
+  if (!db.doctorShares) db.doctorShares = [];
+  const share = db.doctorShares.find(
+    (s) => s.id === req.params.shareId && s.profileId === profile.id
+  );
+  if (!share) {
+    return res.status(404).json({ error: 'Freigabe nicht gefunden.' });
+  }
+
+  share.revoked = true;
+  share.revokedAt = new Date().toISOString();
+  writeDb(db);
+
+  return res.json({ ok: true, message: 'Arzt-Freigabe wurde erfolgreich widerrufen.' });
 });
 
 // POST – bulk import profiles (scoped strictly to user's authorized family)
@@ -339,9 +406,9 @@ router.put('/:id', requireAuth, (req, res) => {
     }
   }
 
-  // Optimistic concurrency check (BC-237): reject if client version is older than stored version
+  // Optimistic concurrency check (BC-237): reject if client version does not strictly match current stored version
   if (req.body?.version !== undefined && existingProfile.version !== undefined) {
-    if (req.body.version < existingProfile.version) {
+    if (Number(req.body.version) !== existingProfile.version) {
       return res.status(409).json({
         error:
           'Konflikt: Das Profil wurde zwischenzeitlich von einem anderen Benutzer geändert. Bitte laden Sie die Daten neu.',

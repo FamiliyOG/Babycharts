@@ -33,17 +33,32 @@ function getOrCreateJwtSecret() {
 export const JWT_SECRET = getOrCreateJwtSecret();
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
 
+function extractTokenFromRequest(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+
+  const cookieHeader = req.headers.cookie;
+  if (typeof cookieHeader === 'string') {
+    const match = cookieHeader.match(/(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/);
+    if (match?.[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+
+  return null;
+}
+
 /**
- * Middleware: Requires a valid JWT bearer token.
+ * Middleware: Requires a valid JWT bearer token or session cookie.
  * Populates req.user with { id, email, name }
  */
 export function requireAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
+  const token = extractTokenFromRequest(req);
+  if (!token) {
     return res.status(401).json({ error: 'Nicht autorisiert. Bitte einloggen.' });
   }
-
-  const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const db = readDb();
@@ -78,9 +93,8 @@ export function requireAuth(req, res, next) {
  * Middleware (optional auth): Populates req.user if valid token provided, but doesn't block.
  */
 export function optionalAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.split(' ')[1];
+  const token = extractTokenFromRequest(req);
+  if (token) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
       const db = readDb();

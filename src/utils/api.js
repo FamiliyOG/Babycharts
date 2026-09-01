@@ -86,7 +86,12 @@ export async function updateMe(updates) {
   });
 }
 
-export function logoutUser() {
+export async function logoutUser() {
+  try {
+    await safeFetch(`${BASE}/auth/logout`, { method: 'POST' });
+  } catch {
+    // Ignore network error on logout
+  }
   clearAuthToken();
 }
 

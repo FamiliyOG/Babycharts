@@ -27,16 +27,18 @@ try {
   console.warn('[MEDIA] mkdir uploads warning:', err.message);
 }
 
-/**
- * Middleware: Authenticates media requests via Bearer Header OR ?token= query parameter (for <img src="...">)
- */
 function requireMediaAuth(req, res, next) {
   let token = null;
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
-  } else if (typeof req.query?.token === 'string' && req.query.token.trim()) {
-    token = req.query.token.trim();
+  } else if (req.headers.cookie) {
+    const match = req.headers.cookie.match(
+      /(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/
+    );
+    if (match?.[1]) {
+      token = decodeURIComponent(match[1]);
+    }
   }
 
   if (!token) {
@@ -91,8 +93,11 @@ function getOrCreateMediaMasterKey() {
       .prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
       .run('media_master_key', randomBytes.toString('hex'));
     return randomBytes;
-  } catch {
-    return crypto.createHash('sha256').update(JWT_SECRET).digest();
+  } catch (err) {
+    console.error('[FATAL] Failed to initialize Media Master Encryption Key:', err.message);
+    throw new Error(
+      'Media Master Encryption Key initialization failed. Server starting in fail-closed state.'
+    );
   }
 }
 

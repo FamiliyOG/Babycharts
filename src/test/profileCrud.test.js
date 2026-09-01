@@ -135,6 +135,14 @@ describe('Profile CRUD & Measurement Security Test Suite (BC-084)', () => {
       .send({ name: 'Baby 1 Stale Update', version: 1 });
     expect(staleUpdate.status).toBe(409);
     expect(staleUpdate.body.error).toContain('Konflikt');
+
+    // Update 3 with mismatched future version 99 should also fail with 409 Conflict (P2)
+    const futureUpdate = await request(app)
+      .put(`/api/profiles/${childId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Baby 1 Future Update', version: 99 });
+    expect(futureUpdate.status).toBe(409);
+    expect(futureUpdate.body.error).toContain('Konflikt');
   });
 
   it('rejects profile creation without child id or name', async () => {

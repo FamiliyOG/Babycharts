@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 const PwaContext = createContext({
   isInstallable: false,
@@ -102,28 +102,27 @@ export function PwaProvider({ children }) {
   }, []);
 
   const applyUpdate = useCallback(() => {
-    if (registration && registration.waiting) {
+    if (registration?.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
     } else {
       window.location.reload();
     }
   }, [registration]);
 
-  return (
-    <PwaContext.Provider
-      value={{
-        isInstallable,
-        isIos,
-        isStandalone,
-        hasUpdate,
-        installPwa,
-        applyUpdate,
-        dismissInstall,
-      }}
-    >
-      {children}
-    </PwaContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      isInstallable,
+      isIos,
+      isStandalone,
+      hasUpdate,
+      installPwa,
+      applyUpdate,
+      dismissInstall,
+    }),
+    [isInstallable, isIos, isStandalone, hasUpdate, installPwa, applyUpdate, dismissInstall]
   );
+
+  return <PwaContext.Provider value={contextValue}>{children}</PwaContext.Provider>;
 }
 
 export function usePwa() {

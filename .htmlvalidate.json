@@ -1,9 +1,11 @@
 {
   "extends": ["html-validate:recommended", "html-validate:document"],
+  "elements": ["html5"],
   "rules": {
     "doctype-style": "off",
     "no-trailing-whitespace": "off",
     "void-style": "off",
-    "require-sri": "off"
+    "require-sri": "off",
+    "no-inline-style": "off"
   }
 }

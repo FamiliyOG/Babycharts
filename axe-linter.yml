@@ -1,0 +1,15 @@
+# axe Accessibility Linter Configuration
+# https://docs.deque.com/devtools-for-web/4/en/axe-linter-config
+
+exclude:
+  - 'coverage/**'
+  - '**/coverage/**'
+  - 'reports/**'
+  - '**/reports/**'
+  - 'dist/**'
+  - '**/dist/**'
+  - 'playwright-report/**'
+  - '**/playwright-report/**'
+  - 'test-results/**'
+  - '**/test-results/**'
+  - 'node_modules/**'

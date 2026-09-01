@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => ({
     exclude: ['e2e/**', '**/node_modules/**', '**/dist/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov', 'json', 'html'],
+      reporter: ['text', 'lcov', 'json'],
       reportsDirectory: './coverage',
       exclude: ['e2e/**', 'src/test/**', '**/node_modules/**', '**/dist/**'],
     },

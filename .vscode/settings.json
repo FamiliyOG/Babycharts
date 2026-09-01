@@ -20,8 +20,20 @@
   "css.lint.unknownAtRules": "ignore",
   "html.validate.scripts": false,
   "html.validate.styles": false,
+  "htmlvalidate.enable": true,
+  "htmlvalidate.configFile": ".htmlvalidate.json",
+  "htmlvalidate.ignorePatterns": [
+    "coverage/**",
+    "**/coverage/**",
+    "reports/**",
+    "**/reports/**",
+    "dist/**",
+    "**/dist/**",
+    "playwright-report/**",
+    "test-results/**"
+  ],
 
-  // Completely exclude coverage & generated build artifacts from IDE files, problems and search
+  // Exclude generated build/coverage artifacts from file explorer, search and watcher
   "files.exclude": {
     "**/coverage": true,
     "**/reports": true,
@@ -30,21 +42,19 @@
     "**/test-results": true
   },
   "files.watcherExclude": {
-    "**/dist/**": true,
     "**/coverage/**": true,
     "**/reports/**": true,
+    "**/dist/**": true,
     "**/playwright-report/**": true,
     "**/test-results/**": true
   },
   "search.exclude": {
-    "**/dist": true,
     "**/coverage": true,
     "**/reports": true,
+    "**/dist": true,
     "**/playwright-report": true,
     "**/test-results": true
   },
-  "problems.decorations.enabled": true,
-  "htmlvalidate.ignorePatterns": ["**/coverage/**", "**/reports/**", "**/dist/**"],
 
   // ── Tailwind CSS IntelliSense Optimierungen ─────────────────────────────────
   "tailwindCSS.includeLanguages": {
@@ -87,11 +97,17 @@
     }
   },
   "sonarlint.analysisExcludes": ".github/**,**/.github/**,coverage/**,**/coverage/**,reports/**,**/reports/**,dist/**,**/dist/**",
+  "axe-linter.configFile": "axe-linter.yml",
   "axe-linter.excludePatterns": [
+    "coverage/**",
     "**/coverage/**",
+    "reports/**",
     "**/reports/**",
+    "dist/**",
     "**/dist/**",
+    "playwright-report/**",
     "**/playwright-report/**",
+    "test-results/**",
     "**/test-results/**"
   ],
   "microsoft-edge-tools.devtools.headless": true,

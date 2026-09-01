@@ -234,7 +234,8 @@ function buildChartOptions(
   isDark = true,
   yBounds = DEFAULT_Y_BOUNDS,
   metricTitles = {},
-  t = (k) => k
+  t = (k) => k,
+  weightUnit = 'g'
 ) {
   const gridColor = isDark ? 'rgba(51, 65, 85, 0.3)' : 'rgba(203, 213, 225, 0.6)';
   const tickColor = isDark ? '#94a3b8' : '#64748b';
@@ -248,23 +249,20 @@ function buildChartOptions(
   if (maxAgeMonths <= 12) {
     stepSize = 1;
   } else if (maxAgeMonths <= 24) {
-    stepSize = 2;
+    stepSize = 3;
   }
+
+  const currentUnit = metric === 'weight' ? weightUnit : METRIC_UNITS[metric];
 
   return {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: 500,
-      easing: 'easeOutQuart',
-    },
-    layout: {
-      padding: { top: 10, right: 15, bottom: 5, left: 5 },
+    interaction: {
+      mode: 'index',
+      intersect: false,
     },
     plugins: {
-      legend: {
-        display: false,
-      },
+      legend: { display: false },
       tooltip: {
         backgroundColor: tooltipBg,
         titleColor: tooltipTitle,
@@ -277,20 +275,27 @@ function buildChartOptions(
         callbacks: {
           title: (items) => {
             if (!items.length) return '';
-            const month = Math.round(items[0].parsed.x * 10) / 10;
-            const years = Math.floor(month / 12);
-            const remainingMonths = Math.round((month % 12) * 10) / 10;
-            if (years === 0)
-              return `${t('growth.ageLabel') || 'Alter'}: ${month} ${t('growth.monthsUnit') || 'M.'}`;
-            if (remainingMonths === 0)
-              return `${t('growth.ageLabel') || 'Alter'}: ${years} ${t('growth.yearsUnit') || 'J.'}`;
-            return `${t('growth.ageLabel') || 'Alter'}: ${years} ${t('growth.yearsUnit') || 'J.'} ${remainingMonths} ${t('growth.monthsUnit') || 'M.'}`;
+            const monthVal = items[0].parsed.x;
+            const years = Math.floor(monthVal / 12);
+            const months = Math.round(monthVal % 12);
+            let ageStr = `${monthVal.toFixed(1)} ${t('growth.monthsUnit') || 'Monate'}`;
+            if (years > 0) {
+              ageStr = `${years} ${t('growth.yearsUnit') || 'Jahre'}${months > 0 ? ` ${months} ${t('growth.monthsUnit') || 'Monate'}` : ''} (${monthVal.toFixed(1)} M.)`;
+            }
+            return `${t('growth.age') || 'Alter'}: ${ageStr}`;
           },
-          label: (context) => {
-            const label = context.dataset.label || '';
-            const val = context.parsed.y;
+          label: (item) => {
+            const val = item.parsed.y;
             if (val === null || val === undefined) return null;
-            return ` ${label}: ${formatMetricDisplayValue(val, metric)}`;
+            let displayVal = `${val} ${METRIC_UNITS[metric]}`;
+            if (metric === 'weight') {
+              if (weightUnit === 'kg') {
+                displayVal = `${Number(val).toFixed(2)} kg`;
+              } else {
+                displayVal = `${Math.round(val * 1000).toLocaleString('de-DE')} g (${Number(val).toFixed(2)} kg)`;
+              }
+            }
+            return ` ${item.dataset.label}: ${displayVal}`;
           },
         },
       },
@@ -347,7 +352,7 @@ function buildChartOptions(
         type: 'linear',
         title: {
           display: true,
-          text: `${metricTitles[metric]} (${METRIC_UNITS[metric]})`,
+          text: `${metricTitles[metric]} (${currentUnit})`,
           color: titleColor,
           font: { size: 12, weight: 'bold' },
         },
@@ -356,6 +361,9 @@ function buildChartOptions(
           color: tickColor,
           callback: (value) => {
             if (metric === 'weight') {
+              if (weightUnit === 'kg') {
+                return `${Number(value).toFixed(1)} kg`;
+              }
               return `${Math.round(value * 1000).toLocaleString('de-DE')} g`;
             }
             return value;
@@ -373,6 +381,7 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
   const { isDark } = useTheme();
   const chartRef = useRef(null);
   const [metric, setMetric] = useState('weight');
+  const [weightUnit, setWeightUnit] = useState('g');
   const [maxAgeMonths, setMaxAgeMonths] = useState(60);
   const [hiddenDatasets, setHiddenDatasets] = useState({});
   const [hoveredLegendKey, setHoveredLegendKey] = useState(null);
@@ -452,7 +461,8 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
     isDark,
     yBoundsMap[metric],
     METRIC_TITLES,
-    t
+    t,
+    weightUnit
   );
 
   return (
@@ -469,6 +479,8 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
           handleResetZoom={handleResetZoom}
           metricButtons={metricButtons}
           isGirl={isGirl}
+          weightUnit={weightUnit}
+          setWeightUnit={setWeightUnit}
         />
       </div>
 

@@ -11,6 +11,8 @@ export default function GrowthControls({
   handleResetZoom,
   metricButtons,
   isGirl,
+  weightUnit = 'g',
+  setWeightUnit,
 }) {
   const { t } = useTranslation();
 
@@ -43,6 +45,33 @@ export default function GrowthControls({
             </button>
           );
         })}
+
+        {metric === 'weight' && setWeightUnit && (
+          <div className="ml-1 pl-1 border-l border-slate-800 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setWeightUnit('g')}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                weightUnit === 'g'
+                  ? 'bg-slate-800 text-cyan-300 border border-slate-700'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              g
+            </button>
+            <button
+              type="button"
+              onClick={() => setWeightUnit('kg')}
+              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                weightUnit === 'kg'
+                  ? 'bg-slate-800 text-cyan-300 border border-slate-700'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              kg
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 justify-between sm:justify-end">

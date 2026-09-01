@@ -188,7 +188,7 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                   htmlFor="vax-date-input"
                   className="block text-xs font-semibold text-slate-300 mb-1"
                 >
-                  Impfdatum *
+                  {t('vaccinations.vaxDateLabel', 'Impfdatum *')}
                 </label>
                 <input
                   id="vax-date-input"
@@ -205,7 +205,7 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                   htmlFor="vax-doctor-input"
                   className="block text-xs font-semibold text-slate-300 mb-1"
                 >
-                  Arzt / Praxis (optional)
+                  {t('vaccinations.doctorLabel', 'Arzt / Praxis (optional)')}
                 </label>
                 <input
                   id="vax-doctor-input"
@@ -222,7 +222,7 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                   htmlFor="vax-batch-input"
                   className="block text-xs font-semibold text-slate-300 mb-1"
                 >
-                  Chargennummer (optional)
+                  {t('vaccinations.batchLabel', 'Chargennummer (optional)')}
                 </label>
                 <input
                   id="vax-batch-input"
@@ -239,7 +239,7 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                   htmlFor="vax-notes-input"
                   className="block text-xs font-semibold text-slate-300 mb-1"
                 >
-                  Notizen / Verträglichkeit (optional)
+                  {t('vaccinations.notesLabel', 'Notizen / Verträglichkeit (optional)')}
                 </label>
                 <textarea
                   id="vax-notes-input"
@@ -256,9 +256,9 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                   <button
                     type="button"
                     onClick={() => handleRemove(selectedVaccine.id)}
-                    className="px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/50 text-xs font-semibold"
+                    className="px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/50 text-xs font-semibold cursor-pointer"
                   >
-                    Eintrag löschen
+                    {t('vaccinations.deleteEntry', 'Eintrag löschen')}
                   </button>
                 ) : (
                   <div />
@@ -268,15 +268,15 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
                   <button
                     type="button"
                     onClick={() => setSelectedVaccine(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
                   >
-                    Abbrechen
+                    {t('common.cancel', 'Abbrechen')}
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-950"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-950 cursor-pointer"
                   >
-                    Speichern
+                    {t('common.save', 'Speichern')}
                   </button>
                 </div>
               </div>

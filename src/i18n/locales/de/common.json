@@ -581,9 +581,13 @@
     "open": "Offen / Anstehend",
     "vaccinatedOn": "Geimpft am",
     "doctor": "Arzt / Praxis",
-    "batch": "Chargennummer",
     "recordVaccine": "Impfung eintragen",
     "removeVaccine": "Impfung entfernen",
+    "vaxDateLabel": "Impfdatum *",
+    "doctorLabel": "Arzt / Praxis (optional)",
+    "batchLabel": "Chargennummer (optional)",
+    "notesLabel": "Notizen / Verträglichkeit (optional)",
+    "deleteEntry": "Eintrag löschen",
     "items": {
       "rsv-prophylaxe": {
         "name": "RSV-Prophylaxe (Nirsevimab)",

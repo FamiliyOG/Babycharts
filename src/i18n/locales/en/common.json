@@ -581,9 +581,13 @@
     "open": "Pending / Upcoming",
     "vaccinatedOn": "Vaccinated on",
     "doctor": "Doctor / Clinic",
-    "batch": "Batch Number",
     "recordVaccine": "Record Vaccination",
     "removeVaccine": "Remove Vaccination",
+    "vaxDateLabel": "Vaccination Date *",
+    "doctorLabel": "Doctor / Clinic (optional)",
+    "batchLabel": "Batch Number (optional)",
+    "notesLabel": "Notes / Tolerance (optional)",
+    "deleteEntry": "Delete Entry",
     "items": {
       "rsv-prophylaxe": {
         "name": "RSV Immunization (Nirsevimab)",

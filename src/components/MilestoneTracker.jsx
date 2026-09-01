@@ -6,6 +6,7 @@ import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
 import { uploadEncryptedMedia, getAuthorizedMediaUrl, sanitizeMediaUrl } from '../utils/api.js';
 import { readMediaAsDataUrl } from '../utils/imageCompressor.js';
+import { calculateAge } from '../utils/percentileCalc.js';
 
 function sanitizePhotoUrl(url) {
   return sanitizeMediaUrl(url);
@@ -295,9 +296,16 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     )}
 
                     <div className="text-[11px] bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 text-slate-300 space-y-1">
-                      <div className="flex items-center gap-1.5 font-semibold text-amber-300">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span>{new Date(entry.date).toLocaleDateString(undefined)}</span>
+                      <div className="flex items-center justify-between gap-1.5 font-semibold text-amber-300">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{new Date(entry.date).toLocaleDateString(undefined)}</span>
+                        </span>
+                        {activeChild.birthdate && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-950/80 text-amber-400 border border-amber-800/40 font-medium">
+                            {calculateAge(activeChild.birthdate, entry.date, t).text}
+                          </span>
+                        )}
                       </div>
                       {entry.notes && (
                         <p className="text-[11px] text-slate-300 italic pt-0.5">„{entry.notes}“</p>

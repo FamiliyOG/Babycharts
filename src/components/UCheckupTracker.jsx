@@ -21,6 +21,9 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
 
   const completedCount = U_CHECKUPS.filter((u) => checkupMeasurementsMap.has(u.id)).length;
 
+  // Find the next upcoming uncompleted checkup
+  const nextCheckup = U_CHECKUPS.find((u) => !checkupMeasurementsMap.has(u.id));
+
   return (
     <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl mb-6 transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 border-b border-slate-200 dark:border-slate-800/80 pb-4">
@@ -55,6 +58,7 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
         {U_CHECKUPS.map((u) => {
           const entry = checkupMeasurementsMap.get(u.id);
           const isDone = Boolean(entry);
+          const isNext = nextCheckup?.id === u.id && !isDone;
           const isDueNow =
             currentMonths >= u.periodMonthsMin &&
             currentMonths <= u.periodMonthsMax + 1.0 &&
@@ -65,10 +69,10 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
             'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/80 text-slate-600 dark:text-slate-400';
           let statusBadge = (
             <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-              {t('uCheckups.pending')}
+              {isNext ? t('uCheckups.nextUpcoming', 'Nächster Termin') : t('uCheckups.pending')}
             </span>
           );
-          let icon = <Clock className="w-4 h-4 text-slate-400" />;
+          let icon = <Clock className={`w-4 h-4 ${isNext ? 'text-blue-400' : 'text-slate-400'}`} />;
 
           if (isDone) {
             cardStyle =
@@ -95,6 +99,14 @@ export default function UCheckupTracker({ activeChild, measurements = [], onAddC
               </span>
             );
             icon = <AlertCircle className="w-4 h-4 text-amber-500" />;
+          } else if (isNext) {
+            cardStyle =
+              'bg-blue-50/50 dark:bg-blue-950/30 border-blue-300 dark:border-blue-800/60 text-blue-950 dark:text-blue-200 shadow-xs';
+            statusBadge = (
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                📅 {t('uCheckups.nextUpcoming', 'Nächster Termin')}
+              </span>
+            );
           } else if (isPastDue) {
             cardStyle =
               'bg-slate-100/50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/50 text-slate-400 opacity-65';

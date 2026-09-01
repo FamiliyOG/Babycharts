@@ -673,6 +673,7 @@
     "dueNow": "Due now!",
     "recordedOn": "Recorded on {{date}}",
     "pending": "Pending",
+    "nextUpcoming": "Next Upcoming",
     "items": {
       "U1": {
         "name": "U1 (Newborn Initial Screening)",

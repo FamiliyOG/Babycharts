@@ -673,6 +673,7 @@
     "dueNow": "Jetzt fällig!",
     "recordedOn": "Am {{date}} erfasst",
     "pending": "Ausstehend",
+    "nextUpcoming": "Nächster Termin",
     "items": {
       "U1": {
         "name": "U1 (Neugeborenen-Erstuntersuchung)",

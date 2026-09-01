@@ -239,10 +239,11 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
     const token = regRes.body.token;
 
     // Wrong password should fail
+    const wrongPassword = getRandPass();
     const failRes = await request(app)
       .delete('/api/auth/account')
       .set('Authorization', `Bearer ${token}`)
-      .send({ password: 'WrongPassword123!' });
+      .send({ password: wrongPassword });
     expect(failRes.status).toBe(400);
 
     // Correct password succeeds

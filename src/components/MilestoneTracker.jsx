@@ -32,6 +32,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
 
   // State to track media URLs that fail to load from server (404/expired)
   const [failedImageUrls, setFailedImageUrls] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   if (!activeChild) return null;
 
@@ -40,6 +41,19 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
 
   // Combine standard and custom milestones
   const allMilestones = [...STANDARD_MILESTONES, ...customMilestones];
+  const filteredMilestones =
+    selectedCategory === 'all'
+      ? allMilestones
+      : allMilestones.filter((m) => m.category === selectedCategory);
+
+  const categories = [
+    { id: 'all', label: t('milestones.filterAll', 'Alle') },
+    { id: 'motor', label: t('milestones.filterMotor', 'Motorik') },
+    { id: 'language', label: t('milestones.filterLanguage', 'Sprache') },
+    { id: 'social', label: t('milestones.filterSocial', 'Sozial') },
+    { id: 'nutrition', label: t('milestones.filterNutrition', 'Ernährung') },
+    { id: 'custom', label: t('milestones.filterCustom', 'Eigene') },
+  ];
 
   const openEditModal = (milestone) => {
     const existing = milestonesData[milestone.id] || {};
@@ -189,9 +203,27 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
         )}
       </div>
 
+      {/* Category Filter Bar (BC-241) */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-5 p-1 bg-slate-950/80 rounded-2xl border border-slate-800 shadow-inner">
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => setSelectedCategory(cat.id)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              selectedCategory === cat.id
+                ? 'bg-amber-600 text-white shadow-md shadow-amber-950/60'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
       {/* Milestone Timeline Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {allMilestones.map((m) => {
+        {filteredMilestones.map((m) => {
           const entry = milestonesData[m.id];
           const isDone = entry?.completed;
 

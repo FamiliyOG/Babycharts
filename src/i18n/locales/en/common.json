@@ -444,6 +444,12 @@
     "changePhoto": "Change Photo",
     "uploadPhoto": "Upload photo (encrypted on server)",
     "uploadingPhoto": "Encrypting & uploading...",
+    "filterAll": "All",
+    "filterMotor": "Motor",
+    "filterLanguage": "Language",
+    "filterSocial": "Social",
+    "filterNutrition": "Nutrition",
+    "filterCustom": "Custom",
     "items": {
       "first-smile": {
         "title": "First conscious smile",

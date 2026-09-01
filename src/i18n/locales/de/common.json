@@ -444,6 +444,12 @@
     "changePhoto": "Anderes Foto wählen",
     "uploadPhoto": "Foto hochladen (verschlüsselt auf Server)",
     "uploadingPhoto": "Verschlüssele & lade hoch...",
+    "filterAll": "Alle",
+    "filterMotor": "Motorik",
+    "filterLanguage": "Sprache",
+    "filterSocial": "Sozial",
+    "filterNutrition": "Ernährung",
+    "filterCustom": "Eigene",
     "items": {
       "first-smile": {
         "title": "Erstes bewusstes Lächeln",

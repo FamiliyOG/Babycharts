@@ -444,6 +444,12 @@
     "changePhoto": "เปลี่ยนรูปภาพ",
     "uploadPhoto": "อัปโหลดรูปภาพ (เข้ารหัสบนเซิร์ฟเวอร์)",
     "uploadingPhoto": "กำลังเข้ารหัสและอัปโหลด...",
+    "filterAll": "ทั้งหมด",
+    "filterMotor": "กล้ามเนื้อ",
+    "filterLanguage": "ภาษา",
+    "filterSocial": "สังคม",
+    "filterNutrition": "โภชนาการ",
+    "filterCustom": "กำหนดเอง",
     "items": {
       "first-smile": {
         "title": "ยิ้มทักทายอย่างมีความหมายครั้งแรก",

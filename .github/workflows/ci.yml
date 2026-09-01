@@ -33,6 +33,8 @@ jobs:
     name: Lint, Format & Build (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     strategy:
       matrix:
         node-version: ${{ github.event_name == 'schedule' && fromJSON('["22.x", "24.x"]') || fromJSON('["24.x"]') }}
@@ -62,7 +64,7 @@ jobs:
         run: npm run build
 
       - name: SonarCloud Scan
-        if: matrix.node-version == '24.x' && secrets.SONAR_TOKEN != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: matrix.node-version == '24.x' && env.SONAR_TOKEN != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

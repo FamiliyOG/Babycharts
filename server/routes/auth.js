@@ -903,9 +903,9 @@ async function handleDeleteAccount(req, res) {
   try {
     const { password } = req.body || {};
     if (!password || typeof password !== 'string') {
-      return res
-        .status(400)
-        .json({ error: 'Zur Bestätigung der Kontolöschung ist das aktuelle Passwort erforderlich.' });
+      return res.status(400).json({
+        error: 'Zur Bestätigung der Kontolöschung ist das aktuelle Passwort erforderlich.',
+      });
     }
 
     const db = readDb();
@@ -977,7 +977,9 @@ router.get('/export-my-data', requireAuth, (req, res) => {
       (f) => f.ownerId === user.id || (f.members || []).some((m) => m.userId === user.id)
     );
     const userFamilyIds = new Set(userFamilies.map((f) => f.id));
-    const userProfiles = (db.profiles || []).filter((p) => p.familyId && userFamilyIds.has(p.familyId));
+    const userProfiles = (db.profiles || []).filter(
+      (p) => p.familyId && userFamilyIds.has(p.familyId)
+    );
 
     const exportData = {
       exportVersion: '1.0',

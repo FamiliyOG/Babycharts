@@ -122,7 +122,9 @@ router.post('/upload', requireAuth, (req, res) => {
       typeof dataUrl !== 'string' ||
       (!dataUrl.startsWith('data:image/') && !dataUrl.startsWith('data:video/'))
     ) {
-      return res.status(400).json({ error: 'Gültiges Medienformat (Bild oder Video Data URL) erforderlich.' });
+      return res
+        .status(400)
+        .json({ error: 'Gültiges Medienformat (Bild oder Video Data URL) erforderlich.' });
     }
 
     const db = readDb();
@@ -140,16 +142,23 @@ router.post('/upload', requireAuth, (req, res) => {
     }
 
     // Parse base64 header and data with strict whitelist (raster images + web-safe videos, excluding SVG to prevent XSS)
-    const matches = dataUrl.match(/^data:((?:image\/(?:png|jpeg|jpg|webp|gif)|video\/(?:mp4|webm|quicktime)));base64,(.+)$/i);
+    const matches = dataUrl.match(
+      /^data:((?:image\/(?:png|jpeg|jpg|webp|gif)|video\/(?:mp4|webm|quicktime)));base64,(.+)$/i
+    );
     if (matches?.length !== 3) {
       return res.status(400).json({
-        error: 'Ungültiges oder nicht unterstütztes Medienformat (nur PNG, JPEG, WebP, GIF, MP4, WebM).',
+        error:
+          'Ungültiges oder nicht unterstütztes Medienformat (nur PNG, JPEG, WebP, GIF, MP4, WebM).',
       });
     }
 
     const rawMime = matches[1].toLowerCase();
     const mimeType =
-      rawMime === 'image/jpg' ? 'image/jpeg' : rawMime === 'video/quicktime' ? 'video/mp4' : rawMime;
+      rawMime === 'image/jpg'
+        ? 'image/jpeg'
+        : rawMime === 'video/quicktime'
+          ? 'video/mp4'
+          : rawMime;
     const base64Data = matches[2];
     const buffer = Buffer.from(base64Data, 'base64');
 
@@ -285,7 +294,14 @@ router.get('/:id', requireMediaAuth, (req, res) => {
     const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
 
     // Whitelist check on mimeType before serving to prevent XSS / MIME sniffing
-    const SAFE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
+    const SAFE_MIMES = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'video/mp4',
+      'video/webm',
+    ];
     const safeMime = SAFE_MIMES.includes(meta.mimeType)
       ? meta.mimeType
       : 'application/octet-stream';

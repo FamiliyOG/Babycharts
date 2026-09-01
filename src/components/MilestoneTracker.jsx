@@ -307,7 +307,9 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                             title={t('common.search') || 'Foto vergrößern'}
                             className="w-full rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950 block group cursor-pointer relative"
                           >
-                            {entry.photo.startsWith('data:video/') || entry.photo.includes('.mp4') || entry.photo.includes('.webm') ? (
+                            {entry.photo.startsWith('data:video/') ||
+                            entry.photo.includes('.mp4') ||
+                            entry.photo.includes('.webm') ? (
                               <div className="w-full h-full flex items-center justify-center bg-black/80">
                                 <span className="text-3xl">🎬</span>
                               </div>

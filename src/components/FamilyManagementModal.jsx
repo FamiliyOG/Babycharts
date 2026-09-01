@@ -538,7 +538,10 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
               <span>{t('auth.deleteAccount', 'Eigenes Benutzerkonto löschen')}</span>
             </div>
             <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-              {t('auth.deleteAccountNotice', 'Löscht Ihr Konto und alle persönlichen Daten unwiderruflich (DSGVO Art. 17).')}
+              {t(
+                'auth.deleteAccountNotice',
+                'Löscht Ihr Konto und alle persönlichen Daten unwiderruflich (DSGVO Art. 17).'
+              )}
             </div>
           </div>
           <button

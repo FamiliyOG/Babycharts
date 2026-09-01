@@ -266,7 +266,10 @@ export default function ExportImportModal({
                 {t('auth.exportMyDataTitle', 'Vollständiger DSGVO-Datenexport')}
               </div>
               <div className="text-[11px] text-indigo-700 dark:text-indigo-400 font-medium">
-                {t('auth.exportMyDataDesc', 'Exportiert alle Ihre Daten, Familien und Messungen als maschinenlesbares JSON-Archiv (Art. 20 DSGVO).')}
+                {t(
+                  'auth.exportMyDataDesc',
+                  'Exportiert alle Ihre Daten, Familien und Messungen als maschinenlesbares JSON-Archiv (Art. 20 DSGVO).'
+                )}
               </div>
             </div>
             <button
@@ -276,7 +279,9 @@ export default function ExportImportModal({
                   const { exportMyData } = await import('../utils/api.js');
                   const res = await exportMyData();
                   if (res.ok && res.data) {
-                    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(res.data, null, 2));
+                    const dataStr =
+                      'data:text/json;charset=utf-8,' +
+                      encodeURIComponent(JSON.stringify(res.data, null, 2));
                     const a = document.createElement('a');
                     a.href = dataStr;
                     a.download = `BabyCharts_AccountExport_${new Date().toISOString().split('T')[0]}.json`;

@@ -254,9 +254,7 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
     expect(delRes.body.ok).toBe(true);
 
     // After deletion, old token is invalid
-    const meRes = await request(app)
-      .get('/api/auth/me')
-      .set('Authorization', `Bearer ${token}`);
+    const meRes = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
     expect(meRes.status).toBe(401);
   });
 });

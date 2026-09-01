@@ -10,14 +10,15 @@ BabyCharts speichert alle persistenten Daten (SQLite-Datenbank, WAL-Dateien, Sna
 
 ### Empfohlenes Unraid Path-Mapping:
 
-| Unraid Host-Pfad | Container-Pfad | Modus | Zweck |
-| :--- | :--- | :---: | :--- |
-| `/mnt/user/appdata/Babycharts/server/data` | `/app/server/data` | `RW` | SQLite-DB (`babycharts.sqlite`), Uploads (`/uploads`), Backups (`/backups`) |
+| Unraid Host-Pfad                           | Container-Pfad     | Modus | Zweck                                                                       |
+| :----------------------------------------- | :----------------- | :---: | :-------------------------------------------------------------------------- |
+| `/mnt/user/appdata/Babycharts/server/data` | `/app/server/data` | `RW`  | SQLite-DB (`babycharts.sqlite`), Uploads (`/uploads`), Backups (`/backups`) |
 
 > [!IMPORTANT]
 > **Dateiberechtigungen auf Unraid:**  
 > Der BabyCharts Docker-Container läuft aus Sicherheitsgründen als unprivilegierter Benutzer (`node`, UID: `1000`, GID: `1000`).  
 > Stelle sicher, dass der Ordner auf Unraid beschreibbar ist:
+>
 > ```bash
 > chown -R 1000:1000 /mnt/user/appdata/Babycharts/
 > chmod -R 755 /mnt/user/appdata/Babycharts/
@@ -92,11 +93,11 @@ services:
     volumes:
       - /mnt/user/appdata/Babycharts/server/data:/app/server/data
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.babycharts.rule=Host(`babycharts.deine-domain.de`)"
-      - "traefik.http.routers.babycharts.entrypoints=websecure"
-      - "traefik.http.routers.babycharts.tls.certresolver=letsencrypt"
-      - "traefik.http.services.babycharts.loadbalancer.server.port=3001"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.babycharts.rule=Host(`babycharts.deine-domain.de`)'
+      - 'traefik.http.routers.babycharts.entrypoints=websecure'
+      - 'traefik.http.routers.babycharts.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.babycharts.loadbalancer.server.port=3001'
 ```
 
 ---
@@ -104,6 +105,7 @@ services:
 ### Option D: Cloudflare Tunnel
 
 Wenn du einen Cloudflare Tunnel (cloudflared) nutzt:
+
 - **Service Type:** `HTTP`
 - **URL:** `192.168.178.XX:3001` (oder interner Containername `babycharts:3001`)
 - **No TLS Verify:** Nicht nötig bei HTTP.
@@ -115,12 +117,12 @@ Wenn du einen Cloudflare Tunnel (cloudflared) nutzt:
 
 ## 🛠️ 3. Umgebungsvariablen (Environment)
 
-| Variable | Standard | Beschreibung |
-| :--- | :--- | :--- |
-| `PORT` | `3001` | Interner Port des Express-Servers |
-| `NODE_ENV` | `production` | Laufzeitumgebung |
-| `APP_URL` | `http://localhost:3001` | Vollständige öffentliche URL (wichtig für E-Mail-Reset-Links & PDF-Generierung) |
-| `JWT_SECRET` | *(automatisch)* | Persistenter Schlüssel für Sessions |
-| `MEDIA_ENCRYPTION_KEY` | *(automatisch)* | 32-Byte Master-Schlüssel für AES-256-GCM Medien |
-| `DEV_EMAIL` | *(optional)* | E-Mail-Adresse für den primären Systemverwalter |
-| `REGISTRATION_MODE` | `open` | `open` (offen), `invite_only` (nur mit Einladungscode), `disabled` |
+| Variable               | Standard                | Beschreibung                                                                    |
+| :--------------------- | :---------------------- | :------------------------------------------------------------------------------ |
+| `PORT`                 | `3001`                  | Interner Port des Express-Servers                                               |
+| `NODE_ENV`             | `production`            | Laufzeitumgebung                                                                |
+| `APP_URL`              | `http://localhost:3001` | Vollständige öffentliche URL (wichtig für E-Mail-Reset-Links & PDF-Generierung) |
+| `JWT_SECRET`           | _(automatisch)_         | Persistenter Schlüssel für Sessions                                             |
+| `MEDIA_ENCRYPTION_KEY` | _(automatisch)_         | 32-Byte Master-Schlüssel für AES-256-GCM Medien                                 |
+| `DEV_EMAIL`            | _(optional)_            | E-Mail-Adresse für den primären Systemverwalter                                 |
+| `REGISTRATION_MODE`    | `open`                  | `open` (offen), `invite_only` (nur mit Einladungscode), `disabled`              |

@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Sentry from '@sentry/react';
 import './index.css';
 import './i18n/index.js';
 import App from './App.jsx';
@@ -11,6 +12,20 @@ import { ToastProvider } from './context/ToastContext.jsx';
 import { PwaProvider } from './context/PwaContext.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { logClientError } from './utils/api.js';
+
+// Initialize Sentry error tracking if configured via environment
+const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+if (sentryDsn && typeof sentryDsn === 'string' && sentryDsn.trim()) {
+  Sentry.init({
+    dsn: sentryDsn.trim(),
+    environment: import.meta.env.MODE || 'production',
+    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+    tracesSampleRate: 1.0,
+    tracePropagationTargets: ['localhost', /^\/api\//],
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+  });
+}
 
 // Global Client Error Catchers & iOS PWA Pinch/Double-Tap Zoom Protection
 if (typeof window !== 'undefined') {

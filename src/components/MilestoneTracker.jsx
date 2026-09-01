@@ -530,7 +530,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
 
             <form onSubmit={handleCreateCustomMilestone} className="space-y-4">
               <div className="flex gap-3">
-                <div className="w-20">
+                <div className="w-24">
                   <label
                     htmlFor="custom-icon"
                     className="block text-xs font-semibold text-slate-300 mb-1"
@@ -545,6 +545,18 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                     onChange={(e) => setCustomIcon(e.target.value)}
                     className="w-full text-center text-lg py-1.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-amber-500"
                   />
+                  <div className="flex gap-1 mt-1.5 justify-center">
+                    {['⭐', '🎉', '🚲', '🎨', '🏊‍♂️'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setCustomIcon(emoji)}
+                        className="text-xs p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex-1">

@@ -15,6 +15,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -277,17 +278,30 @@ app.get('/favicon.svg', (_req, res) => {
 
 const INDEX_HTML_PATH = path.join(DIST_DIR, 'index.html');
 
-// SPA fallback – all non-API routes serve index.html asynchronously
+// SPA fallback – all non-API routes serve index.html with runtime config injected
 app.get('{*path}', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.sendFile(INDEX_HTML_PATH, (err) => {
-    if (err) {
-      res.status(404).send('Not Found');
+
+  try {
+    if (fs.existsSync(INDEX_HTML_PATH)) {
+      let html = fs.readFileSync(INDEX_HTML_PATH, 'utf8');
+      const runtimeConfig = {
+        VITE_SENTRY_DSN:
+          process.env.VITE_SENTRY_DSN ||
+          process.env.SENTRY_DSN ||
+          'https://07036a692033303919294711f2ae049e@o4512010628497408.ingest.de.sentry.io/4512010705240144',
+      };
+      const configScript = `<script>window.__BABYCHARTS_CONFIG__ = ${JSON.stringify(runtimeConfig)};</script>`;
+      html = html.replace('</head>', `${configScript}</head>`);
+      return res.type('html').send(html);
     }
-  });
+    return res.status(404).send('Not Found');
+  } catch {
+    return res.sendFile(INDEX_HTML_PATH);
+  }
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────

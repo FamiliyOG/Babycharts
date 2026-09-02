@@ -13,8 +13,12 @@ import { PwaProvider } from './context/PwaContext.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { logClientError } from './utils/api.js';
 
-// Initialize Sentry error tracking if configured via environment
-const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+// Initialize Sentry error tracking if configured via environment or runtime config
+const sentryDsn =
+  import.meta.env.VITE_SENTRY_DSN ||
+  (typeof window !== 'undefined' && window.__BABYCHARTS_CONFIG__?.VITE_SENTRY_DSN) ||
+  'https://07036a692033303919294711f2ae049e@o4512010628497408.ingest.de.sentry.io/4512010705240144';
+
 if (sentryDsn && typeof sentryDsn === 'string' && sentryDsn.trim()) {
   Sentry.init({
     dsn: sentryDsn.trim(),

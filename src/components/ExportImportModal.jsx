@@ -64,42 +64,58 @@ export default function ExportImportModal({
   const [exportPassphrase, setExportPassphrase] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
-  const loadHealthReport = (showLoading = false) => {
-    if (showLoading) {
-      setIsHealthLoading(true);
-    }
-    fetch('/api/exports/health', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('babycharts_token') || ''}`,
-      },
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        setHealthReport(data);
-        setIsHealthLoading(false);
-      })
-      .catch(() => {
-        setIsHealthLoading(false);
+  const fetchHealthReportData = async () => {
+    try {
+      const res = await fetch('/api/exports/health', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('babycharts_token') || ''}`,
+        },
       });
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleManualHealthCheck = async () => {
+    setIsHealthLoading(true);
+    try {
+      const data = await fetchHealthReportData();
+      setHealthReport(data);
+    } finally {
+      setIsHealthLoading(false);
+    }
   };
 
   useEffect(() => {
-    if (isOpen) {
-      fetchSessions().then((sessList) => {
-        setSessions(sessList || []);
-      });
-      loadHealthReport(false);
-    }
+    if (!isOpen) return;
 
-    if (isOpen && isDev) {
+    let isMounted = true;
+    fetchSessions().then((sessList) => {
+      if (isMounted) {
+        setSessions(sessList || []);
+      }
+    });
+
+    fetchHealthReportData().then((data) => {
+      if (isMounted) {
+        setHealthReport(data);
+      }
+    });
+
+    if (isDev) {
       getAppSettings().then((res) => {
-        if (res.ok && res.data) {
+        if (isMounted && res.ok && res.data) {
           setSentryEnabled(Boolean(res.data.sentry_enabled));
           setSentryDsn(res.data.sentry_dsn || '');
           setSentryReplayEnabled(Boolean(res.data.sentry_replay_enabled));
         }
       });
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, isDev]);
 
   useEffect(() => {
@@ -353,7 +369,7 @@ export default function ExportImportModal({
             <button
               type="button"
               disabled={isHealthLoading}
-              onClick={() => loadHealthReport(true)}
+              onClick={handleManualHealthCheck}
               className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
             >
               {isHealthLoading ? 'Prüfe...' : 'Jetzt prüfen'}

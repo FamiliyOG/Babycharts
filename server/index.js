@@ -299,7 +299,9 @@ app.get('{*path}', (req, res, next) => {
       return res.type('html').send(html);
     }
     return res.status(404).send('Not Found');
-  } catch {
+  } catch (err) {
+    // Fallback: If dynamic HTML injection fails, send the static index.html directly
+    console.warn('[SERVER] Dynamic index.html injection failed, serving static file:', err.message);
     return res.sendFile(INDEX_HTML_PATH);
   }
 });

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import confetti from 'canvas-confetti';
+import { fireConfetti } from '../utils/confetti.js';
 import { MILK_TEETH } from '../data/teeth.js';
 
 export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
@@ -28,7 +28,7 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
     if (!selectedTooth || !canEdit) return;
 
     // Trigger celebration confetti
-    confetti({
+    fireConfetti({
       particleCount: 40,
       spread: 50,
       origin: { y: 0.6 },

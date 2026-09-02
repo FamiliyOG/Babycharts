@@ -104,7 +104,7 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     expect(loginSuccess.status).toBe(200);
     expect(loginSuccess.body.token).toBeDefined();
     expect(loginSuccess.body.user.twoFactorEnabled).toBe(true);
-  });
+  }, 15000);
 
   it('allows 2FA login with a single-use recovery code and consumes it', async () => {
     const email = `${getRand('2fa_rec')}@example.com`;

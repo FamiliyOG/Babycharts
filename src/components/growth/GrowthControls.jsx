@@ -1,4 +1,4 @@
-import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, LineChart, Table } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function GrowthControls({
@@ -13,6 +13,8 @@ export default function GrowthControls({
   isGirl,
   weightUnit = 'g',
   setWeightUnit,
+  viewMode = 'chart',
+  setViewMode,
 }) {
   const { t } = useTranslation();
 
@@ -74,38 +76,78 @@ export default function GrowthControls({
         )}
       </div>
 
-      <div className="flex items-center gap-2 justify-between sm:justify-end">
+      <div className="flex items-center gap-2 justify-between sm:justify-end flex-wrap">
+        {/* View Mode Toggle: Chart vs. Table (Issue #243) */}
+        {setViewMode && (
+          <div className="flex items-center gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+            <button
+              type="button"
+              onClick={() => setViewMode('chart')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'chart'
+                  ? isGirl
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-cyan-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              aria-pressed={viewMode === 'chart'}
+              title="Diagramm-Ansicht anzeigen"
+            >
+              <LineChart className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Kurve</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? isGirl
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-cyan-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              aria-pressed={viewMode === 'table'}
+              title="Daten-Tabelle anzeigen"
+            >
+              <Table className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Tabelle</span>
+            </button>
+          </div>
+        )}
+
         {/* Zoom Controls */}
-        <div className="flex items-center gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
-          <button
-            type="button"
-            onClick={handleZoomIn}
-            title={t('growth.zoomIn')}
-            aria-label={t('growth.zoomIn')}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={handleZoomOut}
-            title={t('growth.zoomOut')}
-            aria-label={t('growth.zoomOut')}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={handleResetZoom}
-            title={t('growth.zoomReset')}
-            aria-label={t('growth.zoomReset')}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span className="hidden sm:inline">{t('growth.zoomReset')}</span>
-          </button>
-        </div>
+        {viewMode === 'chart' && (
+          <div className="flex items-center gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              title={t('growth.zoomIn')}
+              aria-label={t('growth.zoomIn')}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleZoomOut}
+              title={t('growth.zoomOut')}
+              aria-label={t('growth.zoomOut')}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleResetZoom}
+              title={t('growth.zoomReset')}
+              aria-label={t('growth.zoomReset')}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span className="hidden sm:inline">{t('growth.zoomReset')}</span>
+            </button>
+          </div>
+        )}
 
         {/* Age Range Filter */}
         <div className="flex items-center justify-between sm:justify-start gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800 text-xs shrink-0">

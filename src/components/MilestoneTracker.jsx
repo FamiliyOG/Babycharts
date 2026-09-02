@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import confetti from 'canvas-confetti';
+import { fireConfetti } from '../utils/confetti.js';
 import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-react';
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
@@ -93,7 +93,7 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     if (!selectedMilestone || !canEdit) return;
 
     // Trigger celebration confetti
-    confetti({
+    fireConfetti({
       particleCount: 50,
       spread: 60,
       origin: { y: 0.7 },

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Chart as ChartJS,
@@ -13,7 +13,7 @@ import {
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { Line } from 'react-chartjs-2';
 import { WHO_DATA } from '../data/whoPercentiles.js';
-import { calculateAge, calculateBMI } from '../utils/percentileCalc.js';
+import { calculateAge, calculateBMI, estimatePercentile } from '../utils/percentileCalc.js';
 import { Scale, Ruler, Circle, Activity, Info } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import GrowthLegend from './growth/GrowthLegend.jsx';
@@ -387,10 +387,63 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
   const [maxAgeMonths, setMaxAgeMonths] = useState(60);
   const [hiddenDatasets, setHiddenDatasets] = useState({});
   const [hoveredLegendKey, setHoveredLegendKey] = useState(null);
+  const [viewMode, setViewMode] = useState('chart');
+
+  const measurements = activeChild?.measurements || [];
+
+  const isGirl = activeChild?.gender === 'girl';
+  const childColor = isGirl ? '#f43f5e' : '#06b6d4';
+
+  const sortedMeasurements = useMemo(() => {
+    return [...measurements].sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [measurements]);
+
+  const tableRows = useMemo(() => {
+    if (!activeChild) return [];
+    return sortedMeasurements.map((m, idx) => {
+      const age = calculateAge(activeChild.birthdate, m.date);
+      let val = null;
+      if (metric === 'weight') val = m.weight;
+      else if (metric === 'length') val = m.length;
+      else if (metric === 'headCircumference') val = m.headCircumference;
+      else if (metric === 'bmi') val = calculateBMI(m.weight, m.length);
+
+      const percentile =
+        val !== null && val !== undefined
+          ? estimatePercentile(val, age.monthsDecimal, activeChild.gender, metric)
+          : null;
+
+      let delta = null;
+      if (idx > 0 && val !== null) {
+        const prevM = sortedMeasurements[idx - 1];
+        let prevVal = null;
+        if (metric === 'weight') prevVal = prevM.weight;
+        else if (metric === 'length') prevVal = prevM.length;
+        else if (metric === 'headCircumference') prevVal = prevM.headCircumference;
+        else if (metric === 'bmi') prevVal = calculateBMI(prevM.weight, prevM.length);
+
+        if (prevVal !== null && prevVal !== undefined) {
+          delta = val - prevVal;
+        }
+      }
+
+      return {
+        id: m.id,
+        date: m.date,
+        ageStr: age.formatted,
+        ageMonths: age.monthsDecimal,
+        val,
+        percentile,
+        delta,
+        notes: m.notes,
+        checkup: m.checkup,
+      };
+    });
+  }, [sortedMeasurements, activeChild, metric]);
+
+  const latestRow = tableRows.length > 0 ? tableRows[tableRows.length - 1] : null;
 
   if (!activeChild) return null;
-
-  const measurements = activeChild.measurements || [];
 
   if (measurements.length === 0) {
     return (
@@ -407,9 +460,6 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
       />
     );
   }
-
-  const isGirl = activeChild.gender === 'girl';
-  const childColor = isGirl ? '#f43f5e' : '#06b6d4';
 
   const rawWhoData = WHO_DATA[activeChild.gender]?.[metric] || [];
   const filteredWhoData = rawWhoData.filter((d) => d.month <= maxAgeMonths);
@@ -469,6 +519,13 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
 
   return (
     <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl mb-6 transition-colors duration-300">
+      {/* Screen Reader Live Summary (Issue #243) */}
+      <div className="sr-only" aria-live="polite">
+        {latestRow && latestRow.val !== null
+          ? `Aktueller Messwert für ${METRIC_TITLES[metric]}: ${formatMetricDisplayValue(latestRow.val, metric)} im Alter von ${latestRow.ageStr}${latestRow.percentile ? `, WHO-Perzentile: P${latestRow.percentile}` : ''}.`
+          : `Keine aktuellen Messwerte für ${METRIC_TITLES[metric]} erfasst.`}
+      </div>
+
       {/* Header & Controls Subcomponent */}
       <div className="mb-4 sm:mb-6">
         <GrowthControls
@@ -483,48 +540,108 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
           isGirl={isGirl}
           weightUnit={weightUnit}
           setWeightUnit={setWeightUnit}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
         />
       </div>
 
-      {/* Interactive Legend with Mouseover Tooltips Subcomponent */}
-      <GrowthLegend
-        legendItems={legendItems}
-        hiddenDatasets={hiddenDatasets}
-        toggleDataset={toggleDataset}
-        setHoveredLegendKey={setHoveredLegendKey}
-        isGirl={isGirl}
-      />
-
-      {/* Chart Canvas Container */}
-      <div className="h-96 w-full relative">
-        <Line
-          ref={chartRef}
-          data={data}
-          options={options}
-          aria-label={`Wachstumskurve: ${METRIC_TITLES[metric]} für ${activeChild.name} (${isGirl ? 'Mädchen' : 'Junge'})`}
-          role="img"
+      {/* Interactive Legend (Chart Mode only) */}
+      {viewMode === 'chart' && (
+        <GrowthLegend
+          legendItems={legendItems}
+          hiddenDatasets={hiddenDatasets}
+          toggleDataset={toggleDataset}
+          setHoveredLegendKey={setHoveredLegendKey}
+          isGirl={isGirl}
         />
-        {/* Screen Reader Accessible Data Alternative (BC-154, BC-153) */}
-        <div className="sr-only">
-          <h4>{`Tabelle der Messwerte: ${METRIC_TITLES[metric]}`}</h4>
-          <table>
+      )}
+
+      {/* View Mode Switch: Chart Canvas vs. Accessible Table (Issue #243) */}
+      {viewMode === 'chart' ? (
+        <div className="h-96 w-full relative">
+          <Line
+            ref={chartRef}
+            data={data}
+            options={options}
+            aria-label={`Wachstumskurve: ${METRIC_TITLES[metric]} für ${activeChild.name} (${isGirl ? 'Mädchen' : 'Junge'})`}
+            role="img"
+          />
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/60 p-2 sm:p-4">
+          <table className="w-full text-left text-xs border-collapse">
+            <caption className="sr-only">{`Messwert-Tabelle für ${METRIC_TITLES[metric]}`}</caption>
             <thead>
-              <tr>
-                <th>Alter (Monate)</th>
-                <th>Messwert</th>
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
+                <th scope="col" className="p-2.5 font-semibold">
+                  Datum
+                </th>
+                <th scope="col" className="p-2.5 font-semibold">
+                  Alter
+                </th>
+                <th scope="col" className="p-2.5 font-semibold">
+                  Messwert ({METRIC_UNITS[metric]})
+                </th>
+                <th scope="col" className="p-2.5 font-semibold">
+                  WHO Perzentile
+                </th>
+                <th scope="col" className="p-2.5 font-semibold">
+                  Zuwachs
+                </th>
+                <th scope="col" className="p-2.5 font-semibold">
+                  Untersuchung / Notiz
+                </th>
               </tr>
             </thead>
-            <tbody>
-              {childPoints.map((pt) => (
-                <tr key={`child-point-${pt.x.toFixed(2)}-${pt.y}`}>
-                  <td>{pt.x.toFixed(1)}</td>
-                  <td>{formatMetricDisplayValue(pt.y, metric)}</td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
+              {tableRows
+                .filter((r) => r.val !== null && r.val !== undefined)
+                .map((row) => (
+                  <tr
+                    key={`meas-table-row-${row.id}`}
+                    className="hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors"
+                  >
+                    <td className="p-2.5 font-medium text-slate-800 dark:text-slate-200">
+                      {new Date(row.date).toLocaleDateString('de-DE')}
+                    </td>
+                    <td className="p-2.5 text-slate-600 dark:text-slate-400">{row.ageStr}</td>
+                    <td className="p-2.5 font-bold text-cyan-600 dark:text-cyan-400">
+                      {formatMetricDisplayValue(row.val, metric)}
+                    </td>
+                    <td className="p-2.5">
+                      {row.percentile !== null ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-300 border border-cyan-500/20">
+                          P{row.percentile}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
+                    <td className="p-2.5">
+                      {row.delta !== null ? (
+                        <span
+                          className={`font-medium ${
+                            row.delta >= 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-amber-600 dark:text-amber-400'
+                          }`}
+                        >
+                          {row.delta >= 0 ? '+' : ''}
+                          {formatMetricDisplayValue(row.delta, metric)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Erstwert</span>
+                      )}
+                    </td>
+                    <td className="p-2.5 text-slate-600 dark:text-slate-400 max-w-xs truncate">
+                      {row.checkup || row.notes || '-'}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
-      </div>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/60 pt-3">
         <span>

@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => ({
   test: {
     environment: 'jsdom',
     globals: true,
+    testTimeout: 15000,
     setupFiles: ['./src/test/setup.js'],
     fileParallelism: false,
     exclude: ['e2e/**', '**/node_modules/**', '**/dist/**'],

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import confetti from 'canvas-confetti';
+import { fireConfetti } from './utils/confetti.js';
 import Header from './components/Header.jsx';
 import MobileBottomNav from './components/MobileBottomNav.jsx';
 import OfflineBanner from './components/OfflineBanner.jsx';
@@ -106,7 +106,7 @@ function MainApp() {
         const serverProfile = await createMutation.mutateAsync(payload);
         setActiveChildId(serverProfile.id);
         showToast(`Profil "${serverProfile.name}" erfolgreich erstellt! 🎉`);
-        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        fireConfetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
       } else {
         const payload = { ...profileData, familyId: profileData.familyId || activeFamily?.id };
         const updated = await updateMutation.mutateAsync({ id: payload.id, payload });
@@ -165,7 +165,7 @@ function MainApp() {
       });
 
       showToast(isNew ? 'Messwert eingetragen! 📈' : 'Messwert aktualisiert.');
-      if (isNew) confetti({ particleCount: 35, spread: 40, origin: { y: 0.5 } });
+      if (isNew) fireConfetti({ particleCount: 35, spread: 40, origin: { y: 0.5 } });
     } catch (err) {
       console.error(err);
       logClientError('Messwert-Speicherfehler', err);
@@ -225,7 +225,7 @@ function MainApp() {
       }
       invalidateProfiles();
       showToast('Demo-Profile geladen! 🎉');
-      confetti({ particleCount: 60, spread: 70, origin: { y: 0.5 } });
+      fireConfetti({ particleCount: 60, spread: 70, origin: { y: 0.5 } });
     } catch (err) {
       console.error(err);
       logClientError('Demo-Ladefehler', err);
@@ -241,7 +241,6 @@ function MainApp() {
       const result = await generateGrowthPdfReport(activeChild, format);
       if (result) {
         showToast('PDF-Bericht erfolgreich heruntergeladen! ✅');
-        confetti({ particleCount: 40, spread: 60, origin: { y: 0.4 } });
       } else {
         showToast('Fehler beim Erstellen des PDF-Berichts.');
       }
@@ -257,7 +256,6 @@ function MainApp() {
     try {
       generateChildICalendar(activeChild);
       showToast(`U-Vorsorge-Kalender für ${activeChild.name} exportiert!`);
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.4 } });
     } catch (err) {
       console.error(err);
       logClientError('Kalender-Export Fehler', err);
@@ -270,7 +268,6 @@ function MainApp() {
     try {
       exportChildToCSV(activeChild);
       showToast(`Excel/CSV-Tabelle für ${activeChild.name} heruntergeladen!`);
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.4 } });
     } catch (err) {
       console.error(err);
       logClientError('CSV-Export Fehler', err);

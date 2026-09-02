@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { calculateAge, estimatePercentile } from '../utils/percentileCalc.js';
 import { U_CHECKUPS } from '../data/uCheckups.js';
-import confetti from 'canvas-confetti';
+import { fireConfetti } from '../utils/confetti.js';
 import ModalContainer from './ModalContainer.jsx';
 
 export default function MeasurementForm({
@@ -261,7 +261,7 @@ function MeasurementFormDialog({ isOpen, onClose, onSaveMeasurement, activeChild
       notes: notes.trim(),
     });
 
-    confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+    fireConfetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
     onClose();
   };
 

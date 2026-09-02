@@ -1,35 +1,84 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test.describe('Automated Accessibility (WCAG 2.2 AAA) Audit', () => {
-  test('home/initial view should not have serious or critical a11y violations', async ({
+const WCAG_TAGS = [
+  'wcag2a',
+  'wcag2aa',
+  'wcag2aaa',
+  'wcag21a',
+  'wcag21aa',
+  'wcag21aaa',
+  'wcag22aa',
+  'wcag22aaa',
+  'best-practice',
+];
+
+async function scanPageA11y(page, contextName = '') {
+  const accessibilityScanResults = await new AxeBuilder({ page })
+    .withTags(WCAG_TAGS)
+    .disableRules(['color-contrast']) // Contrast tested with theme tokens
+    .analyze();
+
+  const criticalViolations = accessibilityScanResults.violations.filter(
+    (v) => v.impact === 'critical' || v.impact === 'serious'
+  );
+
+  if (criticalViolations.length > 0) {
+    console.error(
+      `[A11y Error: ${contextName}] Found ${criticalViolations.length} critical/serious violations:`,
+      JSON.stringify(
+        criticalViolations.map((v) => ({ id: v.id, impact: v.impact, description: v.description })),
+        null,
+        2
+      )
+    );
+  }
+
+  expect(criticalViolations).toEqual([]);
+}
+
+test.describe('Automated Accessibility (WCAG 2.2 AAA) Audit (Issue #242)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('#root');
+  });
+
+  test('home/dashboard initial view has zero critical or serious a11y violations', async ({
     page,
   }) => {
-    await page.goto('/');
+    await scanPageA11y(page, 'Home View');
+  });
 
-    // Wait for the app to initialize
-    await page.waitForSelector('#root');
+  test('growth chart and accessible tabular view are fully accessible', async ({ page }) => {
+    // Look for Kurve/Tabelle switch if profile is loaded
+    const tableButton = page.locator('button:has-text("Tabelle")').first();
+    if (await tableButton.isVisible()) {
+      await tableButton.click();
+      await page.waitForTimeout(300);
+      await scanPageA11y(page, 'Growth Table View');
 
-    const accessibilityScanResults = await new AxeBuilder({ page })
-      .withTags([
-        'wcag2a',
-        'wcag2aa',
-        'wcag2aaa',
-        'wcag21a',
-        'wcag21aa',
-        'wcag21aaa',
-        'wcag22aa',
-        'wcag22aaa',
-        'best-practice',
-      ])
-      .disableRules(['color-contrast']) // Color contrast can have dark-mode dynamic themes; check structure & tags
-      .analyze();
+      const chartButton = page.locator('button:has-text("Kurve")').first();
+      await chartButton.click();
+      await page.waitForTimeout(300);
+      await scanPageA11y(page, 'Growth Chart View');
+    }
+  });
 
-    // Filter only serious and critical issues
-    const criticalViolations = accessibilityScanResults.violations.filter(
-      (v) => v.impact === 'critical' || v.impact === 'serious'
-    );
+  test('mobile viewport (390x844) preserves clean accessibility tree', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(200);
+    await scanPageA11y(page, 'Mobile Viewport');
+  });
 
-    expect(criticalViolations).toEqual([]);
+  test('light mode theme preserves clean accessibility semantics', async ({ page }) => {
+    // Trigger light mode toggle if available
+    const themeBtn = page
+      .locator('button[aria-label*="Theme"], button[aria-label*="Modus"]')
+      .first();
+    if (await themeBtn.isVisible()) {
+      await themeBtn.click();
+      await page.waitForTimeout(200);
+    }
+    await scanPageA11y(page, 'Light Mode');
   });
 });

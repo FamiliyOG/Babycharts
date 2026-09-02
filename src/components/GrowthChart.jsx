@@ -280,7 +280,9 @@ function buildChartOptions(
             const months = Math.round(monthVal % 12);
             let ageStr = `${monthVal.toFixed(1)} ${t('growth.monthsUnit') || 'Monate'}`;
             if (years > 0) {
-              ageStr = `${years} ${t('growth.yearsUnit') || 'Jahre'}${months > 0 ? ` ${months} ${t('growth.monthsUnit') || 'Monate'}` : ''} (${monthVal.toFixed(1)} M.)`;
+              const monthsSuffix =
+                months > 0 ? ` ${months} ${t('growth.monthsUnit') || 'Monate'}` : '';
+              ageStr = `${years} ${t('growth.yearsUnit') || 'Jahre'}${monthsSuffix} (${monthVal.toFixed(1)} M.)`;
             }
             return `${t('growth.age') || 'Alter'}: ${ageStr}`;
           },

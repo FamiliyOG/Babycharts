@@ -14,8 +14,6 @@ import {
   Save,
   Lock,
   Activity,
-  CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
@@ -125,6 +123,23 @@ export default function ExportImportModal({
   }, []);
 
   if (!isOpen) return null;
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setInstallSuccess(true);
+          setIsInstalled(true);
+        }
+        window.deferredPrompt = null;
+        setDeferredPrompt(null);
+      } catch {
+        // ignore
+      }
+    }
+  };
 
   const handleExportJson = async () => {
     try {

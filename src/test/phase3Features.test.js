@@ -12,7 +12,7 @@ import request from 'supertest';
 import app from '../../server/index.js';
 import { encryptBackupNode, decryptBackupNode } from '../../server/services/backupCryptoService.js';
 import { checkDatabaseAndBackupHealth } from '../../server/services/healthCheckService.js';
-import { DATA_SOURCES, getDataSource } from '../../src/utils/dataSourceMetadata.js';
+import { getDataSource } from '../../src/utils/dataSourceMetadata.js';
 
 describe('P3 Features & Diagnostics Test Suite (#250, #251, #252, #253)', () => {
   // ── 1. AES-256-GCM Encrypted Backups (#250) ──────────────────────────────────

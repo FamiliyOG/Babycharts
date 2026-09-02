@@ -74,7 +74,7 @@ export function decryptBackupNode(encryptedObj, passphrase) {
     const authTag = combined.subarray(combined.length - authTagLength);
 
     const key = deriveKeySync(passphrase, salt);
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv, { authTagLength });
     decipher.setAuthTag(authTag);
 
     const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);

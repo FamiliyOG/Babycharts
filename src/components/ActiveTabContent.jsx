@@ -10,6 +10,7 @@ const TeethTracker = lazy(() => import('./TeethTracker.jsx'));
 const MilestoneTracker = lazy(() => import('./MilestoneTracker.jsx'));
 const HealthTracker = lazy(() => import('./HealthTracker.jsx'));
 const ChildTimeline = lazy(() => import('./ChildTimeline.jsx'));
+const DoctorView = lazy(() => import('./DoctorView.jsx'));
 
 export default function ActiveTabContent({
   activeTab,
@@ -100,6 +101,13 @@ export default function ActiveTabContent({
                 activeChild={activeChild}
                 onUpdateChild={handleSaveProfile}
                 canEdit={canEdit}
+              />
+            );
+          case 'doctor':
+            return (
+              <DoctorView
+                activeChild={activeChild}
+                activeChildMeasurements={activeChildMeasurements}
               />
             );
           default:

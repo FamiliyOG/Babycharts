@@ -7,6 +7,7 @@ import {
   HeartPulse,
   Sparkles,
   Calendar,
+  Stethoscope,
 } from 'lucide-react';
 import { ToothIcon } from './ToothIcon.jsx';
 
@@ -77,6 +78,14 @@ export default function ModuleNavigationTabs({ activeTab, onSelectTab }) {
       activeClass:
         'bg-rose-700 hover:bg-rose-600 text-white shadow-md shadow-rose-950/80 ring-2 ring-rose-400',
       iconColor: 'text-rose-200',
+    },
+    {
+      id: 'doctor',
+      label: 'Arztansicht',
+      icon: Stethoscope,
+      activeClass:
+        'bg-teal-700 hover:bg-teal-600 text-white shadow-md shadow-teal-950/80 ring-2 ring-teal-400',
+      iconColor: 'text-teal-200',
     },
   ];
 

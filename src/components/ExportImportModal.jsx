@@ -12,6 +12,10 @@ import {
   Check,
   Shield,
   Save,
+  Lock,
+  Activity,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
@@ -22,6 +26,7 @@ import {
   revokeSessionApi,
   revokeAllOtherSessionsApi,
 } from '../utils/api.js';
+import { encryptBackup, decryptBackup, isEncryptedBackup } from '../utils/cryptoBackup.js';
 
 export default function ExportImportModal({
   isOpen,
@@ -53,12 +58,37 @@ export default function ExportImportModal({
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [sessions, setSessions] = useState([]);
+  const [healthReport, setHealthReport] = useState(null);
+  const [isHealthLoading, setIsHealthLoading] = useState(false);
+
+  // AES-256-GCM Backup Encryption State (Issue #250)
+  const [useEncryption, setUseEncryption] = useState(false);
+  const [exportPassphrase, setExportPassphrase] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const loadHealthReport = () => {
+    setIsHealthLoading(true);
+    fetch('/api/exports/health', {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('babycharts_token') || ''}`,
+      },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        setHealthReport(data);
+        setIsHealthLoading(false);
+      })
+      .catch(() => {
+        setIsHealthLoading(false);
+      });
+  };
 
   useEffect(() => {
     if (isOpen) {
       fetchSessions().then((sessList) => {
         setSessions(sessList || []);
       });
+      loadHealthReport();
     }
 
     if (isOpen && isDev) {
@@ -96,33 +126,37 @@ export default function ExportImportModal({
 
   if (!isOpen) return null;
 
-  const handleInstallPwa = async () => {
-    if (deferredPrompt) {
-      try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          setInstallSuccess(true);
-          setIsInstalled(true);
-        }
-        window.deferredPrompt = null;
-        setDeferredPrompt(null);
-      } catch {
-        // ignore
-      }
-    }
-  };
+  const handleExportJson = async () => {
+    try {
+      setIsExporting(true);
+      let payload = profiles;
+      let filename = `BabyCharts_Backup_${new Date().toISOString().split('T')[0]}.json`;
 
-  const handleExportJson = () => {
-    const dataStr =
-      'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(profiles, null, 2));
-    const downloadAnchor = document.createElement('a');
-    const timestamp = new Date().toISOString().split('T')[0];
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `BabyCharts_Backup_${timestamp}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+      if (useEncryption) {
+        if (!exportPassphrase || exportPassphrase.length < 6) {
+          window.alert(
+            'Bitte vergeben Sie ein Passwort mit mindestens 6 Zeichen für das verschlüsselte Backup.'
+          );
+          setIsExporting(false);
+          return;
+        }
+        payload = await encryptBackup(profiles, exportPassphrase);
+        filename = `BabyCharts_EncryptedBackup_${new Date().toISOString().split('T')[0]}.enc.json`;
+      }
+
+      const dataStr =
+        'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', filename);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      setIsExporting(false);
+    } catch (err) {
+      setIsExporting(false);
+      window.alert('Fehler beim Exportieren: ' + err.message);
+    }
   };
 
   const renderInstallAction = () => {
@@ -274,25 +308,119 @@ export default function ExportImportModal({
           </div>
         )}
 
-        <div className="space-y-4">
-          {/* JSON Export */}
-          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
-            <div>
-              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                {t('exportImport.exportTitle')}
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                {t('exportImport.exportDesc')}
+        {/* Automated Database & Backup Health Card (Issue #253) */}
+        <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-cyan-400" />
+              <div>
+                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>Datenbank- & Backup-Integrität</span>
+                  {healthReport && (
+                    <span
+                      className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold ${
+                        healthReport.healthy
+                          ? 'bg-emerald-950 border border-emerald-800 text-emerald-300'
+                          : 'bg-amber-950 border border-amber-800 text-amber-300'
+                      }`}
+                    >
+                      {healthReport.healthy ? 'Gesund' : 'Prüfung erforderlich'}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  SQLite PRAGMA Prüfungen & Konsistenz
+                </div>
               </div>
             </div>
             <button
               type="button"
-              onClick={handleExportJson}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-xs transition-colors cursor-pointer"
+              disabled={isHealthLoading}
+              onClick={loadHealthReport}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
             >
-              <FileText className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              <span>{t('exportImport.exportBtn')}</span>
+              {isHealthLoading ? 'Prüfe...' : 'Jetzt prüfen'}
             </button>
+          </div>
+
+          {healthReport && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+              <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span className="text-slate-500 block text-[10px]">Profile</span>
+                <strong className="text-slate-200">{healthReport.stats?.profiles ?? '–'}</strong>
+              </div>
+              <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span className="text-slate-500 block text-[10px]">Messungen</span>
+                <strong className="text-slate-200">
+                  {healthReport.stats?.measurements ?? '–'}
+                </strong>
+              </div>
+              <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span className="text-slate-500 block text-[10px]">Audit-Logs</span>
+                <strong className="text-slate-200">{healthReport.stats?.auditLogs ?? '–'}</strong>
+              </div>
+              <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span className="text-slate-500 block text-[10px]">Backups</span>
+                <strong className="text-slate-200">{healthReport.stats?.backupCount ?? '0'}</strong>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {/* JSON Export with Optional AES-256-GCM Encryption (Issue #250) */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {t('exportImport.exportTitle')}
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {t('exportImport.exportDesc')}
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isExporting}
+                onClick={handleExportJson}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-xs transition-colors cursor-pointer"
+              >
+                {useEncryption ? (
+                  <Lock className="w-3.5 h-3.5 text-cyan-500" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                )}
+                <span>{isExporting ? 'Exportiere...' : t('exportImport.exportBtn')}</span>
+              </button>
+            </div>
+
+            {/* Encryption toggle & passphrase */}
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={useEncryption}
+                  onChange={(e) => setUseEncryption(e.target.checked)}
+                  className="rounded text-cyan-600 focus:ring-cyan-500"
+                />
+                <span>Mit Passphrase verschlüsseln (AES-256-GCM)</span>
+              </label>
+
+              {useEncryption && (
+                <div className="pl-6 space-y-1">
+                  <input
+                    type="password"
+                    placeholder="Passphrase für das Backup eingeben (min. 6 Zeichen)"
+                    value={exportPassphrase}
+                    onChange={(e) => setExportPassphrase(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-cyan-500"
+                  />
+                  <div className="text-[10px] text-slate-500">
+                    🔒 Schützt Ihr Backup mit modernster PBKDF2 + AES-GCM Verschlüsselung.
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* GDPR Complete Personal Data Export (BC-207) */}
@@ -426,7 +554,23 @@ export default function ExportImportModal({
                 if (!file) return;
                 try {
                   const content = await file.text();
-                  const parsed = JSON.parse(content);
+                  let parsed = JSON.parse(content);
+
+                  // Check if encrypted backup (Issue #250)
+                  if (isEncryptedBackup(parsed)) {
+                    const pass = window.prompt(
+                      'Dieses Backup ist mit AES-256-GCM verschlüsselt.\n\nBitte geben Sie die Passphrase ein, um die Daten zu entschlüsseln:'
+                    );
+                    if (!pass) {
+                      setImportStatus({
+                        success: false,
+                        text: '❌ Entschlüsselung abgebrochen.',
+                      });
+                      return;
+                    }
+                    parsed = await decryptBackup(parsed, pass);
+                  }
+
                   if (!Array.isArray(parsed)) {
                     throw new TypeError('Ungültiges Backup-Format (Array von Profilen erwartet).');
                   }

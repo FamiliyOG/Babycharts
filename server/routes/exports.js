@@ -271,4 +271,11 @@ router.post('/backups/restore/:filename', requireAuth, async (req, res) => {
   });
 });
 
+// GET /api/exports/health – Automated backup & database health diagnostics (Issue #253)
+router.get('/health', requireAuth, async (req, res) => {
+  const { checkDatabaseAndBackupHealth } = await import('../services/healthCheckService.js');
+  const healthReport = checkDatabaseAndBackupHealth();
+  return res.json(healthReport);
+});
+
 export default router;

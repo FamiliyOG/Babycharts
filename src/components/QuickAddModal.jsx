@@ -109,7 +109,8 @@ export default function QuickAddModal({
               key={act.id}
               type="button"
               onClick={act.action}
-              className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all text-left group active:scale-95"
+              aria-label={`${act.title}: ${act.desc}`}
+              className="flex items-start gap-3 p-3.5 min-h-[48px] rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none transition-all text-left group active:scale-95 cursor-pointer"
             >
               <div
                 className={`p-2.5 rounded-xl bg-linear-to-tr ${act.gradient} text-white shadow-md ${act.shadow} shrink-0 group-hover:scale-105 transition-transform`}

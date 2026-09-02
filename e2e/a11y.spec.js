@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test.describe('Automated Accessibility (WCAG 2.1 AA) Audit', () => {
+test.describe('Automated Accessibility (WCAG 2.2 AAA) Audit', () => {
   test('home/initial view should not have serious or critical a11y violations', async ({
     page,
   }) => {
@@ -11,7 +11,17 @@ test.describe('Automated Accessibility (WCAG 2.1 AA) Audit', () => {
     await page.waitForSelector('#root');
 
     const accessibilityScanResults = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .withTags([
+        'wcag2a',
+        'wcag2aa',
+        'wcag2aaa',
+        'wcag21a',
+        'wcag21aa',
+        'wcag21aaa',
+        'wcag22aa',
+        'wcag22aaa',
+        'best-practice',
+      ])
       .disableRules(['color-contrast']) // Color contrast can have dark-mode dynamic themes; check structure & tags
       .analyze();
 

@@ -147,7 +147,7 @@ npm run test:coverage
 # End-to-End Tests
 npm run test:e2e
 
-# Accessibility Tests (WCAG 2.1 AA via Axe & Playwright)
+# Accessibility Tests (WCAG 2.2 AAA via Axe & Playwright)
 npm run test:a11y
 
 # Code-Qualität, Dead-Code, Duplikate & Architektur prüfen

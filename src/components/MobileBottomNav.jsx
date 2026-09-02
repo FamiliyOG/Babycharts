@@ -39,7 +39,7 @@ export default function MobileBottomNav({ activeTab, onTabChange, onQuickAdd }) 
         onClick={() => onTabChange(tab.id)}
         title={tab.label}
         aria-label={tab.label}
-        className={`flex flex-col items-center justify-center flex-1 min-h-[44px] py-1.5 px-2 rounded-2xl transition-all active:scale-95 touch-manipulation min-w-0 cursor-pointer ${
+        className={`flex flex-col items-center justify-center flex-1 min-h-11 py-1.5 px-2 rounded-2xl transition-all active:scale-95 touch-manipulation min-w-0 cursor-pointer ${
           isActive
             ? 'text-cyan-400 dark:text-cyan-300 font-bold bg-slate-800/40 dark:bg-slate-900/60 shadow-xs'
             : 'text-slate-400 hover:text-slate-200'

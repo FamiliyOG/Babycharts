@@ -27,6 +27,7 @@ env:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   validate:
@@ -56,17 +57,119 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Code Quality & Architecture Audit (Format, Lint, Deadcode, Duplicates, Arch)
-        run: npm run scan:code
+        id: scan_code
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run scan:code 2>&1 | tee /tmp/scan_code.log
 
       - name: Run Automated Tests & Coverage (Vitest & Supertest)
-        run: npm run scan:test
+        id: scan_test
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run scan:test 2>&1 | tee /tmp/scan_test.log
 
       - name: Build Frontend Production Bundle (Vite)
-        run: npm run build
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee /tmp/build.log
 
       - name: SonarCloud Scan
-        if: matrix.node-version == '24.x' && env.SONAR_TOKEN != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: matrix.node-version == '24.x' && env.SONAR_TOKEN != '' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)) && steps.build.outcome == 'success'
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Create GitHub Issue on CI Failure
+        if: always() && (steps.scan_code.outcome == 'failure' || steps.scan_test.outcome == 'failure' || steps.build.outcome == 'failure') && (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          RUN_ID: ${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+          NODE_VERSION: ${{ matrix.node-version }}
+          CODE_OUTCOME: ${{ steps.scan_code.outcome }}
+          TEST_OUTCOME: ${{ steps.scan_test.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+        shell: bash
+        run: |
+          EXISTING_ISSUE=$(gh issue list --search "[Bug]: CI Failure on ${REF_NAME}" --state open --json number --jq '.[0].number' || true)
+          ISSUE_TITLE="[Bug]: CI Failure on ${REF_NAME} (Commit ${COMMIT_SHA:0:7})"
+
+          LOG_CONTENT=""
+          if [[ "${CODE_OUTCOME}" == "failure" && -f /tmp/scan_code.log ]]; then
+            LOG_CONTENT+="=== Code Quality Scan Failures ===\n$(tail -n 60 /tmp/scan_code.log)\n\n"
+          fi
+          if [[ "${TEST_OUTCOME}" == "failure" && -f /tmp/scan_test.log ]]; then
+            LOG_CONTENT+="=== Test Suite Failures ===\n$(tail -n 60 /tmp/scan_test.log)\n\n"
+          fi
+          if [[ "${BUILD_OUTCOME}" == "failure" && -f /tmp/build.log ]]; then
+            LOG_CONTENT+="=== Production Build Failures ===\n$(tail -n 60 /tmp/build.log)\n\n"
+          fi
+
+          BODY_FILE=$(mktemp)
+          {
+            echo "### BabyCharts Version / Deployment"
+            echo "CI Pipeline (Commit \`${COMMIT_SHA}\` auf Branch \`${REF_NAME}\`)"
+            echo ""
+            echo "### Gerät / Browser / OS"
+            echo "GitHub Actions Runner (Ubuntu Latest / Node \`${NODE_VERSION}\`)"
+            echo ""
+            echo "### Was ist passiert?"
+            echo "Die automatisierten CI-Qualitätsprüfungen für Commit [\`${COMMIT_SHA:0:7}\`](${SERVER_URL}/${REPOSITORY}/commit/${COMMIT_SHA}) sind fehlgeschlagen."
+            echo ""
+            echo "**Status der Phasen:**"
+            echo "- 🔍 **Code Quality Scan** (\`npm run scan:code\`): \`${CODE_OUTCOME}\`"
+            echo "- 🧪 **Test Suite** (\`npm run scan:test\`): \`${TEST_OUTCOME}\`"
+            echo "- 🏗️ **Production Build** (\`npm run build\`): \`${BUILD_OUTCOME}\`"
+            echo ""
+            echo "**Workflow Run:** [Actions Run #${RUN_ID}](${SERVER_URL}/${REPOSITORY}/actions/runs/${RUN_ID})"
+            echo ""
+            echo "### Erwartetes Verhalten"
+            echo "Alle CI-Qualitätsprüfungen (Prettier, Linter, Vitest/Supertest und Vite Production Build) sollten fehlerfrei (Exit-Code 0) durchlaufen."
+            echo ""
+            echo "### Schritte zur Reproduktion"
+            echo "1. Repository lokal auschecken auf Commit \`${COMMIT_SHA:0:7}\`"
+            echo "2. Abhängigkeiten installieren: \`npm ci\`"
+            echo "3. Fehlgeschlagene Prüfung ausführen:"
+            echo "   - Bei Linter-/Code-Fehlern: \`npm run scan:code\`"
+            echo "   - Bei Test-Fehlern: \`npm run scan:test\`"
+            echo "   - Bei Build-Fehlern: \`npm run build\`"
+            echo "4. Fehler beheben und committen."
+            echo ""
+            echo "### Relevante Logs / Screenshots"
+            echo "<details><summary>Fehlerprotokoll aufklappen</summary>"
+            echo ""
+            echo "\`\`\`shell"
+            echo -e "${LOG_CONTENT}"
+            echo "\`\`\`"
+            echo ""
+            echo "</details>"
+          } > "${BODY_FILE}"
+
+          if [[ -n "${EXISTING_ISSUE}" ]]; then
+            echo "Updating existing open issue #${EXISTING_ISSUE} with latest CI failure..."
+            gh issue comment "${EXISTING_ISSUE}" --body-file "${BODY_FILE}"
+          else
+            echo "Creating new CI failure bug report issue..."
+            gh issue create \
+              --title "${ISSUE_TITLE}" \
+              --body-file "${BODY_FILE}" \
+              --label "bug"
+          fi
+
+      - name: Enforce CI Quality Gate (Fail job if any scan failed)
+        if: always() && (steps.scan_code.outcome == 'failure' || steps.scan_test.outcome == 'failure' || steps.build.outcome == 'failure')
+        shell: bash
+        run: |
+          echo "::error::One or more CI checks (Code Quality, Tests, or Build) failed."
+          exit 1

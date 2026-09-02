@@ -25,12 +25,9 @@ async function scanPageA11y(page, contextName = '') {
 
   if (criticalViolations.length > 0) {
     console.error(
-      `[A11y Error: ${contextName}] Found ${criticalViolations.length} critical/serious violations:`,
-      JSON.stringify(
-        criticalViolations.map((v) => ({ id: v.id, impact: v.impact, description: v.description })),
-        null,
-        2
-      )
+      '[A11y Critical Violation]',
+      contextName,
+      criticalViolations.map((v) => ({ id: v.id, impact: v.impact, description: v.description }))
     );
   }
 

@@ -16,6 +16,20 @@ import {
 } from 'lucide-react';
 import { ToothIcon } from './ToothIcon.jsx';
 
+function normalizeArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'object') {
+    return Object.entries(val).map(([key, item]) => {
+      if (typeof item === 'object' && item !== null) {
+        return { id: item.id || key, key, ...item };
+      }
+      return { id: key, key, value: item, date: item };
+    });
+  }
+  return [];
+}
+
 export default function ChildTimeline({ activeChild, activeChildMeasurements = [] }) {
   const { t } = useTranslation();
   const [filterType, setFilterType] = useState('all'); // 'all' | 'measurement' | 'milestone' | 'vaccine' | 'tooth' | 'ucheckup'
@@ -49,16 +63,19 @@ export default function ChildTimeline({ activeChild, activeChildMeasurements = [
     });
 
     // 2. Milestones
-    const milestones = [...(activeChild.milestones || []), ...(activeChild.customMilestones || [])];
+    const milestones = [
+      ...normalizeArray(activeChild.milestones),
+      ...normalizeArray(activeChild.customMilestones),
+    ];
     milestones.forEach((m, idx) => {
       const eventDate = m.date || m.completedDate || m.achievedAt;
       if (!eventDate) return;
 
       list.push({
-        id: `ms-${m.id || idx}`,
+        id: `ms-${m.id || m.key || idx}`,
         date: eventDate,
         type: 'milestone',
-        title: m.title || m.name || t('milestones.title'),
+        title: m.title || m.name || m.key || t('milestones.title'),
         details: m.description || m.category || 'Meilenstein gemeistert',
         photo: m.photo || m.image,
         notes: m.notes,
@@ -70,12 +87,12 @@ export default function ChildTimeline({ activeChild, activeChildMeasurements = [
     });
 
     // 3. Teeth
-    (activeChild.teeth || []).forEach((tooth) => {
+    normalizeArray(activeChild.teeth).forEach((tooth) => {
       const date = tooth.eruptedDate || tooth.date || tooth.createdAt;
       if (!date) return;
 
       list.push({
-        id: `tooth-${tooth.id || tooth.toothNumber}`,
+        id: `tooth-${tooth.id || tooth.toothNumber || tooth.key}`,
         date,
         type: 'tooth',
         title: tooth.name ? `${t('teeth.title')}: ${tooth.name}` : t('teeth.title'),
@@ -89,16 +106,19 @@ export default function ChildTimeline({ activeChild, activeChildMeasurements = [
     });
 
     // 4. Vaccinations
-    const vaccines = activeChild.vaccinations || activeChild.vaccines || [];
+    const vaccines = [
+      ...normalizeArray(activeChild.vaccinations),
+      ...normalizeArray(activeChild.vaccines),
+    ];
     vaccines.forEach((v, idx) => {
       const date = v.date || v.administeredDate;
       if (!date) return;
 
       list.push({
-        id: `vac-${v.id || idx}`,
+        id: `vac-${v.id || v.key || idx}`,
         date,
         type: 'vaccine',
-        title: v.vaccineName || v.name || t('vaccinations.recordVaccine'),
+        title: v.vaccineName || v.name || v.key || t('vaccinations.recordVaccine'),
         details: v.disease ? `Schutz gegen: ${v.disease}` : v.doctor || 'Impfung verabreicht',
         notes: v.notes,
         icon: Syringe,
@@ -109,15 +129,15 @@ export default function ChildTimeline({ activeChild, activeChildMeasurements = [
     });
 
     // 5. U-Checkups
-    (activeChild.uCheckups || []).forEach((u, idx) => {
+    normalizeArray(activeChild.uCheckups).forEach((u, idx) => {
       const date = u.date || u.completedDate;
       if (!date) return;
 
       list.push({
-        id: `ucheck-${u.id || idx}`,
+        id: `ucheck-${u.id || u.key || idx}`,
         date,
         type: 'ucheckup',
-        title: u.name || u.title || t('ucheckups.title'),
+        title: u.name || u.title || u.key || t('ucheckups.title'),
         details: u.doctor ? `Arzt: ${u.doctor}` : 'Untersuchung durchgeführt',
         notes: u.notes || u.findings,
         icon: ClipboardList,
@@ -128,12 +148,12 @@ export default function ChildTimeline({ activeChild, activeChildMeasurements = [
     });
 
     // 6. Health Log
-    (activeChild.healthLog || []).forEach((h, idx) => {
+    normalizeArray(activeChild.healthLog).forEach((h, idx) => {
       const date = h.date || h.timestamp;
       if (!date) return;
 
       list.push({
-        id: `hl-${h.id || idx}`,
+        id: `hl-${h.id || h.key || idx}`,
         date,
         type: 'health',
         title: h.type || t('health.title'),

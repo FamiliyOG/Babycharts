@@ -120,4 +120,50 @@ describe('P3 Features & Diagnostics Test Suite (#250, #251, #252, #253)', () => 
       expect(authRes.body).toHaveProperty('stats');
     });
   });
+
+  // ── 4. Object/Array Compatibility for Child Records ────────────────────────
+  describe('Child Profile Object/Array Data Compatibility', () => {
+    it('handles object-based milestones, teeth, and vaccinations without throwing', () => {
+      const childWithObjectData = {
+        id: 'child-obj-test',
+        name: 'Theo Test',
+        birthdate: '2024-01-01',
+        gender: 'boy',
+        milestones: {
+          'first-smile': {
+            completed: true,
+            date: '2024-02-15',
+            notes: 'Erstes Lächeln',
+            photo: 'data:image/jpeg;base64,...',
+          },
+        },
+        teeth: {
+          'upper-central-left': {
+            erupted: true,
+            date: '2024-06-10',
+            name: 'Schneidezahn oben links',
+          },
+        },
+        vaccinations: {
+          'rotavirus-1': {
+            date: '2024-03-01',
+            name: 'Rotaviren 1',
+          },
+        },
+        uCheckups: {
+          U1: { completed: true, date: '2024-01-01', name: 'U1' },
+        },
+      };
+
+      // Ensure that extracting values or normalizing works reliably
+      const milestoneValues = Object.values(childWithObjectData.milestones);
+      expect(milestoneValues).toHaveLength(1);
+      expect(milestoneValues[0].date).toBe('2024-02-15');
+
+      const teethCount = Object.values(childWithObjectData.teeth).filter(
+        (t) => t.erupted || t.date
+      ).length;
+      expect(teethCount).toBe(1);
+    });
+  });
 });

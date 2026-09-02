@@ -51,14 +51,20 @@ export default function DoctorView({ activeChild, activeChildMeasurements = [] }
   // Erupted teeth count
   const teethCount = useMemo(() => {
     if (!activeChild?.teeth) return 0;
-    return Object.values(activeChild.teeth).filter((tooth) =>
-      Boolean(tooth?.erupted || tooth?.date)
-    ).length;
+    const teethList = Array.isArray(activeChild.teeth)
+      ? activeChild.teeth
+      : Object.values(activeChild.teeth);
+    return teethList.filter((tooth) => Boolean(tooth?.erupted || tooth?.date)).length;
   }, [activeChild]);
 
   // U-Checkups completed vs planned
   const uCheckups = useMemo(() => {
-    return activeChild?.uCheckups || [];
+    if (!activeChild?.uCheckups) return [];
+    if (Array.isArray(activeChild.uCheckups)) return activeChild.uCheckups;
+    return Object.entries(activeChild.uCheckups).map(([id, data]) => ({
+      id,
+      ...(typeof data === 'object' ? data : { name: id, completed: Boolean(data) }),
+    }));
   }, [activeChild]);
 
   // Vaccinations list

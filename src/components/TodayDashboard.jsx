@@ -36,7 +36,7 @@ function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
           <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
             <ClipboardList className="w-5 h-5" />
           </div>
-          <span className="text-xs font-semibold text-cyan-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+          <span className="text-xs font-semibold text-cyan-300 group-hover:translate-x-1 transition-transform flex items-center gap-1">
             {t('common.view', 'Ansehen')} →
           </span>
         </div>
@@ -51,8 +51,8 @@ function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
                 ? t(`uCheckups.items.${nextCheckup.id}.name`)
                 : nextCheckup.name}
             </p>
-            <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+            <p className="text-xs text-slate-300 mt-1 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-cyan-300" />
               {t(`uCheckups.items.${nextCheckup.id}.period`) !==
               `uCheckups.items.${nextCheckup.id}.period`
                 ? t(`uCheckups.items.${nextCheckup.id}.period`)
@@ -60,12 +60,12 @@ function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
             </p>
           </div>
         ) : (
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-slate-300 mt-2">
             {t('dashboard.allCheckupsDone', 'Alle Vorsorgeuntersuchungen abgeschlossen')}
           </p>
         )}
       </div>
-      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
+      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-300 w-full">
         {checkupDesc}
       </div>
     </button>
@@ -81,10 +81,10 @@ function MeasurementsCard({ latestMeasurement, onNavigateTab, onOpenAddMeasureme
     >
       <div className="w-full">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center justify-center">
             <Scale className="w-5 h-5" />
           </div>
-          <span className="text-xs font-semibold text-cyan-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+          <span className="text-xs font-semibold text-cyan-300 group-hover:translate-x-1 transition-transform flex items-center gap-1">
             {t('dashboard.viewCurves', 'Kurven')} →
           </span>
         </div>
@@ -94,7 +94,7 @@ function MeasurementsCard({ latestMeasurement, onNavigateTab, onOpenAddMeasureme
         {latestMeasurement ? (
           <div className="mt-2 space-y-1">
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-slate-400">{t('growth.weight', 'Gewicht')}:</span>
+              <span className="text-xs text-slate-300">{t('growth.weight', 'Gewicht')}:</span>
               <span className="text-sm font-bold text-white">
                 {latestMeasurement.weight
                   ? `${Math.round(latestMeasurement.weight * 1000)} g`
@@ -102,13 +102,13 @@ function MeasurementsCard({ latestMeasurement, onNavigateTab, onOpenAddMeasureme
               </span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-slate-400">{t('growth.length', 'Körperlänge')}:</span>
+              <span className="text-xs text-slate-300">{t('growth.length', 'Körperlänge')}:</span>
               <span className="text-sm font-bold text-white">
                 {latestMeasurement.length ? `${latestMeasurement.length} cm` : '—'}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-300">
                 {t('growth.headCircumference', 'Kopfumfang')}:
               </span>
               <span className="text-sm font-bold text-white">
@@ -127,7 +127,7 @@ function MeasurementsCard({ latestMeasurement, onNavigateTab, onOpenAddMeasureme
                   e.stopPropagation();
                   onOpenAddMeasurement();
                 }}
-                className="inline-block px-3 py-1.5 rounded-xl bg-cyan-600/80 hover:bg-cyan-600 text-white text-xs font-semibold"
+                className="inline-block px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs"
               >
                 + {t('measurements.addTitle', 'Messwert eintragen')}
               </button>
@@ -135,8 +135,8 @@ function MeasurementsCard({ latestMeasurement, onNavigateTab, onOpenAddMeasureme
           </div>
         )}
       </div>
-      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center gap-1.5 w-full">
-        <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-300 flex items-center gap-1.5 w-full">
+        <Calendar className="w-3.5 h-3.5 text-cyan-300" />
         <span>
           {latestMeasurement
             ? latestMeasurement.date
@@ -156,10 +156,10 @@ function VaccinationsCard({ activeChild, pendingVaccinationsCount, onNavigateTab
     >
       <div className="w-full">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center justify-center">
             <Syringe className="w-5 h-5" />
           </div>
-          <span className="text-xs font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+          <span className="text-xs font-semibold text-emerald-300 group-hover:translate-x-1 transition-transform flex items-center gap-1">
             {t('dashboard.viewVaccines', 'Impfpass')} →
           </span>
         </div>
@@ -167,14 +167,14 @@ function VaccinationsCard({ activeChild, pendingVaccinationsCount, onNavigateTab
           {t('vaccinations.title', 'Impfpass & STIKO-Empfehlungen')}
         </h2>
         <div className="mt-2 flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-300" />
           <span className="text-sm font-bold text-white">
             {Object.keys(activeChild.vaccinations || {}).length} / {STIKO_VACCINATIONS.length}{' '}
             {t('dashboard.recorded', 'erfasst')}
           </span>
         </div>
       </div>
-      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
+      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-300 w-full">
         {pendingVaccinationsCount > 0
           ? t('dashboard.vaccinesRecommended', {
               count: pendingVaccinationsCount,
@@ -195,23 +195,23 @@ function MilestonesCard({ milestoneStats, onNavigateTab, t }) {
     >
       <div className="w-full">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 flex items-center justify-center">
             <Sparkles className="w-5 h-5" />
           </div>
-          <span className="text-xs font-semibold text-amber-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+          <span className="text-xs font-semibold text-amber-300 group-hover:translate-x-1 transition-transform flex items-center gap-1">
             {t('common.view', 'Ansehen')} →
           </span>
         </div>
         <h2 className="text-sm font-bold text-slate-200">{t('nav.milestones', 'Meilensteine')}</h2>
         <div className="mt-2 flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-amber-400" />
+          <CheckCircle2 className="w-5 h-5 text-amber-300" />
           <span className="text-sm font-bold text-white">
             {milestoneStats.recordedCount} / {milestoneStats.totalCount}{' '}
             {t('dashboard.recorded', 'erfasst')}
           </span>
         </div>
       </div>
-      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
+      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-300 w-full">
         {milestoneStats.recordedCount > 0
           ? t('dashboard.milestonesRecorded', {
               count: milestoneStats.recordedCount,
@@ -232,23 +232,23 @@ function TeethCard({ teethStats, onNavigateTab, t }) {
     >
       <div className="w-full">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-pink-500/10 border border-pink-500/20 text-pink-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-pink-500/10 border border-pink-500/20 text-pink-300 flex items-center justify-center">
             <ToothIcon className="w-5 h-5" />
           </div>
-          <span className="text-xs font-semibold text-pink-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+          <span className="text-xs font-semibold text-pink-300 group-hover:translate-x-1 transition-transform flex items-center gap-1">
             {t('common.view', 'Ansehen')} →
           </span>
         </div>
         <h2 className="text-sm font-bold text-slate-200">{t('nav.teeth', 'Milchzähne')}</h2>
         <div className="mt-2 flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-pink-400" />
+          <CheckCircle2 className="w-5 h-5 text-pink-300" />
           <span className="text-sm font-bold text-white">
             {teethStats.eruptedCount} / {teethStats.totalCount}{' '}
             {t('teeth.teethCount', 'Zähne durchgebrochen')}
           </span>
         </div>
       </div>
-      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
+      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-300 w-full">
         {teethStats.eruptedCount > 0
           ? t('dashboard.teethErupted', {
               count: teethStats.eruptedCount,
@@ -269,10 +269,10 @@ function HealthCard({ latestHealthEntry, onNavigateTab, t }) {
     >
       <div className="w-full">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 flex items-center justify-center">
             <HeartPulse className="w-5 h-5" />
           </div>
-          <span className="text-xs font-semibold text-rose-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+          <span className="text-xs font-semibold text-rose-300 group-hover:translate-x-1 transition-transform flex items-center gap-1">
             {t('common.view', 'Ansehen')} →
           </span>
         </div>
@@ -284,20 +284,20 @@ function HealthCard({ latestHealthEntry, onNavigateTab, t }) {
                 ? `${latestHealthEntry.temperature} °C`
                 : t('dashboard.symptomEntry', 'Symptomeintrag')}
             </p>
-            <p className="text-xs text-slate-400 mt-0.5 truncate">
+            <p className="text-xs text-slate-300 mt-0.5 truncate">
               {latestHealthEntry.symptoms || latestHealthEntry.medication || latestHealthEntry.date}
             </p>
           </div>
         ) : (
           <div className="mt-2 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span className="text-sm font-medium text-slate-300">
+            <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+            <span className="text-sm font-medium text-slate-200">
               {t('dashboard.noAcuteIllness', 'Keine akuten Krankheitseinträge')}
             </span>
           </div>
         )}
       </div>
-      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-400 w-full">
+      <div className="mt-4 pt-3 border-t border-slate-800/80 text-[11px] text-slate-300 w-full">
         {latestHealthEntry
           ? t('dashboard.lastEntryOn', {
               date: latestHealthEntry.date,
@@ -400,7 +400,7 @@ export default function TodayDashboard({
                   count: reminders.totalDueCount,
                 })}
               </p>
-              <p className="text-xs text-amber-300/80 mt-0.5">
+              <p className="text-xs text-amber-200 mt-0.5">
                 {t(
                   'reminders.dueDesc',
                   'Überprüfen Sie die anstehenden U-Untersuchungen und STIKO-Impfungen.'
@@ -419,7 +419,7 @@ export default function TodayDashboard({
             <button
               type="button"
               onClick={() => onNavigateTab?.('ucheckups')}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-md shrink-0"
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-colors cursor-pointer shadow-md shrink-0"
             >
               {t('common.view', 'Ansehen')} →
             </button>
@@ -442,7 +442,7 @@ export default function TodayDashboard({
             <button
               type="button"
               onClick={onOpenQuickAdd}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-white font-bold text-sm shadow-lg shadow-cyan-950 transition-all cursor-pointer hover:scale-105 active:scale-95"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-950 transition-all cursor-pointer hover:scale-105 active:scale-95"
             >
               <span>+ {t('common.add', 'Eintrag hinzufügen')}</span>
             </button>

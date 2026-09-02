@@ -87,7 +87,7 @@ function MetricCardItem({ card }) {
       <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/10 transition-colors" />
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
           {card.title}
         </span>
         <div className="p-2 rounded-xl bg-slate-800 text-slate-300">
@@ -122,10 +122,10 @@ function MetricCardItem({ card }) {
             <TrendingUp className="w-3 h-3" />
             <span>P{pct.percentile}</span>
           </div>
-          <span className="text-[11px] text-slate-400">{pct.text || pct.statusText}</span>
+          <span className="text-[11px] text-slate-300">{pct.text || pct.statusText}</span>
         </div>
       ) : (
-        <span className="text-[11px] text-slate-500">—</span>
+        <span className="text-[11px] text-slate-400">—</span>
       )}
     </div>
   );

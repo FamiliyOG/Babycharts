@@ -12,7 +12,7 @@ export default function NoChildWelcome({ canEdit, isDev, onOpenCreateModal, onLo
           <button
             type="button"
             onClick={onOpenCreateModal}
-            className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-semibold text-sm shadow-lg shadow-cyan-950 transition-all cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-950 transition-all cursor-pointer"
           >
             {t('app.createFirstChild')}
           </button>

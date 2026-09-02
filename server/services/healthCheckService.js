@@ -5,7 +5,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { sqlite, readDb } from '../utils/db.js';
+import { sqlite } from '../utils/db.js';
 
 const BACKUP_DIR = path.resolve(process.env.DATA_DIR || './data', 'backups');
 
@@ -87,7 +87,12 @@ export function checkDatabaseAndBackupHealth() {
     issues.push(`Fehler beim Prüfen des Backup-Verzeichnisses: ${err.message}`);
   }
 
-  const status = issues.length === 0 ? 'healthy' : dbHealthy ? 'warning' : 'error';
+  let status = 'healthy';
+  if (!dbHealthy) {
+    status = 'error';
+  } else if (issues.length > 0) {
+    status = 'warning';
+  }
 
   return {
     status,

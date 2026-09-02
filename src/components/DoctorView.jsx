@@ -14,12 +14,16 @@ import {
   Printer,
   ShieldCheck,
   AlertCircle,
-  Calendar,
   CheckCircle2,
   Clock,
 } from 'lucide-react';
-import { ToothIcon } from './ToothIcon.jsx';
 import { DATA_SOURCES } from '../utils/dataSourceMetadata.js';
+
+function getGenderLabel(gender) {
+  if (gender === 'girl') return 'Weiblich';
+  if (gender === 'boy') return 'Männlich';
+  return 'Divers';
+}
 
 export default function DoctorView({ activeChild, activeChildMeasurements = [] }) {
   const { t } = useTranslation();
@@ -33,15 +37,16 @@ export default function DoctorView({ activeChild, activeChildMeasurements = [] }
 
   const latestMeasurement = sortedMeasurements[0] || null;
 
-  // Calculate age in months
+  // Calculate age in months directly
+  const birthdateStr = activeChild?.birthdate;
   const ageMonths = useMemo(() => {
-    if (!activeChild?.birthdate) return null;
-    const birth = new Date(activeChild.birthdate);
+    if (!birthdateStr) return null;
+    const birth = new Date(birthdateStr);
     const now = new Date();
     const months =
       (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
     return Math.max(0, months);
-  }, [activeChild?.birthdate]);
+  }, [birthdateStr]);
 
   // Erupted teeth count
   const teethCount = useMemo(() => {
@@ -49,12 +54,12 @@ export default function DoctorView({ activeChild, activeChildMeasurements = [] }
     return Object.values(activeChild.teeth).filter((tooth) =>
       Boolean(tooth?.erupted || tooth?.date)
     ).length;
-  }, [activeChild?.teeth]);
+  }, [activeChild]);
 
   // U-Checkups completed vs planned
   const uCheckups = useMemo(() => {
     return activeChild?.uCheckups || [];
-  }, [activeChild?.uCheckups]);
+  }, [activeChild]);
 
   // Vaccinations list
   const vaccinations = useMemo(() => {
@@ -64,7 +69,7 @@ export default function DoctorView({ activeChild, activeChildMeasurements = [] }
       name,
       ...(typeof data === 'object' ? data : { date: data }),
     }));
-  }, [activeChild?.vaccinations]);
+  }, [activeChild]);
 
   if (!activeChild) {
     return (
@@ -110,13 +115,7 @@ export default function DoctorView({ activeChild, activeChildMeasurements = [] }
               <span>•</span>
               <span>
                 Geschlecht:{' '}
-                <strong className="text-slate-200">
-                  {activeChild.gender === 'girl'
-                    ? 'Weiblich'
-                    : activeChild.gender === 'boy'
-                      ? 'Männlich'
-                      : 'Divers'}
-                </strong>
+                <strong className="text-slate-200">{getGenderLabel(activeChild.gender)}</strong>
               </span>
             </div>
           </div>
@@ -229,7 +228,7 @@ export default function DoctorView({ activeChild, activeChildMeasurements = [] }
             ) : (
               vaccinations.map((vac, idx) => (
                 <div
-                  key={idx}
+                  key={`${vac.name || vac.vaccineId || 'vac'}-${idx}`}
                   className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs"
                 >
                   <div className="flex items-center gap-2">
@@ -263,7 +262,7 @@ export default function DoctorView({ activeChild, activeChildMeasurements = [] }
             ) : (
               uCheckups.map((u, idx) => (
                 <div
-                  key={idx}
+                  key={`${u.id || u.name || 'u'}-${idx}`}
                   className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs"
                 >
                   <div className="flex items-center gap-2">

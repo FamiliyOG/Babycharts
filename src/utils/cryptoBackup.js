@@ -18,7 +18,7 @@ function buf2hex(buffer) {
 function hex2buf(hexString) {
   const bytes = new Uint8Array(Math.ceil(hexString.length / 2));
   for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(hexString.substr(i * 2, 2), 16);
+    bytes[i] = Number.parseInt(hexString.substr(i * 2, 2), 16);
   }
   return bytes.buffer;
 }

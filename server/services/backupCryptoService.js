@@ -55,11 +55,7 @@ export function encryptBackupNode(data, passphrase) {
  * Decrypts an encrypted backup object with AES-256-GCM.
  */
 export function decryptBackupNode(encryptedObj, passphrase) {
-  if (
-    !encryptedObj ||
-    encryptedObj.version !== 'babycharts-enc-v1' ||
-    encryptedObj.algorithm !== 'AES-256-GCM'
-  ) {
+  if (encryptedObj?.version !== 'babycharts-enc-v1' || encryptedObj?.algorithm !== 'AES-256-GCM') {
     throw new Error('Ungültiges oder nicht unterstütztes Verschlüsselungsformat.');
   }
 

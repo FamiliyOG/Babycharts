@@ -75,6 +75,16 @@ export function generateRecoveryCodes(count = 8) {
   return codes;
 }
 
+/**
+ * Computes a secure HMAC-SHA256 hash for storing 2FA recovery codes (Issue #235)
+ */
+export function hashRecoveryCode(code, userId) {
+  if (!code || typeof code !== 'string') return '';
+  const normalized = code.trim().toUpperCase();
+  const salt = process.env.DATA_ENCRYPTION_KEY || JWT_SECRET;
+  return crypto.createHmac('sha256', salt).update(`${userId}:${normalized}`).digest('hex');
+}
+
 // ── Rate Limiters to prevent Brute-Force & Credential Stuffing ───────────────
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -261,7 +271,7 @@ router.post('/register', registerLimiter, async (req, res) => {
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
     const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-    const { familyName, inviteCode } = req.body || {};
+    const { familyName, inviteCode, setupToken } = req.body || {};
 
     if (!rawEmail || !rawPassword || !rawName) {
       return res.status(400).json({ error: 'Name, E-Mail und Passwort sind erforderlich.' });
@@ -274,15 +284,36 @@ router.post('/register', registerLimiter, async (req, res) => {
 
     const normalizedEmail = rawEmail.toLowerCase();
     const db = readDb();
+    const settings = db.settings || {};
 
     if (db.users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
       return res.status(400).json({ error: 'Diese E-Mail-Adresse ist bereits registriert.' });
     }
 
+    const isFirstUser = db.users.length === 0;
+
+    // Check if public registration is disabled for non-initial users without invite (Issue #236)
+    if (!isFirstUser && settings.allow_public_registration === false && !inviteCode) {
+      return res.status(403).json({
+        error:
+          'Die öffentliche Registrierung ist deaktiviert. Bitte verwenden Sie einen Einladungscode.',
+      });
+    }
+
+    // Check INITIAL_ADMIN_TOKEN if required on initial server deployment (Issue #236)
+    const requiredSetupToken = process.env.INITIAL_ADMIN_TOKEN;
+    if (isFirstUser && requiredSetupToken && requiredSetupToken.trim()) {
+      if (!setupToken || setupToken.trim() !== requiredSetupToken.trim()) {
+        return res.status(403).json({
+          error:
+            'Für die Ersteinrichtung des Administrators ist ein gültiger Setup-Code erforderlich.',
+        });
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
     const userId = `user-${Date.now()}`;
 
-    const isFirstUser = db.users.length === 0;
     const isDev =
       isFirstUser ||
       (process.env.DEV_EMAIL && normalizedEmail === process.env.DEV_EMAIL.toLowerCase());
@@ -342,10 +373,13 @@ function verifyUserTwoFactor(user, rawTotp, db) {
     });
   }
 
-  // Check recovery codes fallback (Issue BC-031)
+  // Check recovery codes fallback (Issue BC-031 / Issue #235)
   if (!verified && user.recoveryCodes?.length > 0) {
     const normalizedInput = rawTotp.toUpperCase();
-    const codeIndex = user.recoveryCodes.findIndex((c) => c.toUpperCase() === normalizedInput);
+    const inputHash = hashRecoveryCode(rawTotp, user.id);
+    const codeIndex = user.recoveryCodes.findIndex(
+      (c) => c === inputHash || c.toUpperCase() === normalizedInput
+    );
     if (codeIndex !== -1) {
       verified = true;
       user.recoveryCodes.splice(codeIndex, 1);
@@ -664,9 +698,9 @@ router.post('/2fa/verify', requireAuth, twoFactorLimiter, validateTotpCode, (req
     delete user.tempTwoFactorSecret;
     delete user.tempTwoFactorExpires;
 
-    // Generate 8 2FA recovery codes (Issue BC-031)
-    const recoveryCodes = generateRecoveryCodes(8);
-    user.recoveryCodes = recoveryCodes;
+    // Generate 8 2FA recovery codes and hash them before saving (Issue BC-031 / Issue #235)
+    const rawRecoveryCodes = generateRecoveryCodes(8);
+    user.recoveryCodes = rawRecoveryCodes.map((code) => hashRecoveryCode(code, user.id));
 
     writeDb(db);
 
@@ -682,7 +716,7 @@ router.post('/2fa/verify', requireAuth, twoFactorLimiter, validateTotpCode, (req
     return res.json({
       message: 'Zwei-Faktor-Authentifizierung erfolgreich aktiviert!',
       user: formatUserPayload(user),
-      recoveryCodes, // Provided to user to save/print
+      recoveryCodes: rawRecoveryCodes, // Provided to user once to save/print
     });
   } catch (err) {
     console.error('[2FA VERIFY ERROR %s] Verification exception:', new Date().toISOString(), err);

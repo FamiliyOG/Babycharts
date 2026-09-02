@@ -153,6 +153,21 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       'http://127.0.0.1:5173',
     ].filter(Boolean);
 
+const isPrivateNetworkHostname = (hostname) => {
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return true;
+  }
+  if (hostname.startsWith('192.168.') || hostname.startsWith('10.')) {
+    return true;
+  }
+  if (hostname.startsWith('172.')) {
+    const parts = hostname.split('.');
+    const second = parseInt(parts[1], 10);
+    return !Number.isNaN(second) && second >= 16 && second <= 31;
+  }
+  return false;
+};
+
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -166,16 +181,10 @@ app.use(
         return callback(null, true);
       }
 
-      // 3. Allow private/local LAN network IPs (192.168.x.x, 10.x.x.x, 172.x.x.x) and localhost for Docker/Unraid
+      // 3. Allow private/local LAN network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x) and localhost
       try {
         const { hostname } = new URL(origin);
-        if (
-          hostname === 'localhost' ||
-          hostname === '127.0.0.1' ||
-          hostname.startsWith('192.168.') ||
-          hostname.startsWith('10.') ||
-          hostname.startsWith('172.')
-        ) {
+        if (isPrivateNetworkHostname(hostname)) {
           return callback(null, true);
         }
       } catch {
@@ -188,9 +197,14 @@ app.use(
     credentials: true,
   })
 );
-// Body parser for JSON with 50MB limit to support high-resolution mobile photos
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Granular body parsers: Higher limits for encrypted media uploads and backup imports (Issue #238)
+app.use(['/api/media/upload', '/api/v1/media/upload'], express.json({ limit: '35mb' }));
+app.use(['/api/exports/import', '/api/v1/exports/import'], express.json({ limit: '35mb' }));
+
+// Standard body parser for all other JSON routes (1MB) to prevent DoS/Memory exhaustion (Issue #238)
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // ── Client Error Logging (Forward frontend errors to Unraid container log) ───
 app.post('/api/client-logs', (req, res) => {
@@ -305,11 +319,21 @@ app.get('{*path}', (req, res, next) => {
   try {
     if (fs.existsSync(INDEX_HTML_PATH)) {
       let html = fs.readFileSync(INDEX_HTML_PATH, 'utf8');
+      const dbSettings = readDb().settings || {};
+      const sentryEnabled = Boolean(
+        process.env.VITE_SENTRY_ENABLED === 'true' ||
+        process.env.SENTRY_ENABLED === 'true' ||
+        dbSettings.sentry_enabled === true
+      );
       const runtimeConfig = {
-        VITE_SENTRY_DSN:
-          process.env.VITE_SENTRY_DSN ||
-          process.env.SENTRY_DSN ||
-          'https://07036a692033303919294711f2ae049e@o4512010628497408.ingest.de.sentry.io/4512010705240144',
+        sentry_enabled: sentryEnabled,
+        sentry_dsn: sentryEnabled
+          ? process.env.VITE_SENTRY_DSN || process.env.SENTRY_DSN || dbSettings.sentry_dsn || null
+          : null,
+        sentry_replay_enabled: Boolean(
+          process.env.VITE_SENTRY_REPLAY_ENABLED === 'true' ||
+          dbSettings.sentry_replay_enabled === true
+        ),
       };
       const configScript = `<script>window.__BABYCHARTS_CONFIG__ = ${JSON.stringify(runtimeConfig)};</script>`;
       html = html.replace('</head>', `${configScript}</head>`);

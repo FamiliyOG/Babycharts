@@ -13,21 +13,32 @@ import { PwaProvider } from './context/PwaContext.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 import { logClientError } from './utils/api.js';
 
-// Initialize Sentry error tracking if configured via environment or runtime config
+// Sentry error tracking is opt-in and disabled by default (Issue #232)
+const sentryEnabled =
+  import.meta.env.VITE_SENTRY_ENABLED === 'true' ||
+  (typeof window !== 'undefined' && window.__BABYCHARTS_CONFIG__?.sentry_enabled === true);
+
 const sentryDsn =
   import.meta.env.VITE_SENTRY_DSN ||
-  (typeof window !== 'undefined' && window.__BABYCHARTS_CONFIG__?.VITE_SENTRY_DSN) ||
-  'https://07036a692033303919294711f2ae049e@o4512010628497408.ingest.de.sentry.io/4512010705240144';
+  (typeof window !== 'undefined' && window.__BABYCHARTS_CONFIG__?.sentry_dsn);
 
-if (sentryDsn && typeof sentryDsn === 'string' && sentryDsn.trim()) {
+if (sentryEnabled && sentryDsn && typeof sentryDsn === 'string' && sentryDsn.trim()) {
+  const replayEnabled =
+    import.meta.env.VITE_SENTRY_REPLAY_ENABLED === 'true' ||
+    (typeof window !== 'undefined' && window.__BABYCHARTS_CONFIG__?.sentry_replay_enabled === true);
+
   Sentry.init({
     dsn: sentryDsn.trim(),
     environment: import.meta.env.MODE || 'production',
-    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      ...(replayEnabled ? [Sentry.replayIntegration()] : []),
+    ],
     tracesSampleRate: 0.1,
     tracePropagationTargets: ['localhost', /^\/api\//],
     replaysSessionSampleRate: 0.0,
-    replaysOnErrorSampleRate: 1.0,
+    replaysOnErrorSampleRate: replayEnabled ? 1.0 : 0.0,
+    sendDefaultPii: false,
     ignoreErrors: [
       'ExtensionMessagingService',
       'onMessage listener',
@@ -72,7 +83,7 @@ if (sentryDsn && typeof sentryDsn === 'string' && sentryDsn.trim()) {
   }
 }
 
-// Global Client Error Catchers & iOS PWA Pinch/Double-Tap Zoom Protection
+// Global Client Error Catchers & PWA Prompts
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent default mini-infobar and save prompt event globally
@@ -82,39 +93,30 @@ if (typeof window !== 'undefined') {
   });
 
   window.addEventListener('error', (event) => {
-    // Ignore harmless browser/extension warnings (e.g. extension accessing file:///, extension messaging, or forced layout notices)
-    const msg = event.message || '';
-    const filename = event.filename || '';
-    const stack = event.error?.stack || '';
+    const msg = (event?.message || '').toString();
+    const stack = (event?.error?.stack || '').toString();
     if (
-      msg.includes('may not load or link to file:///') ||
-      msg.includes('Layout-Darstellung') ||
-      msg.includes('Layout') ||
       msg.includes('ExtensionMessagingService') ||
       msg.includes('onMessage listener') ||
       msg.includes('rc2Contentscript') ||
       msg.includes('scrollHeight') ||
-      filename.includes('moz-extension://') ||
-      filename.includes('chrome-extension://') ||
-      filename.includes('rc2Contentscript') ||
+      stack.includes('moz-extension://') ||
+      stack.includes('chrome-extension://') ||
       stack.includes('rc2Contentscript')
     ) {
       return;
     }
-    logClientError(msg, event.error, {
-      filename: event.filename,
+    logClientError(msg || 'Uncaught JavaScript Error', event.error || event.filename, {
+      type: 'uncaught_error',
       lineno: event.lineno,
       colno: event.colno,
     });
   });
 
   window.addEventListener('unhandledrejection', (event) => {
-    const msg = event.reason?.message || '';
-    const stack = event.reason?.stack || '';
+    const msg = (event?.reason?.message || event?.reason || '').toString();
+    const stack = (event?.reason?.stack || '').toString();
     if (
-      msg.includes('may not load or link to file:///') ||
-      msg.includes('Layout-Darstellung') ||
-      msg.includes('Layout') ||
       msg.includes('ExtensionMessagingService') ||
       msg.includes('onMessage listener') ||
       msg.includes('rc2Contentscript') ||
@@ -129,25 +131,6 @@ if (typeof window !== 'undefined') {
       type: 'unhandledrejection',
     });
   });
-
-  // Prevent iOS Safari gesture zoom (Pinch-to-zoom)
-  document.addEventListener('gesturestart', (e) => {
-    e.preventDefault();
-  });
-
-  // Prevent iOS double-tap to zoom
-  let lastTouchEnd = 0;
-  document.addEventListener(
-    'touchend',
-    (e) => {
-      const now = Date.now();
-      if (now - lastTouchEnd <= 300) {
-        e.preventDefault();
-      }
-      lastTouchEnd = now;
-    },
-    { passive: false }
-  );
 }
 
 // Select root component: Puppeteer report mode vs. full app

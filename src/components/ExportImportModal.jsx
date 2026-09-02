@@ -9,9 +9,12 @@ import {
   Smartphone,
   Download,
   Check,
+  Shield,
+  Save,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
+import { getAppSettings, updateAppSettings } from '../utils/api.js';
 
 export default function ExportImportModal({
   isOpen,
@@ -35,6 +38,25 @@ export default function ExportImportModal({
     );
   });
   const [installSuccess, setInstallSuccess] = useState(false);
+
+  // Superadmin Privacy / Sentry settings state (Issue #232)
+  const [sentryEnabled, setSentryEnabled] = useState(false);
+  const [sentryDsn, setSentryDsn] = useState('');
+  const [sentryReplayEnabled, setSentryReplayEnabled] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && isDev) {
+      getAppSettings().then((res) => {
+        if (res.ok && res.data) {
+          setSentryEnabled(Boolean(res.data.sentry_enabled));
+          setSentryDsn(res.data.sentry_dsn || '');
+          setSentryReplayEnabled(Boolean(res.data.sentry_replay_enabled));
+        }
+      });
+    }
+  }, [isOpen, isDev]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -360,34 +382,134 @@ export default function ExportImportModal({
             )}
           </div>
 
-          {/* Dev / Superadmin Tools (Only visible to isDev) */}
+          {/* Dev / Superadmin Tools & Privacy Configuration (Only visible to isDev) */}
           {isDev && (
-            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 flex items-center justify-between shadow-xs">
-              <div>
-                <div className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>{t('exportImport.devToolsTitle', 'Entwickler-Tools (Dev Account)')}</span>
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 flex items-center justify-between shadow-xs">
+                <div>
+                  <div className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>{t('exportImport.devToolsTitle', 'Entwickler-Tools (Dev Account)')}</span>
+                  </div>
+                  <div className="text-[11px] text-amber-700 dark:text-amber-400/90 font-medium">
+                    {t(
+                      'exportImport.devToolsDesc',
+                      'Demo-Datensätze (Noah & Mia) mit Beispielwerten laden'
+                    )}
+                  </div>
                 </div>
-                <div className="text-[11px] text-amber-700 dark:text-amber-400/90 font-medium">
-                  {t(
-                    'exportImport.devToolsDesc',
-                    'Demo-Datensätze (Noah & Mia) mit Beispielwerten laden'
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onLoadDemoData) {
+                      onLoadDemoData();
+                      onClose();
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-colors active:scale-95 shrink-0"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{t('exportImport.demoDataBtn', 'Demo-Daten')}</span>
+                </button>
+              </div>
+
+              {/* Privacy & Sentry Configuration (Issue #232) */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Shield className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                      Datenschutz & Fehler-Telemetrie (Sentry)
+                    </span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-cyan-100 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
+                    Instanz-Admin
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Standardmäßig überträgt BabyCharts <strong>keine Telemetrie</strong> an Dritte.
+                  Hier können Sie optional eine Sentry-Fehlerüberwachung für Ihren Server
+                  konfigurieren.
+                </p>
+
+                <div className="space-y-2.5 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800 dark:text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={sentryEnabled}
+                      onChange={(e) => setSentryEnabled(e.target.checked)}
+                      className="rounded border-slate-300 dark:border-slate-700 text-cyan-600 focus:ring-cyan-500 w-4 h-4"
+                    />
+                    <span>Sentry Fehler-Telemetrie aktivieren</span>
+                  </label>
+
+                  {sentryEnabled && (
+                    <div className="space-y-2 pl-6 animate-fadeIn">
+                      <div>
+                        <label
+                          htmlFor="sentry-dsn-input"
+                          className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                        >
+                          Sentry DSN (Ingest URL)
+                        </label>
+                        <input
+                          id="sentry-dsn-input"
+                          type="text"
+                          value={sentryDsn}
+                          onChange={(e) => setSentryDsn(e.target.value)}
+                          placeholder="https://...@ingest.de.sentry.io/..."
+                          className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-hidden font-mono"
+                        />
+                      </div>
+
+                      <label className="flex items-center gap-2 cursor-pointer text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={sentryReplayEnabled}
+                          onChange={(e) => setSentryReplayEnabled(e.target.checked)}
+                          className="rounded border-slate-300 dark:border-slate-700 text-cyan-600 focus:ring-cyan-500 w-3.5 h-3.5"
+                        />
+                        <span>Session Replay aktivieren (nur bei Fehlern aufzeichnen)</span>
+                      </label>
+                    </div>
                   )}
+
+                  <div className="flex items-center justify-between pt-2">
+                    {settingsSaved && (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Gespeichert!
+                      </span>
+                    )}
+                    {!settingsSaved && <span />}
+
+                    <button
+                      type="button"
+                      disabled={settingsLoading}
+                      onClick={async () => {
+                        setSettingsLoading(true);
+                        setSettingsSaved(false);
+                        const res = await updateAppSettings({
+                          sentry_enabled: sentryEnabled,
+                          sentry_dsn: sentryEnabled ? sentryDsn.trim() : null,
+                          sentry_replay_enabled: sentryEnabled ? sentryReplayEnabled : false,
+                        });
+                        setSettingsLoading(false);
+                        if (res.ok) {
+                          setSettingsSaved(true);
+                          setTimeout(() => setSettingsSaved(false), 3000);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-xs transition-colors active:scale-95 disabled:opacity-50"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>
+                        {settingsLoading ? 'Wird gespeichert...' : 'Einstellungen speichern'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onLoadDemoData) {
-                    onLoadDemoData();
-                    onClose();
-                  }
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-colors active:scale-95 shrink-0"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{t('exportImport.demoDataBtn', 'Demo-Daten')}</span>
-              </button>
             </div>
           )}
         </div>

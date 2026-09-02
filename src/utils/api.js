@@ -58,6 +58,21 @@ export async function resetPassword(token, newPassword) {
   });
 }
 
+// ── Instance Settings Endpoints ─────────────────────────────────────────────
+
+export async function getAppSettings() {
+  return safeFetch(`${BASE}/settings`, {
+    method: 'GET',
+  });
+}
+
+export async function updateAppSettings(settings) {
+  return safeFetch(`${BASE}/settings`, {
+    method: 'POST',
+    body: JSON.stringify(settings),
+  });
+}
+
 export async function changePassword(currentPassword, newPassword, logoutAllDevices = true) {
   const res = await safeFetch(`${BASE}/auth/change-password`, {
     method: 'POST',

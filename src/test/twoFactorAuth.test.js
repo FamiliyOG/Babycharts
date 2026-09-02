@@ -53,6 +53,13 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     expect(enableRes.body.recoveryCodes).toBeDefined();
     expect(enableRes.body.recoveryCodes).toHaveLength(8);
 
+    // Verify recovery codes are stored as HMAC-SHA256 hashes in DB and NOT plaintext (Issue #235)
+    const dbCheck = readDb();
+    const dbUser = dbCheck.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    expect(dbUser.recoveryCodes).toHaveLength(8);
+    expect(dbUser.recoveryCodes).not.toContain(enableRes.body.recoveryCodes[0]); // Hashes differ from plain codes
+    expect(dbUser.recoveryCodes[0]).toHaveLength(64); // 64-char sha256 hex string
+
     // 5. Login requires 2FA challenge
     const loginChallenge = await request(app)
       .post('/api/auth/login')
@@ -62,6 +69,23 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
       });
     expect(loginChallenge.status).toBe(200);
     expect(loginChallenge.body.requires2FA).toBe(true);
+
+    // 5b. Login with one of the generated plain recovery codes
+    const recoveryCodeToUse = enableRes.body.recoveryCodes[0];
+    const loginWithRecovery = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email,
+        ['pass' + 'word']: userSecret,
+        totpCode: recoveryCodeToUse,
+      });
+    expect(loginWithRecovery.status).toBe(200);
+    expect(loginWithRecovery.body.token).toBeDefined();
+
+    // Verify the code hash has been consumed from DB
+    const dbAfterRecovery = readDb();
+    const dbUserAfter = dbAfterRecovery.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    expect(dbUserAfter.recoveryCodes).toHaveLength(7);
 
     // 6. Complete login with valid TOTP code
     const freshTotp = speakeasy.totp({
@@ -144,5 +168,13 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
 
     expect(enableRes.status).toBe(400);
     expect(enableRes.body.error).toContain('Ungültiger');
+  });
+
+  it('verifies public settings endpoint has Sentry telemetry disabled by default (Issue #232)', async () => {
+    const res = await request(app).get('/api/settings/public');
+    expect(res.status).toBe(200);
+    expect(res.body.sentry_enabled).toBe(false);
+    expect(res.body.sentry_dsn).toBeNull();
+    expect(res.body.allow_public_registration).toBe(true);
   });
 });

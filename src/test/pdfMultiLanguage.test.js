@@ -109,4 +109,23 @@ describe('Multi-Language & Thai PDF Export Test Suite (BC-068, BC-069)', () => {
       expect(fileName).toContain('.pdf');
     }
   });
+
+  it('generates reports via unified generateGrowthPdfReport for A4 and A5', async () => {
+    const { generateGrowthPdfReport } = await import('../utils/pdfGenerator.js');
+    const a4File = await generateGrowthPdfReport(
+      { ...sampleChild, measurements: sampleMeasurements },
+      'a4'
+    );
+    expect(a4File).toBeDefined();
+    expect(typeof a4File).toBe('string');
+    expect(a4File).toContain('.pdf');
+
+    const a5File = await generateGrowthPdfReport(
+      { ...sampleChild, measurements: sampleMeasurements },
+      'a5'
+    );
+    expect(a5File).toBeDefined();
+    expect(typeof a5File).toBe('string');
+    expect(a5File).toContain('.pdf');
+  });
 });

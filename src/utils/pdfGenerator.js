@@ -826,3 +826,24 @@ export function generateUHeftA5Pdf(activeChild, measurements = []) {
     return null;
   }
 }
+
+/**
+ * Unified helper function to generate growth / U-Heft PDF reports based on requested format.
+ */
+export async function generateGrowthPdfReport(activeChild, format = 'a4') {
+  if (!activeChild) return null;
+  const measurements = activeChild.measurements || [];
+
+  if (format === 'a5') {
+    return generateUHeftA5Pdf(activeChild, measurements);
+  }
+
+  return exportReportToPdf(
+    'pdf-report-template',
+    activeChild.name || 'Kind',
+    activeChild.gender || 'boy',
+    activeChild,
+    measurements,
+    false
+  );
+}

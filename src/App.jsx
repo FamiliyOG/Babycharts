@@ -238,9 +238,13 @@ function MainApp() {
     try {
       showToast(`Generiere ${format.toUpperCase()}-Bericht... 📄`);
       const { generateGrowthPdfReport } = await import('./utils/pdfGenerator.js');
-      generateGrowthPdfReport(activeChild, format);
-      showToast('PDF-Bericht erfolgreich heruntergeladen! ✅');
-      confetti({ particleCount: 40, spread: 60, origin: { y: 0.4 } });
+      const result = await generateGrowthPdfReport(activeChild, format);
+      if (result) {
+        showToast('PDF-Bericht erfolgreich heruntergeladen! ✅');
+        confetti({ particleCount: 40, spread: 60, origin: { y: 0.4 } });
+      } else {
+        showToast('Fehler beim Erstellen des PDF-Berichts.');
+      }
     } catch (err) {
       console.error(err);
       logClientError('PDF-Export Fehler', err);

@@ -28,6 +28,38 @@ if (sentryDsn && typeof sentryDsn === 'string' && sentryDsn.trim()) {
     tracePropagationTargets: ['localhost', /^\/api\//],
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
+    ignoreErrors: [
+      'ExtensionMessagingService',
+      'onMessage listener',
+      'rc2Contentscript',
+      'scrollHeight',
+      'installHook.js',
+      'react_devtools',
+      'may not load or link to file:///',
+      'Layout-Darstellung wurde erzwungen',
+    ],
+    beforeSend(event, hint) {
+      const error = hint?.originalException;
+      const errorMessage = (error?.message || event?.message || '').toLowerCase();
+      const stack = (error?.stack || '').toLowerCase();
+      const url = (event?.request?.url || '').toLowerCase();
+
+      // Block known browser extension noise and devtools sourcemap glitches
+      if (
+        errorMessage.includes('extensionmessagingservice') ||
+        errorMessage.includes('onmessage listener') ||
+        errorMessage.includes('rc2contentscript') ||
+        errorMessage.includes('scrollheight') ||
+        errorMessage.includes('installhook') ||
+        stack.includes('moz-extension://') ||
+        stack.includes('chrome-extension://') ||
+        stack.includes('rc2contentscript') ||
+        url.includes('installhook.js')
+      ) {
+        return null;
+      }
+      return event;
+    },
   });
 
   if (typeof window !== 'undefined') {
@@ -53,14 +85,19 @@ if (typeof window !== 'undefined') {
     // Ignore harmless browser/extension warnings (e.g. extension accessing file:///, extension messaging, or forced layout notices)
     const msg = event.message || '';
     const filename = event.filename || '';
+    const stack = event.error?.stack || '';
     if (
       msg.includes('may not load or link to file:///') ||
       msg.includes('Layout-Darstellung') ||
       msg.includes('Layout') ||
       msg.includes('ExtensionMessagingService') ||
       msg.includes('onMessage listener') ||
+      msg.includes('rc2Contentscript') ||
+      msg.includes('scrollHeight') ||
       filename.includes('moz-extension://') ||
-      filename.includes('chrome-extension://')
+      filename.includes('chrome-extension://') ||
+      filename.includes('rc2Contentscript') ||
+      stack.includes('rc2Contentscript')
     ) {
       return;
     }
@@ -80,8 +117,11 @@ if (typeof window !== 'undefined') {
       msg.includes('Layout') ||
       msg.includes('ExtensionMessagingService') ||
       msg.includes('onMessage listener') ||
+      msg.includes('rc2Contentscript') ||
+      msg.includes('scrollHeight') ||
       stack.includes('moz-extension://') ||
-      stack.includes('chrome-extension://')
+      stack.includes('chrome-extension://') ||
+      stack.includes('rc2Contentscript')
     ) {
       return;
     }

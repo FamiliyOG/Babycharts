@@ -48,6 +48,22 @@ const DIST_DIR = path.join(__dirname, '..', 'dist');
 const PORT = Number(process.env.PORT) || 3001;
 const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 
+function resolveNetworkUrl(port) {
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          return `http://${iface.address}:${port}`;
+        }
+      }
+    }
+  } catch {
+    // Fallback if OS network inspection fails
+  }
+  return `http://0.0.0.0:${port}`;
+}
+
 // ── Express setup ────────────────────────────────────────────────────────────
 const app = express();
 app.disable('x-powered-by');
@@ -310,17 +326,7 @@ app.get('{*path}', (req, res, next) => {
 // ── Start ────────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
   const server = app.listen(PORT, '0.0.0.0', () => {
-    // Collect all available local network IP addresses for display
-    const interfaces = os.networkInterfaces();
-    const networkIps = [];
-    for (const name of Object.keys(interfaces)) {
-      for (const iface of interfaces[name] || []) {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          networkIps.push(iface.address);
-        }
-      }
-    }
-    const networkUrl = networkIps[0] ? `http://${networkIps[0]}:${PORT}` : `http://0.0.0.0:${PORT}`;
+    const networkUrl = resolveNetworkUrl(PORT);
 
     console.log('════════════════════════════════════════════════');
     console.log(`  BabyCharts Server started`);

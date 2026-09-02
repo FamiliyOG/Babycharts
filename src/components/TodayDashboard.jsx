@@ -40,9 +40,9 @@ function NextCheckupCard({ nextCheckup, onNavigateTab, t }) {
             {t('common.view', 'Ansehen')} →
           </span>
         </div>
-        <h3 className="text-sm font-bold text-slate-200">
+        <h2 className="text-sm font-bold text-slate-200">
           {t('uCheckups.title', 'U-Vorsorgeuntersuchung')}
-        </h3>
+        </h2>
         {nextCheckup ? (
           <div className="mt-2">
             <p className="text-base font-extrabold text-white">
@@ -88,9 +88,9 @@ function MeasurementsCard({ latestMeasurement, onNavigateTab, onOpenAddMeasureme
             {t('dashboard.viewCurves', 'Kurven')} →
           </span>
         </div>
-        <h3 className="text-sm font-bold text-slate-200">
+        <h2 className="text-sm font-bold text-slate-200">
           {t('measurements.tableTitle', 'Messwert-Historie')}
-        </h3>
+        </h2>
         {latestMeasurement ? (
           <div className="mt-2 space-y-1">
             <div className="flex items-baseline justify-between">
@@ -163,9 +163,9 @@ function VaccinationsCard({ activeChild, pendingVaccinationsCount, onNavigateTab
             {t('dashboard.viewVaccines', 'Impfpass')} →
           </span>
         </div>
-        <h3 className="text-sm font-bold text-slate-200">
+        <h2 className="text-sm font-bold text-slate-200">
           {t('vaccinations.title', 'Impfpass & STIKO-Empfehlungen')}
-        </h3>
+        </h2>
         <div className="mt-2 flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-400" />
           <span className="text-sm font-bold text-white">
@@ -202,7 +202,7 @@ function MilestonesCard({ milestoneStats, onNavigateTab, t }) {
             {t('common.view', 'Ansehen')} →
           </span>
         </div>
-        <h3 className="text-sm font-bold text-slate-200">{t('nav.milestones', 'Meilensteine')}</h3>
+        <h2 className="text-sm font-bold text-slate-200">{t('nav.milestones', 'Meilensteine')}</h2>
         <div className="mt-2 flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5 text-amber-400" />
           <span className="text-sm font-bold text-white">
@@ -239,7 +239,7 @@ function TeethCard({ teethStats, onNavigateTab, t }) {
             {t('common.view', 'Ansehen')} →
           </span>
         </div>
-        <h3 className="text-sm font-bold text-slate-200">{t('nav.teeth', 'Milchzähne')}</h3>
+        <h2 className="text-sm font-bold text-slate-200">{t('nav.teeth', 'Milchzähne')}</h2>
         <div className="mt-2 flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5 text-pink-400" />
           <span className="text-sm font-bold text-white">
@@ -276,7 +276,7 @@ function HealthCard({ latestHealthEntry, onNavigateTab, t }) {
             {t('common.view', 'Ansehen')} →
           </span>
         </div>
-        <h3 className="text-sm font-bold text-slate-200">{t('nav.health', 'Gesundheit')}</h3>
+        <h2 className="text-sm font-bold text-slate-200">{t('nav.health', 'Gesundheit')}</h2>
         {latestHealthEntry ? (
           <div className="mt-2">
             <p className="text-base font-extrabold text-white">

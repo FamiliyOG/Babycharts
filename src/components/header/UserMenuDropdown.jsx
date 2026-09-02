@@ -85,6 +85,8 @@ export default function UserMenuDropdown({
     <div ref={dialogRef} className={`relative ${isMobile ? 'block' : 'hidden md:block'}`}>
       <input
         ref={fileInputRef}
+        id="user-avatar-upload"
+        name="userAvatar"
         type="file"
         accept="image/*"
         className="hidden"

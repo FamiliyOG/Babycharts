@@ -8,7 +8,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { readDb, writeDb } from '../utils/db.js';
 import { requireAuth, getUserFamilyRole } from '../middleware/auth.js';
-import { logFamilyAudit, getFamilyAuditLogs, AUDIT_ACTIONS } from '../services/auditService.js';
+import { getFamilyAuditLogs } from '../services/auditService.js';
 
 const router = express.Router();
 

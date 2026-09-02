@@ -13,7 +13,6 @@ import {
   ClipboardList,
   HeartPulse,
   Filter,
-  ImageIcon,
 } from 'lucide-react';
 import { ToothIcon } from './ToothIcon.jsx';
 

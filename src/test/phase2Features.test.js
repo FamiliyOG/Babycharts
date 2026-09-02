@@ -4,7 +4,6 @@ import request from 'supertest';
 import app from '../../server/index.js';
 import { validatePasswordPolicy } from '../../server/routes/auth.js';
 import { calculatePasswordStrength } from '../../src/utils/passwordStrength.js';
-import { readDb } from '../../server/utils/db.js';
 
 describe('P2 Features & Security Test Suite (#245, #248, #249)', () => {
   const getRand = (prefix) => `${prefix}_${crypto.randomBytes(6).toString('hex')}`;

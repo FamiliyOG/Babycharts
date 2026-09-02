@@ -25,6 +25,15 @@ if (sentryDsn && typeof sentryDsn === 'string' && sentryDsn.trim()) {
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
   });
+
+  if (typeof window !== 'undefined') {
+    window.triggerSentryTest = () => {
+      const testErr = new Error('BabyCharts Sentry Setup Verification Error');
+      Sentry.captureException(testErr);
+      console.log('Sentry test event dispatched to ingest endpoint!', testErr);
+      return 'Test-Event gesendet! Bitte Sentry Dashboard prüfen.';
+    };
+  }
 }
 
 // Global Client Error Catchers & iOS PWA Pinch/Double-Tap Zoom Protection

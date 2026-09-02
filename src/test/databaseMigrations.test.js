@@ -38,7 +38,7 @@ describe('Database Schema Versioning & Migration Framework Test Suite (BC-087, B
     expect(rows[2].name).toBe('soft_delete_and_concurrency');
 
     const userVersion = testSqlite.pragma('user_version', { simple: true });
-    expect(userVersion).toBe(3);
+    expect(userVersion).toBe(4);
   });
 
   it('BC-088: executes migrations idempotently on consecutive runs without errors', async () => {

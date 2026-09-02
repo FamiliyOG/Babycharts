@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Users, Trash2, KeyRound, Edit2, Camera, LogOut } from 'lucide-react';
+import {
+  X,
+  Users,
+  Trash2,
+  KeyRound,
+  Edit2,
+  Camera,
+  LogOut,
+  ShieldCheck,
+  History,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 import {
@@ -14,6 +24,7 @@ import {
   leaveFamily,
   deleteFamily,
   getAuthorizedMediaUrl,
+  fetchFamilyAuditLogs,
 } from '../utils/api.js';
 import InviteCodeManager from './family/InviteCodeManager.jsx';
 import MemberList, { getRoleBadgeClass, getFullRoleLabel } from './family/MemberList.jsx';
@@ -45,6 +56,8 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(() => activeFamily?.name || '');
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !activeFamily?.id) return;
@@ -53,6 +66,12 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     fetchFamilyDetails(activeFamily.id).then((res) => {
       if (isMounted && res.ok) {
         setFamilyData(res.data);
+      }
+    });
+
+    fetchFamilyAuditLogs(activeFamily.id).then((logs) => {
+      if (isMounted) {
+        setAuditLogs(logs || []);
       }
     });
 
@@ -482,6 +501,65 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
               {t('family.joinBtn')}
             </button>
           </form>
+        </div>
+
+        {/* Family Audit Trail (Issue #248) */}
+        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xs mb-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-cyan-400" />
+              <div>
+                <div className="text-xs font-bold text-slate-200">
+                  Aktivitäten-Protokoll (Audit-Log)
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  Änderungshistorie aller Familienmitglieder
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAuditLogs(!showAuditLogs)}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 transition-colors cursor-pointer"
+            >
+              {showAuditLogs ? 'Verbergen' : `Anzeigen (${auditLogs.length})`}
+            </button>
+          </div>
+
+          {showAuditLogs && (
+            <div className="pt-2 border-t border-slate-800 space-y-2 max-h-56 overflow-y-auto pr-1">
+              {auditLogs.length === 0 ? (
+                <div className="text-[11px] text-slate-500 text-center py-2">
+                  Noch keine Aktivitäten protokolliert.
+                </div>
+              ) : (
+                auditLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 flex items-start justify-between gap-2"
+                  >
+                    <div>
+                      <div className="text-xs font-semibold text-slate-200">
+                        {log.details || log.action}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        Durchgeführt von{' '}
+                        <span className="font-bold text-slate-300">{log.userName}</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-500 shrink-0">
+                      {new Date(log.timestamp).toLocaleDateString(undefined, {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Leave Family */}

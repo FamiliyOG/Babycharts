@@ -336,6 +336,32 @@ export function getAuthorizedMediaUrl(url) {
   return `${safeUrl}${separator}token=${encodeURIComponent(token)}`;
 }
 
+// ── Active Sessions & Audit Log (Issue #248, #249) ───────────────────────────
+export async function fetchSessions() {
+  const res = await safeFetch(`${BASE}/auth/sessions`);
+  return res.ok ? res.data?.sessions || [] : [];
+}
+
+export async function revokeSessionApi(sessionId) {
+  const res = await safeFetch(`${BASE}/auth/sessions/${sessionId}`, {
+    method: 'DELETE',
+  });
+  return res.ok;
+}
+
+export async function revokeAllOtherSessionsApi() {
+  const res = await safeFetch(`${BASE}/auth/sessions`, {
+    method: 'DELETE',
+  });
+  return res.ok;
+}
+
+export async function fetchFamilyAuditLogs(familyId) {
+  if (!familyId) return [];
+  const res = await safeFetch(`${BASE}/families/${familyId}/audit-log`);
+  return res.ok ? res.data?.logs || [] : [];
+}
+
 // ── Forward Frontend Errors to Server Console ────────────────────────────────
 export function logClientError(message, error = null, context = null) {
   try {

@@ -13,6 +13,11 @@ import rateLimit from 'express-rate-limit';
 import { readDb, writeDb, logSecurityEvent } from '../utils/db.js';
 import { requireAuth, JWT_SECRET, JWT_EXPIRES_IN, getUserFamilyRole } from '../middleware/auth.js';
 import { sendPasswordResetEmail } from '../utils/mailer.js';
+import {
+  createSession,
+  revokeSession,
+  revokeAllOtherSessions,
+} from '../services/sessionService.js';
 
 const router = express.Router();
 
@@ -124,39 +129,58 @@ export const passwordResetLimiter = rateLimit({
   message: { error: 'Zu viele Passwort-Anfragen. Bitte warten Sie eine Stunde.' },
 });
 
+const COMMON_WEAK_PASSWORDS = new Set([
+  'password123',
+  '1234567890',
+  '123456789012',
+  'babycharts123',
+  'admin123456',
+  'passwort1234',
+  'qwertz123456',
+]);
+
 /**
- * Validates password strength:
- * - Minimum 8 characters
- * - At least 1 lowercase letter
- * - At least 1 uppercase letter
- * - At least 1 digit
+ * Validates password according to NIST SP 800-63B guidelines (Issue #245):
+ * - Minimum length >= 10 characters (encourages strong, memorable passphrases)
+ * - Maximum length <= 128 characters (prevents bcrypt computational DoS)
+ * - Allows all Unicode characters (spaces, emojis, umlauts, symbols)
+ * - Rejects trivial / commonly compromised passwords
+ * - Discards arbitrary composition rules that encourage predictable patterns
  */
 export function validatePasswordPolicy(password) {
   if (typeof password !== 'string') {
     return { valid: false, error: 'Passwort muss eine Zeichenkette sein.' };
   }
-  if (password.length < 8) {
-    return { valid: false, error: 'Passwort muss mindestens 8 Zeichen lang sein.' };
+  const trimmed = password.trim();
+  if (trimmed.length < 10) {
+    return {
+      valid: false,
+      error: 'Passwort muss mindestens 10 Zeichen lang sein (eine Passphrase wird empfohlen).',
+    };
   }
-  if (!/[a-z]/.test(password)) {
-    return { valid: false, error: 'Passwort muss mindestens einen Kleinbuchstaben enthalten.' };
+  if (password.length > 128) {
+    return {
+      valid: false,
+      error: 'Passwort darf maximal 128 Zeichen lang sein.',
+    };
   }
-  if (!/[A-Z]/.test(password)) {
-    return { valid: false, error: 'Passwort muss mindestens einen Großbuchstaben enthalten.' };
-  }
-  if (!/\d/.test(password)) {
-    return { valid: false, error: 'Passwort muss mindestens eine Zahl enthalten.' };
+  if (COMMON_WEAK_PASSWORDS.has(trimmed.toLowerCase())) {
+    return {
+      valid: false,
+      error: 'Dieses Passwort ist zu einfach und leicht zu erraten.',
+    };
   }
   return { valid: true };
 }
 
-function createToken(user) {
+function createToken(user, sessionId = null) {
   return jwt.sign(
     {
       id: user.id,
       email: user.email,
       name: user.name,
       tokenVersion: user.tokenVersion || 0,
+      sessionId: sessionId || undefined,
     },
     JWT_SECRET,
     {
@@ -334,9 +358,10 @@ router.post('/register', registerLimiter, async (req, res) => {
       handleInviteJoin(db, inviteCode, userId) ||
       createInitialFamily(db, userId, rawName, familyName);
 
+    const sessionId = createSession(newUser, req);
     writeDb(db);
 
-    const token = createToken(newUser);
+    const token = createToken(newUser, sessionId);
     setSessionCookie(res, token);
 
     const userRole = getUserFamilyRole(activeFamily, userId);
@@ -500,7 +525,10 @@ router.post('/login', loginLimiter, validateLoginPayload, async (req, res) => {
     }
 
     const { activeFamily, userFamilies } = getOrCreateActiveFamily(user, db);
-    const token = createToken(user);
+    const sessionId = createSession(user, req);
+    writeDb(db);
+
+    const token = createToken(user, sessionId);
     setSessionCookie(res, token);
 
     return res.json({
@@ -583,6 +611,70 @@ router.put('/me', requireAuth, (req, res) => {
   return res.json({
     message: 'Profil erfolgreich aktualisiert.',
     user: formatUserPayload(user),
+  });
+});
+
+/**
+ * GET /api/auth/sessions
+ * Returns all active login sessions for the authenticated user (Issue #249)
+ */
+router.get('/sessions', requireAuth, (req, res) => {
+  const db = readDb();
+  const user = db.users.find((u) => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+  }
+
+  const sessions = (user.sessions || []).map((s) => ({
+    id: s.id,
+    device: s.device,
+    ip: s.ip,
+    createdAt: s.createdAt,
+    lastActiveAt: s.lastActiveAt,
+    isCurrent: s.id === req.user.sessionId,
+  }));
+
+  return res.json({ sessions });
+});
+
+/**
+ * DELETE /api/auth/sessions/:sessionId
+ * Revokes a specific remote session (Issue #249)
+ */
+router.delete('/sessions/:sessionId', requireAuth, (req, res) => {
+  const { sessionId } = req.params;
+  const db = readDb();
+  const user = db.users.find((u) => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+  }
+
+  const removed = revokeSession(user, sessionId);
+  writeDb(db);
+
+  return res.json({
+    success: true,
+    message: removed ? 'Sitzung erfolgreich beendet.' : 'Sitzung nicht gefunden.',
+  });
+});
+
+/**
+ * DELETE /api/auth/sessions
+ * Revokes all other sessions except the current one (Issue #249)
+ */
+router.delete('/sessions', requireAuth, (req, res) => {
+  const db = readDb();
+  const user = db.users.find((u) => u.id === req.user.id);
+  if (!user) {
+    return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+  }
+
+  revokeAllOtherSessions(user, req.user.sessionId);
+  writeDb(db);
+
+  return res.json({
+    success: true,
+    message: 'Alle anderen Sitzungen wurden erfolgreich abgemeldet.',
   });
 });
 

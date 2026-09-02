@@ -9,6 +9,7 @@ const VaccinationTracker = lazy(() => import('./VaccinationTracker.jsx'));
 const TeethTracker = lazy(() => import('./TeethTracker.jsx'));
 const MilestoneTracker = lazy(() => import('./MilestoneTracker.jsx'));
 const HealthTracker = lazy(() => import('./HealthTracker.jsx'));
+const ChildTimeline = lazy(() => import('./ChildTimeline.jsx'));
 
 export default function ActiveTabContent({
   activeTab,
@@ -36,6 +37,13 @@ export default function ActiveTabContent({
                 onNavigateTab={setActiveTab}
                 onOpenAddMeasurement={handleOpenAddMeasurement}
                 onOpenQuickAdd={onOpenQuickAdd}
+              />
+            );
+          case 'timeline':
+            return (
+              <ChildTimeline
+                activeChild={activeChild}
+                activeChildMeasurements={activeChildMeasurements}
               />
             );
           case 'growth':

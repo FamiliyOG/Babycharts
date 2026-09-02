@@ -8,6 +8,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { readDb, writeDb } from '../utils/db.js';
 import { requireAuth, getUserFamilyRole } from '../middleware/auth.js';
+import { logFamilyAudit, getFamilyAuditLogs, AUDIT_ACTIONS } from '../services/auditService.js';
 
 const router = express.Router();
 
@@ -669,6 +670,30 @@ router.delete('/:familyId', requireAuth, (req, res) => {
   writeDb(db);
 
   return res.json({ message: 'Familie und alle zugehörigen Daten wurden erfolgreich gelöscht.' });
+});
+
+/**
+ * GET /api/families/:familyId/audit-log
+ * Retrieves the audit trail and history of actions performed within the family (Issue #248)
+ */
+router.get('/:familyId/audit-log', requireAuth, (req, res) => {
+  const { familyId } = req.params;
+  const db = readDb();
+  const family = db.families.find((f) => f.id === familyId);
+
+  if (!family) {
+    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  }
+
+  const userRole = getUserFamilyRole(family, req.user.id);
+  if (!userRole) {
+    return res
+      .status(403)
+      .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+  }
+
+  const logs = getFamilyAuditLogs(familyId, 100);
+  return res.json({ logs });
 });
 
 export default router;

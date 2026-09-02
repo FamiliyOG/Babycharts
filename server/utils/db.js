@@ -115,13 +115,13 @@ function insertUsers(users = []) {
       id, email, password, name, avatar, isDev, role, language,
       twoFactorSecret, tempTwoFactorSecret, tempTwoFactorExpires,
       recoveryCodes, tokenVersion, passwordResetTokenHash, passwordResetExpires,
-      createdAt, updatedAt
+      sessions, createdAt, updatedAt
     )
     VALUES (
       @id, @email, @password, @name, @avatar, @isDev, @role, @language,
       @twoFactorSecret, @tempTwoFactorSecret, @tempTwoFactorExpires,
       @recoveryCodes, @tokenVersion, @passwordResetTokenHash, @passwordResetExpires,
-      @createdAt, @updatedAt
+      @sessions, @createdAt, @updatedAt
     )
   `);
   for (const u of users) {
@@ -141,6 +141,7 @@ function insertUsers(users = []) {
       tokenVersion: u.tokenVersion !== undefined ? u.tokenVersion : 0,
       passwordResetTokenHash: u.passwordResetTokenHash || null,
       passwordResetExpires: u.passwordResetExpires || null,
+      sessions: u.sessions ? JSON.stringify(u.sessions) : null,
       createdAt: u.createdAt || new Date().toISOString(),
       updatedAt: u.updatedAt || new Date().toISOString(),
     });
@@ -149,12 +150,20 @@ function insertUsers(users = []) {
 
 function insertFamilies(families = []) {
   const insertFamily = sqlite.prepare(`
-    INSERT OR REPLACE INTO families (id, name, avatar, ownerId, createdAt, updatedAt)
+    INSERT INTO families (id, name, avatar, ownerId, createdAt, updatedAt)
     VALUES (@id, @name, @avatar, @ownerId, @createdAt, @updatedAt)
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      avatar = excluded.avatar,
+      ownerId = excluded.ownerId,
+      updatedAt = excluded.updatedAt
   `);
   const insertMember = sqlite.prepare(`
-    INSERT OR REPLACE INTO family_members (familyId, userId, role, joinedAt)
+    INSERT INTO family_members (familyId, userId, role, joinedAt)
     VALUES (@familyId, @userId, @role, @joinedAt)
+    ON CONFLICT(familyId, userId) DO UPDATE SET
+      role = excluded.role,
+      joinedAt = excluded.joinedAt
   `);
 
   for (const f of families) {
@@ -357,10 +366,19 @@ export function readDb() {
           parsedRecoveryCodes = [];
         }
       }
+      let parsedSessions = [];
+      if (u.sessions) {
+        try {
+          parsedSessions = JSON.parse(u.sessions);
+        } catch {
+          parsedSessions = [];
+        }
+      }
       return {
         ...u,
         isDev: Boolean(u.isDev),
         recoveryCodes: parsedRecoveryCodes,
+        sessions: parsedSessions,
       };
     });
 

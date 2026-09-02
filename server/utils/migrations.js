@@ -255,6 +255,32 @@ export const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 4,
+    name: 'sessions_and_family_audit_logs',
+    up: (sqlite) => {
+      const userCols = sqlite.prepare('PRAGMA table_info(users)').all();
+      if (!userCols.some((c) => c.name === 'sessions')) {
+        sqlite.exec('ALTER TABLE users ADD COLUMN sessions TEXT');
+      }
+
+      sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS family_audit_logs (
+          id TEXT PRIMARY KEY,
+          familyId TEXT NOT NULL,
+          userId TEXT,
+          userName TEXT,
+          action TEXT NOT NULL,
+          details TEXT,
+          metadata TEXT,
+          timestamp TEXT NOT NULL,
+          FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_family_audit_logs_family ON family_audit_logs(familyId, timestamp);
+      `);
+    },
+  },
 ];
 
 /**

@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 import { forgotPassword, resetPassword } from '../utils/api.js';
+import { calculatePasswordStrength } from '../utils/passwordStrength.js';
 
 export default function AuthModal({ isOpen, onClose }) {
   const { t } = useTranslation();
@@ -354,13 +355,40 @@ export default function AuthModal({ isOpen, onClose }) {
                     id="auth-password-input"
                     type="password"
                     required
-                    minLength={mode === 'register' ? 8 : undefined}
+                    minLength={mode === 'register' ? 10 : undefined}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('auth.pwdHint')}
+                    placeholder={
+                      mode === 'register'
+                        ? 'Mindestens 10 Zeichen (z.B. eine Passphrase)'
+                        : t('auth.pwdHint')
+                    }
                     className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
+                {mode === 'register' &&
+                  password &&
+                  (() => {
+                    const strength = calculatePasswordStrength(password);
+                    return (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400">Passwort-Stärke:</span>
+                          <span
+                            className={`font-semibold ${strength.isValid ? 'text-cyan-300' : 'text-rose-400'}`}
+                          >
+                            {strength.label}
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-950 border border-slate-800 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${strength.color} transition-all duration-300`}
+                            style={{ width: `${strength.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })()}
               </div>
 
               {/* 2FA TOTP Code Input (Shown if user has 2FA enabled) */}

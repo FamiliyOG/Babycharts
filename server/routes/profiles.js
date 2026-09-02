@@ -11,6 +11,7 @@ import { rescheduleAll } from '../scheduler.js';
 import { requireAuth, getUserFamilyRole, JWT_SECRET } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { ProfileInputSchema } from '../validators/schemas.js';
+import { logFamilyAudit, AUDIT_ACTIONS } from '../services/auditService.js';
 
 const router = Router();
 
@@ -335,6 +336,15 @@ router.post('/', requireAuth, validateBody(ProfileInputSchema), (req, res) => {
   db.profiles.push(profile);
   writeDb(db);
   rescheduleAll();
+
+  logFamilyAudit({
+    familyId: targetFamilyId,
+    userId: req.user.id,
+    userName: req.user.name,
+    action: AUDIT_ACTIONS.PROFILE_CREATE,
+    details: `Profil für ${profile.name} angelegt`,
+  });
+
   return res.status(201).json(profile);
 });
 
@@ -423,6 +433,15 @@ router.put('/:id', requireAuth, (req, res) => {
 
   writeDb(db);
   rescheduleAll();
+
+  logFamilyAudit({
+    familyId: updatedProfile.familyId || existingProfile.familyId,
+    userId: req.user.id,
+    userName: req.user.name,
+    action: AUDIT_ACTIONS.PROFILE_UPDATE,
+    details: `Profil für ${updatedProfile.name} aktualisiert`,
+  });
+
   return res.json(updatedProfile);
 });
 
@@ -446,6 +465,15 @@ router.post('/:id/restore', requireAuth, (req, res) => {
 
   restoreProfile(req.params.id);
   rescheduleAll();
+
+  logFamilyAudit({
+    familyId: profile.familyId,
+    userId: req.user.id,
+    userName: req.user.name,
+    action: AUDIT_ACTIONS.PROFILE_UPDATE,
+    details: `Profil für ${profile.name} wiederhergestellt`,
+  });
+
   return res.json({ ok: true, message: 'Profil erfolgreich wiederhergestellt.' });
 });
 
@@ -478,6 +506,15 @@ router.delete('/:id', requireAuth, (req, res) => {
   }
 
   rescheduleAll();
+
+  logFamilyAudit({
+    familyId: existingProfile.familyId,
+    userId: req.user.id,
+    userName: req.user.name,
+    action: AUDIT_ACTIONS.PROFILE_DELETE,
+    details: `Profil für ${existingProfile.name} ${isPermanent ? 'endgültig ' : ''}gelöscht`,
+  });
+
   return res.json({ ok: true });
 });
 

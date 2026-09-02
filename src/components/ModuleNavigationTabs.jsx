@@ -1,5 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { Home, TrendingUp, ClipboardList, Syringe, HeartPulse, Sparkles } from 'lucide-react';
+import {
+  Home,
+  TrendingUp,
+  ClipboardList,
+  Syringe,
+  HeartPulse,
+  Sparkles,
+  Calendar,
+} from 'lucide-react';
 import { ToothIcon } from './ToothIcon.jsx';
 
 export default function ModuleNavigationTabs({ activeTab, onSelectTab }) {
@@ -13,6 +21,14 @@ export default function ModuleNavigationTabs({ activeTab, onSelectTab }) {
       activeClass:
         'bg-indigo-700 hover:bg-indigo-600 text-white shadow-md shadow-indigo-950/80 ring-2 ring-indigo-400',
       iconColor: 'text-indigo-200',
+    },
+    {
+      id: 'timeline',
+      label: 'Timeline',
+      icon: Calendar,
+      activeClass:
+        'bg-purple-700 hover:bg-purple-600 text-white shadow-md shadow-purple-950/80 ring-2 ring-purple-400',
+      iconColor: 'text-purple-200',
     },
     {
       id: 'growth',

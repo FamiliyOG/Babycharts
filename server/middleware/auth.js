@@ -69,17 +69,18 @@ export function requireAuth(req, res, next) {
       return res.status(401).json({ error: 'Benutzerkonto nicht gefunden.' });
     }
 
-    // Invalidate sessions if password was changed or sessions revoked (Issues BC-028, BC-029)
-    const currentTokenVersion = user.tokenVersion || 0;
-    const tokenVersionInJwt = decoded.tokenVersion || 0;
-    if (tokenVersionInJwt < currentTokenVersion) {
-      return res.status(401).json({
-        error:
-          'Ihre Sitzung ist abgelaufen, da das Passwort geändert wurde. Bitte erneut anmelden.',
-      });
+    // Invalidate sessions if specific session was revoked (Issue #249)
+    if (decoded.sessionId && Array.isArray(user.sessions)) {
+      const activeSession = user.sessions.find((s) => s.id === decoded.sessionId);
+      if (!activeSession) {
+        return res.status(401).json({
+          error: 'Diese Sitzung wurde abgemeldet. Bitte erneut anmelden.',
+        });
+      }
+      activeSession.lastActiveAt = new Date().toISOString();
     }
 
-    req.user = { id: user.id, email: user.email, name: user.name };
+    req.user = { id: user.id, email: user.email, name: user.name, sessionId: decoded.sessionId };
     next();
   } catch (err) {
     const timestamp = new Date().toISOString();

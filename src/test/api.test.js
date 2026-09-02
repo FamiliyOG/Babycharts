@@ -39,7 +39,7 @@ describe('Server API Endpoints (Supertest)', () => {
       password: shortSecret,
     });
     expect(res.status).toBe(400);
-    expect(res.body?.error).toContain('mindestens 8 Zeichen');
+    expect(res.body?.error).toContain('mindestens 10 Zeichen');
   });
 
   it('POST /api/auth/forgot-password handles email request cleanly', async () => {

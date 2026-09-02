@@ -84,7 +84,9 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
 
     // Verify the code hash has been consumed from DB
     const dbAfterRecovery = readDb();
-    const dbUserAfter = dbAfterRecovery.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const dbUserAfter = dbAfterRecovery.users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase()
+    );
     expect(dbUserAfter.recoveryCodes).toHaveLength(7);
 
     // 6. Complete login with valid TOTP code

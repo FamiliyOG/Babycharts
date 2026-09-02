@@ -16,10 +16,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [activeFamily, setActiveFamily] = useState(null);
   const [families, setFamilies] = useState([]);
-  const [isLoading, setIsLoading] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return Boolean(localStorage.getItem('babycharts_token'));
-  });
+  const [isLoading, setIsLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
   const [is2FaModalOpen, setIs2FaModalOpen] = useState(false);
@@ -34,15 +31,6 @@ export function AuthProvider({ children }) {
 
   const refreshUser = useCallback(
     async (targetFamilyId = null) => {
-      const token = localStorage.getItem('babycharts_token');
-      if (!token) {
-        setUser(null);
-        setActiveFamily(null);
-        setFamilies([]);
-        setIsLoading(false);
-        return;
-      }
-
       const res = await getMe(targetFamilyId);
       if (res.ok && res.data?.user) {
         setUser(res.data.user);
@@ -50,7 +38,6 @@ export function AuthProvider({ children }) {
         setActiveFamily(res.data.family);
         setFamilies(res.data.families || []);
       } else {
-        logoutUser();
         setUser(null);
         setActiveFamily(null);
         setFamilies([]);
@@ -61,11 +48,9 @@ export function AuthProvider({ children }) {
   );
 
   useEffect(() => {
-    const token = localStorage.getItem('babycharts_token');
-    if (token) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      refreshUser();
-    }
+    // Session verification via HttpOnly cookie (Issue #233)
+    // oxlint-disable-next-line react/set-state-in-effect
+    refreshUser();
   }, [refreshUser]);
 
   const login = useCallback(async (email, password, totpCode = '') => {

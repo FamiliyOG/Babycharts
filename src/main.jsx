@@ -24,9 +24,9 @@ if (sentryDsn && typeof sentryDsn === 'string' && sentryDsn.trim()) {
     dsn: sentryDsn.trim(),
     environment: import.meta.env.MODE || 'production',
     integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 0.1,
     tracePropagationTargets: ['localhost', /^\/api\//],
-    replaysSessionSampleRate: 0.1,
+    replaysSessionSampleRate: 0.0,
     replaysOnErrorSampleRate: 1.0,
     ignoreErrors: [
       'ExtensionMessagingService',

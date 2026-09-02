@@ -64,8 +64,10 @@ export default function ExportImportModal({
   const [exportPassphrase, setExportPassphrase] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
-  const loadHealthReport = () => {
-    setIsHealthLoading(true);
+  const loadHealthReport = (showLoading = false) => {
+    if (showLoading) {
+      setIsHealthLoading(true);
+    }
     fetch('/api/exports/health', {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('babycharts_token') || ''}`,
@@ -86,7 +88,7 @@ export default function ExportImportModal({
       fetchSessions().then((sessList) => {
         setSessions(sessList || []);
       });
-      loadHealthReport();
+      loadHealthReport(false);
     }
 
     if (isOpen && isDev) {
@@ -351,7 +353,7 @@ export default function ExportImportModal({
             <button
               type="button"
               disabled={isHealthLoading}
-              onClick={loadHealthReport}
+              onClick={() => loadHealthReport(true)}
               className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition-colors cursor-pointer"
             >
               {isHealthLoading ? 'Prüfe...' : 'Jetzt prüfen'}

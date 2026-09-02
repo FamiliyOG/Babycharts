@@ -16,6 +16,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -309,10 +310,26 @@ app.get('{*path}', (req, res, next) => {
 // ── Start ────────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
   const server = app.listen(PORT, '0.0.0.0', () => {
+    // Collect all available local network IP addresses for display
+    const interfaces = os.networkInterfaces();
+    const networkIps = [];
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          networkIps.push(iface.address);
+        }
+      }
+    }
+    const networkUrl = networkIps[0] ? `http://${networkIps[0]}:${PORT}` : `http://0.0.0.0:${PORT}`;
+
     console.log('════════════════════════════════════════════════');
     console.log(`  BabyCharts Server started`);
-    console.log(`  App URL  : ${APP_URL}`);
-    console.log(`  Port     : ${PORT} (0.0.0.0)`);
+    console.log(`  Local URL   : http://localhost:${PORT}`);
+    console.log(`  Network URL : ${networkUrl}`);
+    if (process.env.APP_URL) {
+      console.log(`  App URL     : ${process.env.APP_URL}`);
+    }
+    console.log(`  Port        : ${PORT} (0.0.0.0)`);
     console.log('════════════════════════════════════════════════');
 
     // Initialise scheduler after server is ready

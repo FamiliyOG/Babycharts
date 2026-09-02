@@ -12,7 +12,6 @@ import {
   Check,
   Shield,
   Save,
-  LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
@@ -346,7 +345,7 @@ export default function ExportImportModal({
                 <Laptop className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 <span>Angemeldete Geräte & Sitzungen</span>
               </div>
-              {sessions.filter((s) => !s.isCurrent).length > 0 && (
+              {sessions.some((s) => !s.isCurrent) && (
                 <button
                   type="button"
                   onClick={async () => {

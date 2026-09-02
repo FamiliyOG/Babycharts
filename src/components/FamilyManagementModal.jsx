@@ -1,16 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  X,
-  Users,
-  Trash2,
-  KeyRound,
-  Edit2,
-  Camera,
-  LogOut,
-  ShieldCheck,
-  History,
-} from 'lucide-react';
+import { X, Users, Trash2, KeyRound, Edit2, Camera, LogOut, History } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 import {

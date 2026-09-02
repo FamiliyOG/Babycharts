@@ -237,12 +237,12 @@ export default function TeethTracker({ activeChild, onUpdateChild, canEdit }) {
             <span className="text-xl">🦷</span>
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <span>{t('teeth.title')}</span>
               <span className="text-xs px-2 py-0.5 rounded-md bg-cyan-950/80 text-cyan-300 border border-cyan-800/40 font-bold">
                 {eruptedCount} / 20 {t('teeth.teethCount')}
               </span>
-            </h3>
+            </h2>
             <p className="text-xs text-slate-400">{t('teeth.subtitle')}</p>
           </div>
         </div>

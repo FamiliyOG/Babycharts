@@ -71,12 +71,12 @@ export default function VaccinationTracker({ activeChild, onUpdateChild, canEdit
             <Syringe className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <span>{t('vaccinations.title')}</span>
               <span className="text-xs px-2.5 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/40 font-bold">
                 {completedCount} / {STIKO_VACCINATIONS.length} {t('vaccinations.completed')}
               </span>
-            </h3>
+            </h2>
             <p className="text-xs text-slate-400">{t('vaccinations.subtitle')}</p>
           </div>
         </div>

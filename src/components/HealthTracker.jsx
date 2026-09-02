@@ -203,7 +203,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
             <HeartPulse className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <span>{t('health.title')}</span>
               {latestTemp && latestTempBadge && (
                 <span
@@ -212,7 +212,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
                   {t('growth.latestValue')} {latestTemp} °C ({latestTempBadge.label})
                 </span>
               )}
-            </h3>
+            </h2>
             <p className="text-xs text-slate-400">{t('health.subtitle')}</p>
           </div>
         </div>

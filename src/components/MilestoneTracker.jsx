@@ -183,12 +183,12 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <span>{t('milestones.title')}</span>
               <span className="text-xs px-2.5 py-0.5 rounded-md bg-amber-950/80 text-amber-300 border border-amber-800/40 font-bold">
                 {achievedCount} {t('milestones.completed')}
               </span>
-            </h3>
+            </h2>
             <p className="text-xs text-slate-400">{t('milestones.subtitle')}</p>
           </div>
         </div>
@@ -310,9 +310,9 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                             {entry.photo.startsWith('data:video/') ||
                             entry.photo.includes('.mp4') ||
                             entry.photo.includes('.webm') ? (
-                              <div className="w-full h-full flex items-center justify-center bg-black/80">
+                              <span className="w-full h-full flex items-center justify-center bg-black/80">
                                 <span className="text-3xl">🎬</span>
-                              </div>
+                              </span>
                             ) : (
                               <img
                                 src={getAuthorizedMediaUrl(sanitizePhotoUrl(entry.photo))}
@@ -323,9 +323,9 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             )}
-                            <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
+                            <span className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
                               ▶️ {t('milestones.playMedia', 'Abspielen / Anzeigen')}
-                            </div>
+                            </span>
                           </button>
                         )}
                       </div>

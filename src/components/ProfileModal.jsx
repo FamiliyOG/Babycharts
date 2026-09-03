@@ -15,6 +15,7 @@ import {
 import ModalContainer from './ModalContainer.jsx';
 import ConfirmModal from './ConfirmModal.jsx';
 import { getAuthorizedMediaUrl } from '../utils/api.js';
+import { compressImage } from '../utils/imageCompressor.js';
 
 export default function ProfileModal({
   isOpen,
@@ -75,15 +76,17 @@ function ProfileModalDialog({ isOpen, onClose, onSaveProfile, onDeleteProfile, i
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatar(reader.result);
-      setAvatarError(null);
-    };
-    reader.onerror = () => {
-      setAvatarError('Fehler beim Einlesen des Bildes. Bitte versuchen Sie es erneut.');
-    };
-    reader.readAsDataURL(file);
+    // Compress avatar to thumbnail dimensions (max 512px, JPEG 0.8) to prevent 413 Payload Too Large errors
+    compressImage(file, 512, 0.8)
+      .then((compressedDataUrl) => {
+        setAvatar(compressedDataUrl);
+        setAvatarError(null);
+      })
+      .catch((err) => {
+        setAvatarError(
+          err?.message || 'Fehler beim Einlesen des Bildes. Bitte versuchen Sie es erneut.'
+        );
+      });
   };
 
   const handleRemoveAvatar = () => {

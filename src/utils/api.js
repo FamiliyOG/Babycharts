@@ -1,4 +1,4 @@
-import { apiClient, setAuthToken, clearAuthToken } from '../api/client.js';
+import { apiClient, ApiError, setAuthToken, clearAuthToken } from '../api/client.js';
 
 const BASE = '/api';
 
@@ -221,7 +221,15 @@ export async function createProfile(profile) {
     method: 'POST',
     body: JSON.stringify(profile),
   });
-  return res.ok ? res.data : null;
+  if (!res.ok) {
+    throw new ApiError(
+      res.error || 'Profil konnte nicht erstellt werden.',
+      res.status,
+      res.code,
+      res.details
+    );
+  }
+  return res.data;
 }
 
 export async function updateProfile(id, profile) {
@@ -229,11 +237,27 @@ export async function updateProfile(id, profile) {
     method: 'PUT',
     body: JSON.stringify(profile),
   });
-  return res.ok ? res.data : null;
+  if (!res.ok) {
+    throw new ApiError(
+      res.error || 'Profil konnte nicht aktualisiert werden.',
+      res.status,
+      res.code,
+      res.details
+    );
+  }
+  return res.data;
 }
 
 export async function deleteProfile(id) {
   const res = await safeFetch(`${BASE}/profiles/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    throw new ApiError(
+      res.error || 'Profil konnte nicht gelöscht werden.',
+      res.status,
+      res.code,
+      res.details
+    );
+  }
   return res.ok;
 }
 
@@ -242,7 +266,15 @@ export async function importProfiles(profiles, familyId = null) {
     method: 'POST',
     body: JSON.stringify({ profiles, familyId }),
   });
-  return res.ok ? res.data : null;
+  if (!res.ok) {
+    throw new ApiError(
+      res.error || 'Profile konnten nicht importiert werden.',
+      res.status,
+      res.code,
+      res.details
+    );
+  }
+  return res.data;
 }
 
 // ── Settings & Exports ───────────────────────────────────────────────────────

@@ -196,9 +196,10 @@ app.use(
   })
 );
 
-// Granular body parsers: Higher limits for encrypted media uploads and backup imports (Issue #238)
+// Granular body parsers: Higher limits for encrypted media uploads, backup imports and profiles with avatars/milestones (Issue #238)
 app.use(['/api/media/upload', '/api/v1/media/upload'], express.json({ limit: '35mb' }));
 app.use(['/api/exports/import', '/api/v1/exports/import'], express.json({ limit: '35mb' }));
+app.use(['/api/profiles', '/api/v1/profiles'], express.json({ limit: '15mb' }));
 
 // Standard body parser for all other JSON routes (1MB) to prevent DoS/Memory exhaustion (Issue #238)
 app.use(express.json({ limit: '1mb' }));

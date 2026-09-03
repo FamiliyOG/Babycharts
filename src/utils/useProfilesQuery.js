@@ -28,7 +28,12 @@ export function useProfileMutations(familyId) {
   const createMutation = useMutation({
     mutationFn: (payload) => createProfile(payload),
     onSuccess: (newProfile) => {
-      queryClient.setQueryData([PROFILES_QUERY_KEY, familyId], (old = []) => [...old, newProfile]);
+      if (newProfile?.id) {
+        queryClient.setQueryData([PROFILES_QUERY_KEY, familyId], (old = []) => [
+          ...old,
+          newProfile,
+        ]);
+      }
       invalidate();
     },
   });
@@ -36,9 +41,11 @@ export function useProfileMutations(familyId) {
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }) => updateProfile(id, payload),
     onSuccess: (updatedProfile) => {
-      queryClient.setQueryData([PROFILES_QUERY_KEY, familyId], (old = []) =>
-        old.map((p) => (p.id === updatedProfile.id ? updatedProfile : p))
-      );
+      if (updatedProfile?.id) {
+        queryClient.setQueryData([PROFILES_QUERY_KEY, familyId], (old = []) =>
+          old.map((p) => (p.id === updatedProfile.id ? updatedProfile : p))
+        );
+      }
       invalidate();
     },
   });

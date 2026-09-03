@@ -378,6 +378,16 @@ function buildChartOptions(
   };
 }
 
+function getMetricValue(m, metric) {
+  if (metric === 'weight') return m.weight;
+  if (metric === 'length') return m.length;
+  if (metric === 'headCircumference') return m.headCircumference;
+  if (metric === 'bmi') return calculateBMI(m.weight, m.length);
+  return null;
+}
+
+const EMPTY_MEASUREMENTS = [];
+
 export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
   const { t } = useTranslation();
   const { isDark } = useTheme();
@@ -389,7 +399,7 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
   const [hoveredLegendKey, setHoveredLegendKey] = useState(null);
   const [viewMode, setViewMode] = useState('chart');
 
-  const measurements = activeChild?.measurements || [];
+  const measurements = activeChild?.measurements ?? EMPTY_MEASUREMENTS;
 
   const isGirl = activeChild?.gender === 'girl';
   const childColor = isGirl ? '#f43f5e' : '#06b6d4';
@@ -402,26 +412,17 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
     if (!activeChild) return [];
     return sortedMeasurements.map((m, idx) => {
       const age = calculateAge(activeChild.birthdate, m.date);
-      let val = null;
-      if (metric === 'weight') val = m.weight;
-      else if (metric === 'length') val = m.length;
-      else if (metric === 'headCircumference') val = m.headCircumference;
-      else if (metric === 'bmi') val = calculateBMI(m.weight, m.length);
+      const val = getMetricValue(m, metric);
 
-      const percentile =
-        val !== null && val !== undefined
-          ? estimatePercentile(val, age.monthsDecimal, activeChild.gender, metric)
-          : null;
+      let percentile = null;
+      if (val !== null && val !== undefined) {
+        const est = estimatePercentile(val, activeChild.gender, metric, age.monthsDecimal);
+        percentile = est?.percentile ?? null;
+      }
 
       let delta = null;
       if (idx > 0 && val !== null) {
-        const prevM = sortedMeasurements[idx - 1];
-        let prevVal = null;
-        if (metric === 'weight') prevVal = prevM.weight;
-        else if (metric === 'length') prevVal = prevM.length;
-        else if (metric === 'headCircumference') prevVal = prevM.headCircumference;
-        else if (metric === 'bmi') prevVal = calculateBMI(prevM.weight, prevM.length);
-
+        const prevVal = getMetricValue(sortedMeasurements[idx - 1], metric);
         if (prevVal !== null && prevVal !== undefined) {
           delta = val - prevVal;
         }
@@ -430,7 +431,7 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
       return {
         id: m.id,
         date: m.date,
-        ageStr: age.formatted,
+        ageStr: age.text || age.formatted || `${age.months} Mon.`,
         ageMonths: age.monthsDecimal,
         val,
         percentile,
@@ -441,7 +442,7 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
     });
   }, [sortedMeasurements, activeChild, metric]);
 
-  const latestRow = tableRows.length > 0 ? tableRows[tableRows.length - 1] : null;
+  const latestRow = tableRows.length > 0 ? tableRows.at(-1) : null;
 
   if (!activeChild) return null;
 
@@ -517,13 +518,18 @@ export default function GrowthChart({ activeChild, onOpenAddMeasurement }) {
     weightUnit
   );
 
+  let srLiveSummary = `Keine aktuellen Messwerte für ${METRIC_TITLES[metric]} erfasst.`;
+  if (latestRow && latestRow.val !== null) {
+    const formattedVal = formatMetricDisplayValue(latestRow.val, metric);
+    const pStr = latestRow.percentile ? `, WHO-Perzentile: P${latestRow.percentile}` : '';
+    srLiveSummary = `Aktueller Messwert für ${METRIC_TITLES[metric]}: ${formattedVal} im Alter von ${latestRow.ageStr}${pStr}.`;
+  }
+
   return (
     <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl mb-6 transition-colors duration-300">
       {/* Screen Reader Live Summary (Issue #243) */}
       <div className="sr-only" aria-live="polite">
-        {latestRow && latestRow.val !== null
-          ? `Aktueller Messwert für ${METRIC_TITLES[metric]}: ${formatMetricDisplayValue(latestRow.val, metric)} im Alter von ${latestRow.ageStr}${latestRow.percentile ? `, WHO-Perzentile: P${latestRow.percentile}` : ''}.`
-          : `Keine aktuellen Messwerte für ${METRIC_TITLES[metric]} erfasst.`}
+        {srLiveSummary}
       </div>
 
       {/* Header & Controls Subcomponent */}

@@ -160,7 +160,7 @@ const isPrivateNetworkHostname = (hostname) => {
   }
   if (hostname.startsWith('172.')) {
     const parts = hostname.split('.');
-    const second = parseInt(parts[1], 10);
+    const second = Number.parseInt(parts[1], 10);
     return !Number.isNaN(second) && second >= 16 && second <= 31;
   }
   return false;

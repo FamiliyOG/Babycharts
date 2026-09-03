@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import TemperatureCurve from './health/TemperatureCurve.jsx';
 import HealthLogList from './health/HealthLogList.jsx';
+import { generateUuid } from '../utils/uuid.js';
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -94,7 +95,7 @@ export default function HealthTracker({ activeChild, onUpdateChild, canEdit }) {
       temperature.trim() === '' ? null : Number.parseFloat(temperature.replace(',', '.'));
 
     const newEntry = {
-      id: editingEntry?.id || crypto.randomUUID(),
+      id: editingEntry?.id || generateUuid(),
       dateTime,
       temperature: Number.isNaN(parsedTemp) ? null : parsedTemp,
       medication: medication.trim() || null,

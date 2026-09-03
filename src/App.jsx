@@ -15,6 +15,7 @@ import { DEMO_PROFILES } from './data/demoProfiles.js';
 import { calculateAge } from './utils/percentileCalc.js';
 import { generateChildICalendar } from './utils/calendarGenerator.js';
 import { exportChildToCSV } from './utils/csvExporter.js';
+import { generateUuid } from './utils/uuid.js';
 
 function MainApp() {
   const { t } = useTranslation();
@@ -99,7 +100,7 @@ function MainApp() {
       if (isNew) {
         const payload = {
           ...profileData,
-          id: profileData.id || crypto.randomUUID(),
+          id: profileData.id || generateUuid(),
           familyId: activeFamily?.id,
           measurements: profileData.measurements || [],
         };
@@ -147,7 +148,7 @@ function MainApp() {
       const isNew = !measData.id;
       const newEntry = {
         ...measData,
-        id: measData.id || crypto.randomUUID(),
+        id: measData.id || generateUuid(),
       };
 
       let updatedList;
@@ -218,7 +219,7 @@ function MainApp() {
       for (const demo of DEMO_PROFILES) {
         const payload = {
           ...demo,
-          id: crypto.randomUUID(),
+          id: generateUuid(),
           familyId: activeFamily?.id,
         };
         await createMutation.mutateAsync(payload);

@@ -286,6 +286,37 @@ function clearSessionCookie(res) {
   });
 }
 
+function checkRegistrationAllowed(db, isFirstUser, inviteCode, setupToken) {
+  const settings = db.settings || {};
+
+  // Check if public registration is disabled for non-initial users without invite (Issue #236)
+  if (!isFirstUser && settings.allow_public_registration === false && !inviteCode) {
+    return {
+      allowed: false,
+      status: 403,
+      error:
+        'Die öffentliche Registrierung ist deaktiviert. Bitte verwenden Sie einen Einladungscode.',
+    };
+  }
+
+  // Check INITIAL_ADMIN_TOKEN if required on initial server deployment (Issue #236)
+  const envToken = process.env.INITIAL_ADMIN_TOKEN;
+  const requiredSetupToken = typeof envToken === 'string' ? envToken.trim() : '';
+  if (isFirstUser && requiredSetupToken) {
+    const providedToken = typeof setupToken === 'string' ? setupToken.trim() : '';
+    if (!providedToken || providedToken !== requiredSetupToken) {
+      return {
+        allowed: false,
+        status: 403,
+        error:
+          'Für die Ersteinrichtung des Administrators ist ein gültiger Setup-Code erforderlich.',
+      };
+    }
+  }
+
+  return { allowed: true };
+}
+
 /**
  * POST /api/auth/register
  * Registers a new user and automatically creates their first family (e.g. "Familie <Name>")
@@ -295,7 +326,9 @@ router.post('/register', registerLimiter, async (req, res) => {
     const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
     const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
     const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-    const { familyName, inviteCode, setupToken } = req.body || {};
+    const familyName = typeof req.body?.familyName === 'string' ? req.body.familyName : undefined;
+    const inviteCode = typeof req.body?.inviteCode === 'string' ? req.body.inviteCode : undefined;
+    const setupToken = typeof req.body?.setupToken === 'string' ? req.body.setupToken.trim() : '';
 
     if (!rawEmail || !rawPassword || !rawName) {
       return res.status(400).json({ error: 'Name, E-Mail und Passwort sind erforderlich.' });
@@ -308,31 +341,15 @@ router.post('/register', registerLimiter, async (req, res) => {
 
     const normalizedEmail = rawEmail.toLowerCase();
     const db = readDb();
-    const settings = db.settings || {};
 
     if (db.users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
       return res.status(400).json({ error: 'Diese E-Mail-Adresse ist bereits registriert.' });
     }
 
     const isFirstUser = db.users.length === 0;
-
-    // Check if public registration is disabled for non-initial users without invite (Issue #236)
-    if (!isFirstUser && settings.allow_public_registration === false && !inviteCode) {
-      return res.status(403).json({
-        error:
-          'Die öffentliche Registrierung ist deaktiviert. Bitte verwenden Sie einen Einladungscode.',
-      });
-    }
-
-    // Check INITIAL_ADMIN_TOKEN if required on initial server deployment (Issue #236)
-    const requiredSetupToken = process.env.INITIAL_ADMIN_TOKEN;
-    if (isFirstUser && requiredSetupToken && requiredSetupToken.trim()) {
-      if (!setupToken || setupToken.trim() !== requiredSetupToken.trim()) {
-        return res.status(403).json({
-          error:
-            'Für die Ersteinrichtung des Administrators ist ein gültiger Setup-Code erforderlich.',
-        });
-      }
+    const regCheck = checkRegistrationAllowed(db, isFirstUser, inviteCode, setupToken);
+    if (!regCheck.allowed) {
+      return res.status(regCheck.status).json({ error: regCheck.error });
     }
 
     const hashedPassword = await bcrypt.hash(rawPassword, 10);

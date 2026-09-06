@@ -155,7 +155,7 @@ describe('Server Service Layer Test Suite (BC-290, BC-286)', () => {
       password: 'SuperSecretPassword!',
       token: 'jwt.token.string',
       nested: {
-        twoFactorSecret: 'ABCDEF123456',
+        twoFactorSecret: 'dummy_2fa_value',
         normalField: 42,
       },
       list: [{ notes: 'confidential' }, { id: 'clean-1' }],

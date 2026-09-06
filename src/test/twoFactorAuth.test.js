@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from '../../server/index.js';
 import speakeasy from 'speakeasy';
-import { readDb, writeDb } from '../../server/utils/db.js';
+import { userRepository } from '../../server/repositories/index.js';
 import { encryptTwoFactorSecret, hashRecoveryCode } from '../../server/routes/auth.js';
 
 describe('2FA Security & Verification Test Suite (BC-083)', () => {
@@ -53,9 +53,8 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     expect(enableRes.body.recoveryCodes).toBeDefined();
     expect(enableRes.body.recoveryCodes).toHaveLength(8);
 
-    // Verify recovery codes are stored as HMAC-SHA256 hashes in DB and NOT plaintext (Issue #235)
-    const dbCheck = readDb();
-    const dbUser = dbCheck.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    // Verify recovery codes are stored as HMAC-SHA256 hashes in SQLite and NOT plaintext (Issue #235)
+    const dbUser = userRepository.findByEmail(email);
     expect(dbUser.recoveryCodes).toHaveLength(8);
     expect(dbUser.recoveryCodes).not.toContain(enableRes.body.recoveryCodes[0]); // Hashes differ from plain codes
     expect(dbUser.recoveryCodes[0]).toHaveLength(64); // 64-char sha256 hex string
@@ -82,11 +81,8 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     expect(loginWithRecovery.status).toBe(200);
     expect(loginWithRecovery.body.token).toBeDefined();
 
-    // Verify the code hash has been consumed from DB
-    const dbAfterRecovery = readDb();
-    const dbUserAfter = dbAfterRecovery.users.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase()
-    );
+    // Verify the code hash has been consumed from SQLite
+    const dbUserAfter = userRepository.findByEmail(email);
     expect(dbUserAfter.recoveryCodes).toHaveLength(7);
 
     // 6. Complete login with valid TOTP code
@@ -114,24 +110,26 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     const recoveryCode = 'AAAA-1111';
 
     // Register user
-    await request(app)
+    const regRes = await request(app)
       .post('/api/auth/register')
       .send({
         name: 'Recovery Code User',
         email,
         ['pass' + 'word']: userSecret,
       });
+    expect(regRes.status).toBe(201);
 
-    // Directly set 2FA and recovery codes in DB (stored as HMAC-SHA256 hashes - Issue #235, #263)
-    const db = readDb();
-    const userInDb = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    // Directly set 2FA and recovery codes in SQLite (stored as HMAC-SHA256 hashes - Issue #235, #263)
+    const userInDb = userRepository.findByEmail(email);
     expect(userInDb).toBeDefined();
-    userInDb.twoFactorSecret = encryptedSecret;
-    userInDb.recoveryCodes = [
-      hashRecoveryCode(recoveryCode, userInDb.id),
-      hashRecoveryCode('BBBB-2222', userInDb.id),
-    ];
-    writeDb(db);
+
+    userRepository.updateTwoFactor(userInDb.id, {
+      secret: encryptedSecret,
+      recoveryCodes: [
+        hashRecoveryCode(recoveryCode, userInDb.id),
+        hashRecoveryCode('BBBB-2222', userInDb.id),
+      ],
+    });
 
     // Login using the recovery code
     const loginRes = await request(app)
@@ -145,8 +143,7 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     expect(loginRes.body.token).toBeDefined();
 
     // Verify the code has been consumed and remaining codes stay securely hashed (Issue #235, #263)
-    const updatedDb = readDb();
-    const updatedUser = updatedDb.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const updatedUser = userRepository.findByEmail(email);
     expect(updatedUser.recoveryCodes).not.toContain(recoveryCode);
     expect(updatedUser.recoveryCodes).toContain(hashRecoveryCode('BBBB-2222', updatedUser.id));
   });

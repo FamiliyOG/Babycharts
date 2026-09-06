@@ -1,25 +1,30 @@
 /**
  * server/routes/auth.js
- * User Registration, Login and Profile endpoints
+ * User Registration, Login, Session, 2FA, Password and Account endpoints.
+ * All business logic is delegated to authService and sessionService.
  */
 
-import crypto from 'node:crypto';
 import express from 'express';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
-import QRCode from 'qrcode';
 import rateLimit from 'express-rate-limit';
-import { readDb, writeDb, logSecurityEvent, sqlite } from '../utils/db.js';
-import { requireAuth, JWT_SECRET, JWT_EXPIRES_IN, getUserFamilyRole } from '../middleware/auth.js';
-import { sendPasswordResetEmail } from '../utils/mailer.js';
+import { logSecurityEvent, sqlite } from '../utils/db.js';
+import { requireAuth, JWT_SECRET, getUserFamilyRole } from '../middleware/auth.js';
+import { revokeSession, revokeAllOtherSessions } from '../services/sessionService.js';
 import {
-  createSession,
-  revokeSession,
-  revokeAllOtherSessions,
-} from '../services/sessionService.js';
+  authService,
+  encryptTwoFactorSecret,
+  decryptTwoFactorSecret,
+  generateRecoveryCodes,
+  hashRecoveryCode,
+  validatePasswordPolicy,
+  getOrGenerateSetupToken,
+  isFirstRunSetupRequired,
+  formatUserPayload,
+} from '../services/authService.js';
+import { userRepository, familyRepository } from '../repositories/index.js';
+
 export {
-  get2FAEncryptionKey,
   encryptTwoFactorSecret,
   decryptTwoFactorSecret,
   generateRecoveryCodes,
@@ -28,24 +33,14 @@ export {
   getOrGenerateSetupToken,
   isFirstRunSetupRequired,
   authService,
-} from '../services/authService.js';
-
-import {
-  encryptTwoFactorSecret,
-  decryptTwoFactorSecret,
-  generateRecoveryCodes,
-  hashRecoveryCode,
-  validatePasswordPolicy,
-  getOrGenerateSetupToken,
-  isFirstRunSetupRequired,
-} from '../services/authService.js';
+};
 
 const router = express.Router();
 
 // ── Rate Limiters to prevent Brute-Force & Credential Stuffing ───────────────
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // max 10 failed/successful attempts per IP in 15 mins
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
@@ -54,7 +49,7 @@ export const loginLimiter = rateLimit({
 
 export const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // max 5 account creations per IP per hour
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
@@ -65,7 +60,7 @@ export const registerLimiter = rateLimit({
 
 export const twoFactorLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 10, // max 10 2FA verify attempts per 10 mins
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
@@ -74,114 +69,22 @@ export const twoFactorLimiter = rateLimit({
 
 export const passwordResetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // max 5 password reset requests per IP per hour
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Zu viele Passwort-Anfragen. Bitte warten Sie eine Stunde.' },
 });
 
-function createToken(user, sessionId = null) {
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      tokenVersion: user.tokenVersion || 0,
-      sessionId: sessionId || undefined,
-    },
-    JWT_SECRET,
-    {
-      expiresIn: JWT_EXPIRES_IN,
-    }
-  );
-}
-
-function formatUserPayload(user) {
-  const isDev = Boolean(
-    user.isDev ||
-    user.role === 'superadmin' ||
-    (process.env.DEV_EMAIL && user.email?.toLowerCase() === process.env.DEV_EMAIL.toLowerCase())
-  );
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    avatar: user.avatar || null,
-    language: user.language || 'de',
-    twoFactorEnabled: Boolean(user.twoFactorSecret),
-    isDev,
-    role: user.role || (isDev ? 'superadmin' : 'user'),
-  };
-}
-
-function handleInviteJoin(db, inviteCode, userId) {
-  if (typeof inviteCode !== 'string' || !inviteCode.trim()) return null;
-  const normalizedCode = inviteCode.trim().toUpperCase();
-  const invite = db.invites.find((inv) => inv.code === normalizedCode);
-  if (!invite) return null;
-
-  const targetFamily = db.families.find((f) => f.id === invite.familyId);
-  if (!targetFamily) return null;
-
-  targetFamily.members = targetFamily.members || [];
-  if (!targetFamily.members.some((m) => m.userId === userId)) {
-    targetFamily.members.push({
-      userId,
-      role: invite.role || 'editor',
-      joinedAt: new Date().toISOString(),
-    });
-  }
-
-  db.invites = db.invites.filter((inv) => inv.code !== normalizedCode);
-  db.usedInvites = db.usedInvites || [];
-  db.usedInvites.push({
-    code: normalizedCode,
-    familyId: targetFamily.id,
-    usedBy: userId,
-    usedAt: new Date().toISOString(),
-  });
-
-  return targetFamily;
-}
-
-function createInitialFamily(db, userId, userName, requestedFamilyName) {
-  const newFamilyId = `fam-${Date.now()}`;
-  const cleanUserName = typeof userName === 'string' ? userName.trim() : 'Familie';
-  const cleanFamilyName =
-    typeof requestedFamilyName === 'string' && requestedFamilyName.trim()
-      ? requestedFamilyName.trim()
-      : `Familie ${cleanUserName}`;
-
-  const newFamily = {
-    id: newFamilyId,
-    name: cleanFamilyName,
-    ownerId: userId,
-    members: [{ userId, role: 'admin', joinedAt: new Date().toISOString() }],
-    createdAt: new Date().toISOString(),
-  };
-
-  db.families.push(newFamily);
-
-  db.profiles = db.profiles.map((p) => {
-    if (!p.familyId || p.familyId === 'fam-default') {
-      return { ...p, familyId: newFamilyId };
-    }
-    return p;
-  });
-
-  return newFamily;
-}
+// ── Cookie helpers ─────────────────────────────────────────────────────────────
 
 function setSessionCookie(res, token) {
   const isProd = process.env.NODE_ENV === 'production';
-  // Max age: 30 days
-  const maxAge = 30 * 24 * 60 * 60 * 1000;
   res.cookie('babycharts_session', token, {
     httpOnly: true,
     secure: isProd,
     sameSite: 'lax',
-    maxAge,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     path: '/',
   });
 }
@@ -194,253 +97,8 @@ function clearSessionCookie(res) {
   });
 }
 
-function revokeSessionFromRequest(req) {
-  const cookieHeader = req.headers.cookie;
-  if (typeof cookieHeader !== 'string') return;
+// ── Family formatting helpers ──────────────────────────────────────────────────
 
-  const match = /(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/.exec(cookieHeader);
-  if (!match?.[1]) return;
-
-  try {
-    const decoded = jwt.verify(decodeURIComponent(match[1]), JWT_SECRET);
-    if (!decoded?.id || !decoded?.sessionId) return;
-
-    const row = sqlite.prepare('SELECT sessions FROM users WHERE id = ?').get(decoded.id);
-    if (!row?.sessions) return;
-
-    const sessions = JSON.parse(row.sessions);
-    const remaining = sessions.filter((s) => s.id !== decoded.sessionId);
-    sqlite
-      .prepare('UPDATE users SET sessions = ? WHERE id = ?')
-      .run(JSON.stringify(remaining), decoded.id);
-  } catch {
-    // ignore invalid or expired tokens on logout
-  }
-}
-
-/**
- * Retrieves or generates a secure first-run setup code (Issue #259).
- * If INITIAL_ADMIN_TOKEN is configured in env, that takes precedence.
- * Otherwise, a random 32-character hex token is persisted in DB settings until the first admin completes registration.
- */
-
-// GET /api/auth/setup-status – public endpoint to check if first-run setup is required
-router.get('/setup-status', (req, res) => {
-  const db = readDb();
-  const setupRequired = isFirstRunSetupRequired(db);
-  return res.json({
-    setupRequired,
-    // Never expose the actual setup token over HTTP!
-  });
-});
-
-function checkRegistrationAllowed(db, isFirstUser, inviteCode, setupToken) {
-  const settings = db.settings || {};
-
-  // Check if public registration is disabled for non-initial users without invite (Issue #236, #260)
-  const isTestEnv = process.env.NODE_ENV === 'test' || Boolean(process.env.VITEST);
-  if (!isFirstUser && settings.allow_public_registration === false && !inviteCode && !isTestEnv) {
-    return {
-      allowed: false,
-      status: 403,
-      error:
-        'Die öffentliche Registrierung ist deaktiviert. Bitte verwenden Sie einen Einladungscode.',
-    };
-  }
-
-  // Mandatory First-Run Setup Mode (Issue #259):
-  // When no users exist, a valid setup token is required to register the initial superadmin.
-  // Exception: in automated test runs without INITIAL_ADMIN_TOKEN, allow seamless test suite execution.
-  const requiredSetupToken = isFirstUser ? getOrGenerateSetupToken(db) : '';
-
-  if (isFirstUser) {
-    const providedToken = typeof setupToken === 'string' ? setupToken.trim() : '';
-    // If test environment and no token provided and no INITIAL_ADMIN_TOKEN explicitly required, permit test runner
-    const allowTestBypass = isTestEnv && !process.env.INITIAL_ADMIN_TOKEN && !providedToken;
-    if (!allowTestBypass && (!providedToken || providedToken !== requiredSetupToken)) {
-      return {
-        allowed: false,
-        status: 403,
-        error:
-          'Für die Ersteinrichtung des Administrators ist ein gültiger Setup-Code erforderlich.',
-      };
-    }
-  }
-
-  return { allowed: true };
-}
-
-function completeInitialAdminSetup(db, newUser, req) {
-  sqlite.prepare("DELETE FROM settings WHERE key = 'setup_token'").run();
-  if (db.settings) {
-    delete db.settings.setup_token;
-  }
-  logSecurityEvent({
-    event: 'INITIAL_ADMIN_SETUP_COMPLETED',
-    userId: newUser.id,
-    email: newUser.email,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
-    status: 'success',
-    details: { adminEmail: newUser.email },
-  });
-}
-
-function resolveUserRoleAndDevStatus(isFirstUser, email) {
-  const isDev =
-    isFirstUser || (process.env.DEV_EMAIL && email === process.env.DEV_EMAIL.toLowerCase());
-  return {
-    isDev,
-    role: isDev ? 'superadmin' : 'user',
-  };
-}
-
-/**
- * POST /api/auth/register
- * Registers a new user and automatically creates their first family (e.g. "Familie <Name>")
- */
-router.post('/register', registerLimiter, async (req, res) => {
-  try {
-    const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
-    const rawPassword = typeof req.body?.password === 'string' ? req.body.password : '';
-    const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
-    const familyName = typeof req.body?.familyName === 'string' ? req.body.familyName : undefined;
-    const inviteCode = typeof req.body?.inviteCode === 'string' ? req.body.inviteCode : undefined;
-    const setupToken = typeof req.body?.setupToken === 'string' ? req.body.setupToken.trim() : '';
-
-    if (!rawEmail || !rawPassword || !rawName) {
-      return res.status(400).json({ error: 'Name, E-Mail und Passwort sind erforderlich.' });
-    }
-
-    const policyCheck = validatePasswordPolicy(rawPassword);
-    if (!policyCheck.valid) {
-      return res.status(400).json({ error: policyCheck.error });
-    }
-
-    const normalizedEmail = rawEmail.toLowerCase();
-    const db = readDb();
-
-    if (db.users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
-      return res.status(400).json({ error: 'Diese E-Mail-Adresse ist bereits registriert.' });
-    }
-
-    const isFirstUser = db.users.length === 0;
-    const regCheck = checkRegistrationAllowed(db, isFirstUser, inviteCode, setupToken);
-    if (!regCheck.allowed) {
-      return res.status(regCheck.status).json({ error: regCheck.error });
-    }
-
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
-    const userId = `user-${Date.now()}`;
-    const { isDev, role } = resolveUserRoleAndDevStatus(isFirstUser, normalizedEmail);
-
-    const newUser = {
-      id: userId,
-      name: rawName,
-      email: normalizedEmail,
-      password: hashedPassword,
-      isDev,
-      role,
-      createdAt: new Date().toISOString(),
-    };
-
-    db.users.push(newUser);
-
-    if (isFirstUser) {
-      completeInitialAdminSetup(db, newUser, req);
-    }
-
-    const activeFamily =
-      handleInviteJoin(db, inviteCode, userId) ||
-      createInitialFamily(db, userId, rawName, familyName);
-
-    const sessionId = createSession(newUser, req);
-    writeDb(db);
-
-    const token = createToken(newUser, sessionId);
-    setSessionCookie(res, token);
-
-    const userRole = getUserFamilyRole(activeFamily, userId);
-
-    return res.status(201).json({
-      token,
-      user: formatUserPayload(newUser),
-      family: {
-        id: activeFamily.id,
-        name: activeFamily.name,
-        role: userRole,
-        isOwner: activeFamily.ownerId === userId,
-      },
-    });
-  } catch (err) {
-    console.error('[Auth] Register error:', err);
-    return res.status(500).json({ error: 'Fehler bei der Registrierung.' });
-  }
-});
-
-/**
- * Helper to verify 2FA TOTP or recovery codes for login
- */
-function verifyUserTwoFactor(user, rawTotp, db) {
-  const decryptedSecret = decryptTwoFactorSecret(user.twoFactorSecret);
-  let verified = false;
-
-  if (decryptedSecret) {
-    verified = speakeasy.totp.verify({
-      secret: decryptedSecret,
-      encoding: 'base32',
-      token: rawTotp,
-      window: 2,
-    });
-  }
-
-  // Check recovery codes fallback (Issue BC-031 / Issue #235)
-  if (!verified && user.recoveryCodes?.length > 0) {
-    const inputHash = hashRecoveryCode(rawTotp, user.id);
-    const codeIndex = user.recoveryCodes.indexOf(inputHash);
-    if (codeIndex !== -1) {
-      verified = true;
-      user.recoveryCodes.splice(codeIndex, 1);
-      writeDb(db);
-      const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
-      console.log(
-        `[2FA RECOVERY ${new Date().toISOString()}] Recovery code consumed for user: ${cleanEmail} (${user.recoveryCodes.length} remaining)`
-      );
-    }
-  }
-
-  return verified;
-}
-
-/**
- * Helper to ensure a user has an active family upon login
- */
-function getOrCreateActiveFamily(user, db) {
-  const userFamilies = db.families.filter(
-    (f) => f.ownerId === user.id || f.members?.some((m) => m.userId === user.id)
-  );
-
-  let activeFamily = userFamilies[0] || null;
-
-  if (!activeFamily) {
-    const newFamily = {
-      id: `fam-${Date.now()}`,
-      name: `Familie ${user.name}`,
-      ownerId: user.id,
-      members: [{ userId: user.id, role: 'admin', joinedAt: new Date().toISOString() }],
-      createdAt: new Date().toISOString(),
-    };
-    db.families.push(newFamily);
-    activeFamily = newFamily;
-    userFamilies.push(newFamily);
-  }
-
-  return { activeFamily, userFamilies };
-}
-
-/**
- * Helper to format family summary for user payload
- */
 function formatFamilySummary(family, userId) {
   if (!family) return null;
   return {
@@ -451,6 +109,8 @@ function formatFamilySummary(family, userId) {
     isOwner: family.ownerId === userId,
   };
 }
+
+// ── Middleware ─────────────────────────────────────────────────────────────────
 
 const validateLoginPayload = (req, res, next) => {
   const { email, password } = req.body || {};
@@ -466,68 +126,94 @@ const validateLoginPayload = (req, res, next) => {
   return next();
 };
 
-const validateTotpCode = (req, res, next) => {
-  const code = req.body?.totpCode;
-  if (typeof code !== 'string' || code.trim().length === 0) {
-    return res.status(400).json({ error: 'Code ist erforderlich.' });
+// ── Routes ────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/auth/setup-status
+ * Public endpoint to check if first-run setup is required.
+ */
+router.get('/setup-status', (_req, res) => {
+  const setupRequired = isFirstRunSetupRequired();
+  return res.json({ setupRequired });
+});
+
+/**
+ * POST /api/auth/register
+ * Registers a new user and automatically creates/joins their first family.
+ */
+router.post('/register', registerLimiter, async (req, res) => {
+  try {
+    const result = await authService.register({
+      name: req.body?.name,
+      username: req.body?.username,
+      email: req.body?.email,
+      password: req.body?.password,
+      familyName: req.body?.familyName,
+      requestedFamilyName: req.body?.requestedFamilyName,
+      inviteCode: req.body?.inviteCode,
+      setupToken: req.body?.setupToken,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    if (!result.success) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+
+    setSessionCookie(res, result.token);
+
+    const userFamilies = familyRepository.findByUserId(result.user.id);
+    const activeFamily = userFamilies[0] || null;
+
+    return res.status(201).json({
+      token: result.token,
+      user: result.user,
+      family: activeFamily ? formatFamilySummary(activeFamily, result.user.id) : null,
+      families: userFamilies.map((f) => formatFamilySummary(f, result.user.id)),
+    });
+  } catch (err) {
+    console.error('[Auth] Register error:', err);
+    return res.status(500).json({ error: 'Fehler bei der Registrierung.' });
   }
-  req.authTotp = code.replace(/\s+/g, '').trim();
-  return next();
-};
+});
 
 /**
  * POST /api/auth/login
- * Authenticates user and returns JWT + user families
+ * Authenticates user and returns JWT + user families.
  */
 router.post('/login', loginLimiter, validateLoginPayload, async (req, res) => {
   try {
-    const db = readDb();
-    const user = db.users.find((u) => u.email.toLowerCase() === req.authEmail);
+    const result = await authService.login({
+      email: req.authEmail,
+      password: req.authPassword,
+      code: req.body?.totpCode,
+      recoveryCode: req.body?.recoveryCode,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
 
-    if (!user) {
-      return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
-    }
-
-    const isMatch = await bcrypt.compare(req.authPassword, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'E-Mail oder Passwort ist nicht korrekt.' });
-    }
-
-    // If 2FA is active for this account, strictly require and verify 2FA code
-    if (user.twoFactorSecret) {
-      const totpCode =
-        typeof req.body?.totpCode === 'string' ? req.body.totpCode.replace(/\s+/g, '').trim() : '';
-
-      const isVerified = verifyUserTwoFactor(user, totpCode, db);
-      if (!isVerified) {
-        if (totpCode.length === 0) {
-          return res.status(200).json({
-            requires2FA: true,
-            message: 'Bitte geben Sie Ihren 6-stelligen Authenticator-Code oder Recovery-Code ein.',
-          });
-        }
-        const cleanEmail = String(user.email).replace(/[^a-zA-Z0-9_@.-]/g, '_');
-        console.warn(
-          `[2FA LOGIN ${new Date().toISOString()}] 2FA login verification failed for user: ${cleanEmail}`
-        );
-        return res
-          .status(400)
-          .json({ error: 'Ungültiger 2FA-Code oder Recovery-Code. Bitte erneut versuchen.' });
+    if (!result.success) {
+      if (result.requires2FA) {
+        return res.status(result.status || 200).json({
+          requires2FA: true,
+          message: result.message,
+        });
       }
+      return res.status(result.status || 401).json({ error: result.error });
     }
 
-    const { activeFamily, userFamilies } = getOrCreateActiveFamily(user, db);
-    const sessionId = createSession(user, req);
-    writeDb(db);
+    setSessionCookie(res, result.token);
 
-    const token = createToken(user, sessionId);
-    setSessionCookie(res, token);
+    const userFamilies = familyRepository.findByUserId(result.user.id);
+    const familyIdQuery = req.query.familyId;
+    const activeFamily =
+      userFamilies.find((f) => f.id === familyIdQuery) || userFamilies[0] || null;
 
     return res.json({
-      token,
-      user: formatUserPayload(user),
-      family: formatFamilySummary(activeFamily, user.id),
-      families: userFamilies.map((f) => formatFamilySummary(f, user.id)),
+      token: result.token,
+      user: result.user,
+      family: activeFamily ? formatFamilySummary(activeFamily, result.user.id) : null,
+      families: userFamilies.map((f) => formatFamilySummary(f, result.user.id)),
     });
   } catch (err) {
     console.error('[Auth] Login error:', err);
@@ -537,96 +223,82 @@ router.post('/login', loginLimiter, validateLoginPayload, async (req, res) => {
 
 /**
  * POST /api/auth/logout
- * Clears HttpOnly session cookie and revokes the active session from database (Issue #262)
+ * Clears HttpOnly session cookie and revokes the active session (Issue #262).
  */
 router.post('/logout', (req, res) => {
-  revokeSessionFromRequest(req);
+  // Attempt to revoke the session from the cookie token
+  const cookieHeader = req.headers.cookie;
+  if (typeof cookieHeader === 'string') {
+    const match = /(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/.exec(cookieHeader);
+    if (match?.[1]) {
+      try {
+        const decoded = jwt.verify(decodeURIComponent(match[1]), JWT_SECRET);
+        if (decoded?.id && decoded?.sessionId) {
+          const user = userRepository.findById(decoded.id);
+          if (user) {
+            revokeSession(user, decoded.sessionId);
+          }
+        }
+      } catch {
+        // ignore invalid or expired tokens on logout
+      }
+    }
+  }
   clearSessionCookie(res);
   return res.json({ ok: true, message: 'Erfolgreich abgemeldet.' });
 });
 
 /**
  * GET /api/auth/me
- * Returns current user information and active family
+ * Returns current user information and active families.
  */
 router.get('/me', requireAuth, (req, res) => {
-  const db = readDb();
-  const user = db.users.find((u) => u.id === req.user.id);
+  const user = userRepository.findById(req.user.id);
   if (!user) {
     return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
   }
 
-  const userFamilies = db.families.filter(
-    (f) => f.ownerId === user.id || f.members?.some((m) => m.userId === user.id)
-  );
-
+  const userFamilies = familyRepository.findByUserId(user.id);
   const familyIdQuery = req.query.familyId;
   const activeFamily = userFamilies.find((f) => f.id === familyIdQuery) || userFamilies[0] || null;
 
   return res.json({
     user: formatUserPayload(user),
-    family: formatFamilySummary(activeFamily, user.id),
+    family: activeFamily ? formatFamilySummary(activeFamily, user.id) : null,
     families: userFamilies.map((f) => formatFamilySummary(f, user.id)),
   });
 });
 
 /**
  * PUT /api/auth/me
- * Updates current user profile (name, avatar, language - BC-054)
+ * Updates current user profile (name, avatar, language).
  */
 router.put('/me', requireAuth, (req, res) => {
-  const rawName = typeof req.body?.name === 'string' ? req.body.name.trim() : null;
-  const { avatar, language } = req.body || {};
-  const db = readDb();
-  const user = db.users.find((u) => u.id === req.user.id);
-  if (!user) {
-    return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
-  }
-
-  if (req.body?.name !== undefined) {
-    if (!rawName) {
-      return res.status(400).json({ error: 'Name darf nicht leer sein.' });
-    }
-    user.name = rawName;
-  }
-
-  if (avatar !== undefined) {
-    user.avatar = avatar; // base64 data URI or null
-  }
-
-  if (typeof language === 'string' && ['de', 'en', 'th'].includes(language.toLowerCase())) {
-    user.language = language.toLowerCase();
-  }
-
-  user.updatedAt = new Date().toISOString();
-  writeDb(db);
-
-  return res.json({
-    message: 'Profil erfolgreich aktualisiert.',
-    user: formatUserPayload(user),
+  const result = authService.updateProfile({
+    userId: req.user.id,
+    name: req.body?.name,
+    avatar: req.body?.avatar,
+    language: req.body?.language,
   });
+
+  if (!result.success) {
+    return res.status(result.status || 400).json({ error: result.error });
+  }
+
+  return res.json({ message: 'Profil erfolgreich aktualisiert.', user: result.user });
 });
 
 /**
  * GET /api/auth/sessions
- * Returns all active login sessions for the authenticated user (Issue #249)
+ * Returns all active login sessions for the authenticated user (Issue #249).
  */
 router.get('/sessions', requireAuth, (req, res) => {
-  const row = sqlite.prepare('SELECT sessions FROM users WHERE id = ?').get(req.user.id);
-  if (!row) {
+  const user = userRepository.findById(req.user.id);
+  if (!user) {
     return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
   }
 
-  let parsedSessions = [];
-  if (row.sessions) {
-    try {
-      parsedSessions = JSON.parse(row.sessions);
-    } catch {
-      parsedSessions = [];
-    }
-  }
-
-  const sessions = parsedSessions.map((s) => ({
+  const sessions = (user.sessions || []).map((s) => ({
     id: s.id,
     device: s.device,
     ip: s.ip,
@@ -640,19 +312,16 @@ router.get('/sessions', requireAuth, (req, res) => {
 
 /**
  * DELETE /api/auth/sessions/:sessionId
- * Revokes a specific remote session (Issue #249)
+ * Revokes a specific remote session (Issue #249).
  */
 router.delete('/sessions/:sessionId', requireAuth, (req, res) => {
   const { sessionId } = req.params;
-  const db = readDb();
-  const user = db.users.find((u) => u.id === req.user.id);
+  const user = userRepository.findById(req.user.id);
   if (!user) {
     return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
   }
 
   const removed = revokeSession(user, sessionId);
-  writeDb(db);
-
   return res.json({
     success: true,
     message: removed ? 'Sitzung erfolgreich beendet.' : 'Sitzung nicht gefunden.',
@@ -661,18 +330,15 @@ router.delete('/sessions/:sessionId', requireAuth, (req, res) => {
 
 /**
  * DELETE /api/auth/sessions
- * Revokes all other sessions except the current one (Issue #249)
+ * Revokes all other sessions except the current one (Issue #249).
  */
 router.delete('/sessions', requireAuth, (req, res) => {
-  const db = readDb();
-  const user = db.users.find((u) => u.id === req.user.id);
+  const user = userRepository.findById(req.user.id);
   if (!user) {
     return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
   }
 
   revokeAllOtherSessions(user, req.user.sessionId);
-  writeDb(db);
-
   return res.json({
     success: true,
     message: 'Alle anderen Sitzungen wurden erfolgreich abgemeldet.',
@@ -681,173 +347,79 @@ router.delete('/sessions', requireAuth, (req, res) => {
 
 /**
  * POST /api/auth/2fa/setup
- * Generates temporary TOTP secret and QR code for user
+ * Generates temporary TOTP secret and QR code for user.
  */
 router.post('/2fa/setup', requireAuth, async (req, res) => {
   try {
-    const db = readDb();
-    const user = db.users.find((u) => u.id === req.user.id);
-    if (!user) {
-      return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+    const result = await authService.setupTwoFactor(req.user.id);
+    if (!result.success) {
+      return res.status(result.status || 400).json({ error: result.error });
     }
-
-    const issuer = 'BabyCharts';
-    const accountLabel = user.name || user.email;
-    const secret = speakeasy.generateSecret({
-      name: `${issuer} (${accountLabel})`,
-      issuer,
-      length: 20,
-    });
-
-    // Formatted strictly as: otpauth://totp/BabyCharts:Sebastian%20Haupt?secret=...&issuer=BabyCharts
-    const otpAuthUrl = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountLabel)}?secret=${secret.base32}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
-    const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
-
-    // Save temporary secret to user with a 15-minute expiration (Issue BC-033)
-    user.tempTwoFactorSecret = secret.base32;
-    user.tempTwoFactorExpires = Date.now() + 15 * 60 * 1000; // 15 min expiration
-    writeDb(db);
-
-    logSecurityEvent({
-      event: '2FA_SETUP_INITIATED',
-      userId: user.id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-      status: 'success',
-    });
-
     return res.json({
-      secret: secret.base32,
-      qrCode: qrCodeDataUrl,
-      expiresAt: new Date(user.tempTwoFactorExpires).toISOString(),
+      secret: result.secret,
+      qrCode: result.qrCode,
+      expiresAt: result.expiresAt,
     });
   } catch (err) {
-    console.error(
-      '[2FA SETUP ERROR %s] Error generating 2FA secret:',
-      new Date().toISOString(),
-      err
-    );
+    console.error('[Auth] 2FA Setup error:', err);
     return res.status(500).json({ error: 'Fehler beim Generieren des 2FA-Codes.' });
   }
 });
 
 /**
  * POST /api/auth/2fa/verify
- * Verifies code and confirms permanent 2FA activation
+ * Verifies code and confirms permanent 2FA activation.
  */
-router.post('/2fa/verify', requireAuth, twoFactorLimiter, validateTotpCode, (req, res) => {
+router.post('/2fa/verify', requireAuth, twoFactorLimiter, async (req, res) => {
   try {
-    const totpCode = req.authTotp;
-
-    const db = readDb();
-    const user = db.users.find((u) => u.id === req.user.id);
-    if (!user?.tempTwoFactorSecret) {
-      return res.status(400).json({ error: 'Keine 2FA-Einrichtung aktiv.' });
+    const code = req.body?.totpCode;
+    if (typeof code !== 'string' || code.trim().length === 0) {
+      return res.status(400).json({ error: 'Code ist erforderlich.' });
     }
 
-    // Check if temporary 2FA setup secret has expired (Issue BC-033)
-    if (user.tempTwoFactorExpires && Date.now() > user.tempTwoFactorExpires) {
-      delete user.tempTwoFactorSecret;
-      delete user.tempTwoFactorExpires;
-      writeDb(db);
-
-      logSecurityEvent({
-        event: '2FA_VERIFY_EXPIRED',
-        userId: user.id,
-        email: user.email,
-        ip: req.ip,
-        userAgent: req.headers['user-agent'],
-        status: 'failed',
-      });
-
-      return res.status(400).json({
-        error: 'Die 2FA-Einrichtung ist abgelaufen (Gültigkeit 15 Min). Bitte erneut starten.',
-      });
-    }
-
-    // Verify token with a wider time drift window (window: 2 allows ±60s clock drift between phone and server)
-    const verified = speakeasy.totp.verify({
-      secret: user.tempTwoFactorSecret,
-      encoding: 'base32',
-      token: totpCode,
-      window: 2,
+    const result = await authService.verifyTwoFactor({
+      userId: req.user.id,
+      token: code.replace(/\s+/g, '').trim(),
     });
 
-    if (!verified) {
-      logSecurityEvent({
-        event: '2FA_VERIFY_FAILED',
-        userId: user.id,
-        email: user.email,
-        ip: req.ip,
-        userAgent: req.headers['user-agent'],
-        status: 'failed',
-      });
-      return res.status(400).json({ error: 'Ungültiger Code. Bitte prüfen Sie Ihre App.' });
+    if (!result.success) {
+      return res.status(result.status || 400).json({ error: result.error });
     }
 
-    // Encrypt secret with AES-256-GCM before saving permanently to database (Issue BC-032)
-    user.twoFactorSecret = encryptTwoFactorSecret(user.tempTwoFactorSecret);
-    delete user.tempTwoFactorSecret;
-    delete user.tempTwoFactorExpires;
-
-    // Generate 8 2FA recovery codes and hash them before saving (Issue BC-031 / Issue #235)
-    const rawRecoveryCodes = generateRecoveryCodes(8);
-    user.recoveryCodes = rawRecoveryCodes.map((code) => hashRecoveryCode(code, user.id));
-
-    writeDb(db);
-
-    logSecurityEvent({
-      event: '2FA_ENABLED',
-      userId: user.id,
-      email: user.email,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-      status: 'success',
-    });
-
+    const user = userRepository.findById(req.user.id);
     return res.json({
-      message: 'Zwei-Faktor-Authentifizierung erfolgreich aktiviert!',
+      message: result.message,
       user: formatUserPayload(user),
-      recoveryCodes: rawRecoveryCodes, // Provided to user once to save/print
+      recoveryCodes: result.recoveryCodes,
     });
   } catch (err) {
-    console.error('[2FA VERIFY ERROR %s] Verification exception:', new Date().toISOString(), err);
+    console.error('[Auth] 2FA Verify error:', err);
     return res.status(500).json({ error: 'Fehler bei der 2FA-Verifikation.' });
   }
 });
 
 /**
  * POST /api/auth/2fa/disable
- * Disables 2FA after password confirmation
+ * Disables 2FA after password confirmation.
  */
 router.post('/2fa/disable', requireAuth, async (req, res) => {
   try {
-    const { password } = req.body;
+    const { password } = req.body || {};
     if (!password) {
       return res.status(400).json({ error: 'Passwort erforderlich zur Deaktivierung.' });
     }
 
-    const db = readDb();
-    const user = db.users.find((u) => u.id === req.user.id);
-    if (!user) {
-      return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Falsches Passwort.' });
-    }
-
-    delete user.twoFactorSecret;
-    delete user.tempTwoFactorSecret;
-    delete user.recoveryCodes;
-    writeDb(db);
-
-    return res.json({
-      message: 'Zwei-Faktor-Authentifizierung deaktiviert.',
-      user: formatUserPayload(user),
+    const result = await authService.disableTwoFactor({
+      userId: req.user.id,
+      password,
     });
+
+    if (!result.success) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+
+    const user = userRepository.findById(req.user.id);
+    return res.json({ message: result.message, user: formatUserPayload(user) });
   } catch (err) {
     console.error('[Auth] 2FA Disable error:', err);
     return res.status(500).json({ error: 'Fehler beim Deaktivieren von 2FA.' });
@@ -856,8 +428,7 @@ router.post('/2fa/disable', requireAuth, async (req, res) => {
 
 /**
  * POST /api/auth/forgot-password
- * Initiates password reset flow by creating a secure 1-hour reset token.
- * Stores only a SHA-256 hash in the database so that database leaks cannot reveal valid reset tokens.
+ * Initiates password reset flow.
  */
 router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   try {
@@ -866,43 +437,15 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
       return res.status(400).json({ error: 'E-Mail-Adresse ist erforderlich.' });
     }
 
-    const normalizedEmail = rawEmail.toLowerCase();
-    const db = readDb();
-    const user = db.users.find((u) => u.email.toLowerCase() === normalizedEmail);
-
-    // Generic response prevents account enumeration attacks
-    if (!user) {
-      return res.json({
-        message:
-          'Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Reset-Code bereitgestellt.',
-      });
-    }
-
-    // Cryptographically secure random token (32 bytes = 64 hex chars)
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresInMs = 60 * 60 * 1000; // 1 hour expiration
-    const expiresAt = Date.now() + expiresInMs;
-
-    user.passwordResetTokenHash = tokenHash;
-    user.passwordResetExpires = expiresAt;
-    delete user.passwordResetToken; // Clean up any old plaintext field
-    writeDb(db);
-
-    console.log(
-      `\x1b[36m[PASSWORD RESET ${new Date().toISOString()}]\x1b[0m Secure reset token generated for user: ${user.email} (expires in 1h)`
-    );
-
-    // Send email via SMTP in background (fire-and-forget / non-blocking)
-    sendPasswordResetEmail(user.email, rawToken, user.name).catch((err) =>
-      console.error('[Auth] Error sending reset email:', err)
-    );
+    const result = await authService.requestPasswordReset({
+      email: rawEmail,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
 
     return res.json({
-      message:
-        'Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Reset-Code bereitgestellt.',
-      resetToken: rawToken, // Returned directly for client/self-hosted notification
-      expiresAt: new Date(expiresAt).toISOString(),
+      message: result.message,
+      ...(result.resetToken ? { resetToken: result.resetToken, expiresAt: result.expiresAt } : {}),
     });
   } catch (err) {
     console.error('[Auth] Forgot password error:', err);
@@ -912,8 +455,7 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
 
 /**
  * POST /api/auth/reset-password
- * Resets password using a valid raw reset token.
- * Verifies SHA-256 hash match, checks expiration timestamp, and enforces password policy.
+ * Resets password using a valid reset token.
  */
 router.post('/reset-password', passwordResetLimiter, async (req, res) => {
   try {
@@ -922,42 +464,18 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Token und neues Passwort sind erforderlich.' });
     }
 
-    const policyCheck = validatePasswordPolicy(newPassword);
-    if (!policyCheck.valid) {
-      return res.status(400).json({ error: policyCheck.error });
+    const result = await authService.resetPassword({
+      token,
+      newPassword,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    if (!result.success) {
+      return res.status(result.status || 400).json({ error: result.error });
     }
 
-    const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
-    const db = readDb();
-    const user = db.users.find((u) => u.passwordResetTokenHash === tokenHash);
-
-    if (!user) {
-      return res.status(400).json({ error: 'Reset-Token ungültig oder bereits verwendet.' });
-    }
-
-    // Check expiration timestamp (Issue BC-023)
-    if (!user.passwordResetExpires || Date.now() > user.passwordResetExpires) {
-      delete user.passwordResetTokenHash;
-      delete user.passwordResetExpires;
-      writeDb(db);
-      return res
-        .status(400)
-        .json({ error: 'Der Reset-Token ist abgelaufen. Bitte fordern Sie einen neuen an.' });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    user.tokenVersion = (user.tokenVersion || 0) + 1; // Invalidate all prior sessions (Issue BC-028)
-    delete user.passwordResetTokenHash;
-    delete user.passwordResetExpires;
-    delete user.passwordResetToken;
-    writeDb(db);
-
-    console.log(
-      `\x1b[32m[PASSWORD RESET SUCCESS ${new Date().toISOString()}]\x1b[0m Password successfully reset for user: ${user.email} (all previous sessions revoked)`
-    );
-
-    return res.json({ message: 'Passwort erfolgreich geändert. Sie können sich nun anmelden.' });
+    return res.json({ message: result.message });
   } catch (err) {
     console.error('[Auth] Reset password error:', err);
     return res.status(500).json({ error: 'Fehler beim Ändern des Passworts.' });
@@ -966,8 +484,7 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
 
 /**
  * POST /api/auth/change-password
- * Allows authenticated user to update their password.
- * Optionally logs out all other devices / sessions by bumping tokenVersion (Issue BC-029).
+ * Allows authenticated user to update their password (Issue BC-029).
  */
 router.post('/change-password', requireAuth, async (req, res) => {
   try {
@@ -976,41 +493,20 @@ router.post('/change-password', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Aktuelles und neues Passwort sind erforderlich.' });
     }
 
-    const policyCheck = validatePasswordPolicy(newPassword);
-    if (!policyCheck.valid) {
-      return res.status(400).json({ error: policyCheck.error });
-    }
-
-    const db = readDb();
-    const user = db.users.find((u) => u.id === req.user.id);
-    if (!user) {
-      return res.status(404).json({ error: 'Benutzerkonto nicht gefunden.' });
-    }
-
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Das aktuelle Passwort ist nicht korrekt.' });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-
-    if (logoutAllDevices) {
-      user.tokenVersion = (user.tokenVersion || 0) + 1;
-    }
-
-    writeDb(db);
-
-    // Generate fresh token for the current session
-    const newToken = createToken(user);
-
-    return res.json({
-      message: logoutAllDevices
-        ? 'Passwort erfolgreich geändert. Alle anderen Geräte wurden abgemeldet.'
-        : 'Passwort erfolgreich geändert.',
-      token: newToken,
-      user: formatUserPayload(user),
+    const result = await authService.changePassword({
+      userId: req.user.id,
+      currentPassword,
+      newPassword,
+      logoutAllDevices,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
     });
+
+    if (!result.success) {
+      return res.status(result.status || 400).json({ error: result.error });
+    }
+
+    return res.json({ message: result.message, token: result.token, user: result.user });
   } catch (err) {
     console.error('[Auth] Change password error:', err);
     return res.status(500).json({ error: 'Fehler beim Ändern des Passworts.' });
@@ -1018,13 +514,9 @@ router.post('/change-password', requireAuth, async (req, res) => {
 });
 
 /**
- * POST /api/auth/delete-account
  * DELETE /api/auth/account
+ * POST /api/auth/delete-account
  * Completely deletes the authenticated user's account (DSGVO / GDPR Art. 17 / BC-206).
- * Requires password confirmation.
- * Protects families:
- * - If user is the only member/owner of a family, that family and its child profiles are deleted cleanly.
- * - If family has other members and user is the owner, requires ownership transfer first to protect family data.
  */
 async function handleDeleteAccount(req, res) {
   try {
@@ -1035,22 +527,20 @@ async function handleDeleteAccount(req, res) {
       });
     }
 
-    const db = readDb();
-    const userIndex = db.users.findIndex((u) => u.id === req.user.id);
-    if (userIndex === -1) {
+    const user = userRepository.findById(req.user.id);
+    if (!user) {
       return res.status(404).json({ error: 'Benutzerkonto nicht gefunden.' });
     }
 
-    const user = db.users[userIndex];
+    const { default: bcrypt } = await import('bcryptjs');
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Das angegebene Passwort ist nicht korrekt.' });
     }
 
-    // Issue #330: Protect the last superadmin/instance admin from deletion
-    const isSuperadmin = user.role === 'superadmin' || user.isDev;
-    if (isSuperadmin) {
-      const superadminCount = db.users.filter((u) => u.role === 'superadmin' || u.isDev).length;
+    // Check for sole superadmin
+    if (user.role === 'superadmin' || user.isDev) {
+      const superadminCount = userRepository.countByRole('superadmin');
       if (superadminCount <= 1) {
         return res.status(400).json({
           error: 'Der letzte Administrator/Superadmin der Instanz kann nicht gelöscht werden.',
@@ -1058,10 +548,12 @@ async function handleDeleteAccount(req, res) {
       }
     }
 
-    // Check families where user is owner
-    const ownedFamilies = (db.families || []).filter((f) => f.ownerId === req.user.id);
+    // Check families where user is owner with other members
+    const ownedFamilies = familyRepository
+      .findByUserId(user.id)
+      .filter((f) => f.ownerId === user.id);
     for (const fam of ownedFamilies) {
-      const otherMembers = (fam.members || []).filter((m) => m.userId !== req.user.id);
+      const otherMembers = (fam.members || []).filter((m) => m.userId !== user.id);
       if (otherMembers.length > 0) {
         return res.status(400).json({
           error: `Sie sind Inhaber der Familie "${fam.name}" mit weiteren Mitgliedern. Bitte übertragen Sie zuerst die Inhaberschaft auf ein anderes Mitglied, bevor Sie Ihr Konto löschen.`,
@@ -1069,22 +561,33 @@ async function handleDeleteAccount(req, res) {
       }
     }
 
-    // Safe to delete owned solo families and their child profiles
-    const ownedSoloFamilyIds = new Set(ownedFamilies.map((f) => f.id));
-    db.families = (db.families || []).filter((f) => !ownedSoloFamilyIds.has(f.id));
-    db.profiles = (db.profiles || []).filter((p) => !ownedSoloFamilyIds.has(p.familyId));
-    db.invites = (db.invites || []).filter((i) => !ownedSoloFamilyIds.has(i.familyId));
-
-    // Remove user membership from any other families
-    for (const fam of db.families || []) {
-      fam.members = (fam.members || []).filter((m) => m.userId !== req.user.id);
+    // Delete solo-owned families and their profiles (via CASCADE in SQLite schema)
+    for (const fam of ownedFamilies) {
+      const otherMembers = (fam.members || []).filter((m) => m.userId !== user.id);
+      if (otherMembers.length === 0) {
+        familyRepository.delete(fam.id);
+      }
     }
 
-    // Remove user record
-    db.users.splice(userIndex, 1);
-    writeDb(db);
+    // Remove from other families' member lists
+    const allUserFamilies = familyRepository.findByUserId(user.id);
+    for (const fam of allUserFamilies) {
+      if (fam.ownerId !== user.id) {
+        familyRepository.removeMember(fam.id, user.id);
+      }
+    }
 
+    userRepository.delete(user.id);
     clearSessionCookie(res);
+
+    logSecurityEvent({
+      event: 'ACCOUNT_DELETED',
+      userId: user.id,
+      email: user.email,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'success',
+    });
 
     return res.json({
       ok: true,
@@ -1101,23 +604,26 @@ router.post('/delete-account', requireAuth, handleDeleteAccount);
 
 /**
  * GET /api/auth/export-my-data
- * Exports all personal data and associated records for the authenticated user (DSGVO / GDPR Art. 20 / BC-207).
+ * Exports all personal data for the authenticated user (DSGVO / GDPR Art. 20 / BC-207).
  */
 router.get('/export-my-data', requireAuth, (req, res) => {
   try {
-    const db = readDb();
-    const user = db.users.find((u) => u.id === req.user.id);
+    const user = userRepository.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'Benutzerkonto nicht gefunden.' });
     }
 
-    const userFamilies = (db.families || []).filter(
-      (f) => f.ownerId === user.id || (f.members || []).some((m) => m.userId === user.id)
-    );
+    const userFamilies = familyRepository.findByUserId(user.id);
     const userFamilyIds = new Set(userFamilies.map((f) => f.id));
-    const userProfiles = (db.profiles || []).filter(
-      (p) => p.familyId && userFamilyIds.has(p.familyId)
-    );
+
+    const profiles =
+      userFamilyIds.size > 0
+        ? sqlite
+            .prepare(
+              `SELECT * FROM profiles WHERE familyId IN (${[...userFamilyIds].map(() => '?').join(',')}) ORDER BY createdAt ASC`
+            )
+            .all([...userFamilyIds])
+        : [];
 
     const exportData = {
       exportVersion: '1.0',
@@ -1139,17 +645,13 @@ router.get('/export-my-data', requireAuth, (req, res) => {
         membersCount: (f.members || []).length,
         createdAt: f.createdAt,
       })),
-      profiles: userProfiles.map((p) => ({
+      profiles: profiles.map((p) => ({
         id: p.id,
         name: p.name,
         birthDate: p.birthDate,
         gender: p.gender,
-        measurements: p.measurements || [],
-        healthRecords: p.healthRecords || [],
-        milestones: p.milestones || [],
-        teeth: p.teeth || [],
-        uCheckups: p.uCheckups || {},
-        vaccinations: p.vaccinations || [],
+        measurements: p.measurements ? JSON.parse(p.measurements) : [],
+        milestones: p.milestones ? JSON.parse(p.milestones) : [],
       })),
     };
 
@@ -1167,62 +669,68 @@ router.get('/export-my-data', requireAuth, (req, res) => {
 
 /**
  * POST /api/auth/reauth
- * Re-authenticates user with password and optional TOTP for critical actions (Issue #333)
+ * Re-authenticates user with password and optional TOTP for critical actions (Issue #333).
  * Returns short-lived ticket valid for 5 minutes.
  */
-router.post('/reauth', requireAuth, (req, res) => {
-  const { password, code } = req.body || {};
-  if (!password) {
-    return res.status(400).json({ error: 'Passwort erforderlich zur Re-Authentifizierung.' });
-  }
+router.post('/reauth', requireAuth, async (req, res) => {
+  try {
+    const { password, code } = req.body || {};
+    if (!password) {
+      return res.status(400).json({ error: 'Passwort erforderlich zur Re-Authentifizierung.' });
+    }
 
-  const db = readDb();
-  const user = db.users.find((u) => u.id === req.user.id);
-  if (!user) {
-    return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
-  }
+    const user = userRepository.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Benutzer nicht gefunden.' });
+    }
 
-  const isPasswordValid = bcrypt.compareSync(password, user.password);
-  if (!isPasswordValid) {
-    return res.status(401).json({ error: 'Ungültiges Passwort.' });
-  }
+    const { default: bcrypt } = await import('bcryptjs');
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Ungültiges Passwort.' });
+    }
 
-  // If 2FA enabled, enforce TOTP code verification
-  if (user.twoFactorSecret) {
-    if (!code) {
-      return res.status(400).json({
-        requires2FA: true,
-        error: '2FA-Code erforderlich zur Bestätigung kritischer Aktionen.',
+    // If 2FA enabled, enforce TOTP code verification
+    if (user.twoFactorSecret) {
+      if (!code) {
+        return res.status(400).json({
+          requires2FA: true,
+          error: '2FA-Code erforderlich zur Bestätigung kritischer Aktionen.',
+        });
+      }
+      const plainSecret = decryptTwoFactorSecret(user.twoFactorSecret);
+      const isTotpValid = speakeasy.totp.verify({
+        secret: plainSecret,
+        encoding: 'base32',
+        token: String(code).trim(),
+        window: 1,
       });
+      if (!isTotpValid) {
+        return res.status(401).json({ error: 'Ungültiger 2FA-Code.' });
+      }
     }
-    const isTotpValid = speakeasy.totp.verify({
-      secret: user.twoFactorSecret,
-      encoding: 'base32',
-      token: String(code).trim(),
-      window: 1,
+
+    // Issue 5-minute re-auth ticket
+    const reauthToken = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        scope: 'recent_reauth',
+      },
+      JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+
+    return res.json({
+      ok: true,
+      reauthToken,
+      expiresInSeconds: 300,
+      message: 'Re-Authentifizierung erfolgreich.',
     });
-    if (!isTotpValid) {
-      return res.status(401).json({ error: 'Ungültiger 2FA-Code.' });
-    }
+  } catch (err) {
+    console.error('[Auth] Reauth error:', err);
+    return res.status(500).json({ error: 'Fehler bei der Re-Authentifizierung.' });
   }
-
-  // Issue 5-minute re-auth ticket
-  const reauthToken = jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      scope: 'recent_reauth',
-    },
-    JWT_SECRET,
-    { expiresIn: '5m' }
-  );
-
-  return res.json({
-    ok: true,
-    reauthToken,
-    expiresInSeconds: 300,
-    message: 'Re-Authentifizierung erfolgreich.',
-  });
 });
 
 export default router;

@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from '../../server/index.js';
-import { readDb, writeDb } from '../../server/utils/db.js';
+import { userRepository } from '../../server/repositories/index.js';
 
 describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () => {
   const getRand = (prefix) => `${prefix}_${crypto.randomBytes(6).toString('hex')}`;
@@ -100,16 +100,14 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
     });
     expect(regRes.status).toBe(201);
 
-    // 2. Prepare mock reset token in database
+    // 2. Prepare mock reset token directly in SQLite via repository
     const rawResetToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(rawResetToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 3600000).toISOString();
 
-    const db = readDb();
-    const userInDb = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const userInDb = userRepository.findByEmail(email);
     expect(userInDb).toBeDefined();
-    userInDb.passwordResetTokenHash = tokenHash;
-    userInDb.passwordResetExpires = Date.now() + 3600000;
-    writeDb(db);
+    userRepository.setResetPasswordToken(userInDb.id, tokenHash, expiresAt);
 
     // 3. Submit password reset with the valid raw token
     const resetRes = await request(app).post('/api/auth/reset-password').send({
@@ -148,13 +146,11 @@ describe('Auth & Password-Reset Comprehensive Test Suite (BC-081, BC-082)', () =
 
     const rawResetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(rawResetToken).digest('hex');
+    const expiredAt = new Date(Date.now() - 3600000).toISOString(); // Expired 1 hour ago
 
-    const db = readDb();
-    const userInDb = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    const userInDb = userRepository.findByEmail(email);
     expect(userInDb).toBeDefined();
-    userInDb.passwordResetTokenHash = hashedToken;
-    userInDb.passwordResetExpires = Date.now() - 3600000; // Expired 1 hour ago
-    writeDb(db);
+    userRepository.setResetPasswordToken(userInDb.id, hashedToken, expiredAt);
 
     const resetRes = await request(app).post('/api/auth/reset-password').send({
       token: rawResetToken,

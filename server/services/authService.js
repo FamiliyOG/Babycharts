@@ -109,7 +109,7 @@ export function createToken(user, sessionId = null) {
     {
       id: user.id,
       email: user.email,
-      name: user.username || user.name,
+      name: user.name || user.username,
       tokenVersion: user.tokenVersion || 0,
       sessionId: sessionId || undefined,
     },
@@ -129,7 +129,7 @@ export function formatUserPayload(user) {
 
   return {
     id: user.id,
-    name: user.username || user.name,
+    name: user.name || user.username,
     email: user.email,
     avatar: user.avatar || null,
     language: user.language || 'de',
@@ -139,7 +139,7 @@ export function formatUserPayload(user) {
   };
 }
 
-export function getOrGenerateSetupToken(db = {}) {
+export function getOrGenerateSetupToken(_db = {}) {
   const envToken = process.env.INITIAL_ADMIN_TOKEN;
   if (typeof envToken === 'string' && envToken.trim()) {
     return envToken.trim();
@@ -158,13 +158,10 @@ export function getOrGenerateSetupToken(db = {}) {
   sqlite
     .prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
     .run('setup_token', JSON.stringify(generatedToken));
-  if (db?.settings) {
-    db.settings.setup_token = generatedToken;
-  }
   return generatedToken;
 }
 
-export function isFirstRunSetupRequired(_db = {}) {
+export function isFirstRunSetupRequired() {
   const count = userRepository.count();
   return count === 0;
 }
@@ -239,7 +236,7 @@ function handleRegistrationFamily({
       targetFamily = familyRepository.findById(invite.familyId);
       if (targetFamily) {
         familyRepository.addMember(targetFamily.id, newUser.id, invite.role || 'editor');
-        familyRepository.deleteInvite(invite.id);
+        familyRepository.deleteInvite(invite.code);
         familyRepository.recordUsedInvite({
           id: `used-${Date.now()}`,
           code: normalizedCode,
@@ -288,30 +285,36 @@ function verifyUserTwoFactor({ user, code, recoveryCode, ip, userAgent }) {
     });
   }
 
-  // Check recovery codes
-  if (!is2faValid && providedRecovery && Array.isArray(user.recoveryCodes)) {
-    const hashedAttempt = hashRecoveryCode(providedRecovery, user.id);
-    const codeIndex = user.recoveryCodes.findIndex(
-      (c) => c === hashedAttempt || c === providedRecovery
-    );
-    if (codeIndex !== -1) {
-      is2faValid = true;
-      const updatedCodes = [...user.recoveryCodes];
-      updatedCodes.splice(codeIndex, 1);
-      userRepository.updateTwoFactor(user.id, {
-        secret: user.twoFactorSecret,
-        enabled: user.twoFactorEnabled,
-        recoveryCodes: updatedCodes,
-      });
-      logSecurityEvent({
-        event: '2FA_RECOVERY_CODE_USED',
-        userId: user.id,
-        email: user.email,
-        ip,
-        userAgent,
-        status: 'success',
-        details: { remainingCodes: updatedCodes.length },
-      });
+  // Check recovery codes — try both the dedicated recoveryCode field and the totpCode field
+  // (backwards compatible: tests and older clients may send recovery codes via the totpCode field)
+  if (!is2faValid && Array.isArray(user.recoveryCodes)) {
+    const candidates = [
+      providedRecovery,
+      providedTotp ? providedTotp.trim().toUpperCase() : null,
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+      const hashedAttempt = hashRecoveryCode(candidate, user.id);
+      const codeIndex = user.recoveryCodes.findIndex((c) => c === hashedAttempt || c === candidate);
+      if (codeIndex !== -1) {
+        is2faValid = true;
+        const updatedCodes = [...user.recoveryCodes];
+        updatedCodes.splice(codeIndex, 1);
+        userRepository.updateTwoFactor(user.id, {
+          secret: user.twoFactorSecret,
+          recoveryCodes: updatedCodes,
+        });
+        logSecurityEvent({
+          event: '2FA_RECOVERY_CODE_USED',
+          userId: user.id,
+          email: user.email,
+          ip,
+          userAgent,
+          status: 'success',
+          details: { remainingCodes: updatedCodes.length },
+        });
+        break;
+      }
     }
   }
 
@@ -347,18 +350,22 @@ export const authService = {
 
   async register({
     username,
+    name,
     email,
     password,
     requestedFamilyName,
+    familyName,
     inviteCode,
     setupToken,
     ip,
     userAgent,
   }) {
-    const rawEmail = typeof email === 'string' ? email.trim() : '';
+    const rawEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const rawPassword = typeof password === 'string' ? password : '';
     const cleanUsername =
-      typeof username === 'string' && username.trim() ? username.trim() : rawEmail.split('@')[0];
+      typeof (name || username) === 'string' && (name || username).trim()
+        ? (name || username).trim()
+        : rawEmail.split('@')[0];
 
     const policyCheck = validatePasswordPolicy(rawPassword);
     if (!policyCheck.valid) {
@@ -384,18 +391,19 @@ export const authService = {
       return {
         success: false,
         status: 400,
-        error: 'Ein Benutzer mit dieser E-Mail existiert bereits.',
+        error: 'Diese E-Mail-Adresse ist bereits registriert.',
       };
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(rawPassword, 12);
     const userId = `usr-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
-    const isDev = isFirstUser || rawEmail.toLowerCase() === process.env.DEV_EMAIL?.toLowerCase();
+    const isDev = isFirstUser || rawEmail === process.env.DEV_EMAIL?.toLowerCase();
     const role = isFirstUser || isDev ? 'superadmin' : 'user';
 
     const newUser = userRepository.create({
       id: userId,
+      name: cleanUsername,
       username: cleanUsername,
       email: rawEmail,
       password: hashedPassword,
@@ -420,7 +428,7 @@ export const authService = {
       inviteCode,
       rawEmail,
       newUser,
-      requestedFamilyName,
+      requestedFamilyName: requestedFamilyName || familyName,
       cleanUsername,
     });
     if (familyResult.error) {
@@ -431,9 +439,19 @@ export const authService = {
       };
     }
 
-    // Session & Token
-    const session = createSession(newUser.id, userAgent, ip);
-    const token = createToken(newUser, session.id);
+    // Session & Token — re-fetch user so sessions array is fresh
+    const freshUser = userRepository.findById(newUser.id);
+    const sessionId = createSession(freshUser, userAgent, ip);
+    const token = createToken(newUser, sessionId);
+
+    logSecurityEvent({
+      event: 'REGISTER_SUCCESS',
+      userId: newUser.id,
+      email: newUser.email,
+      ip,
+      userAgent,
+      status: 'success',
+    });
 
     return {
       success: true,
@@ -457,7 +475,7 @@ export const authService = {
         status: 'failure',
         details: { reason: 'User not found' },
       });
-      return { success: false, status: 401, error: 'Ungültige E-Mail-Adresse oder Passwort.' };
+      return { success: false, status: 401, error: 'E-Mail oder Passwort ist nicht korrekt.' };
     }
 
     const isValidPassword = await bcrypt.compare(rawPassword, user.password);
@@ -471,7 +489,7 @@ export const authService = {
         status: 'failure',
         details: { reason: 'Invalid password' },
       });
-      return { success: false, status: 401, error: 'Ungültige E-Mail-Adresse oder Passwort.' };
+      return { success: false, status: 401, error: 'E-Mail oder Passwort ist nicht korrekt.' };
     }
 
     // Check 2FA
@@ -495,8 +513,8 @@ export const authService = {
     }
 
     // Login successful: create session & token
-    const session = createSession(user.id, userAgent, ip);
-    const token = createToken(user, session.id);
+    const sessionId = createSession(user, userAgent, ip);
+    const token = createToken(user, sessionId);
 
     logSecurityEvent({
       event: 'LOGIN_SUCCESS',
@@ -514,7 +532,14 @@ export const authService = {
     };
   },
 
-  async changePassword({ userId, currentPassword, newPassword, ip, userAgent }) {
+  async changePassword({
+    userId,
+    currentPassword,
+    newPassword,
+    logoutAllDevices = true,
+    ip,
+    userAgent,
+  }) {
     const user = userRepository.findById(userId);
     if (!user) {
       return { success: false, status: 404, error: 'Benutzer nicht gefunden.' };
@@ -531,7 +556,7 @@ export const authService = {
     }
 
     const hashed = await bcrypt.hash(newPassword, 12);
-    userRepository.updatePassword(userId, hashed, true);
+    userRepository.updatePassword(userId, hashed, logoutAllDevices);
 
     logSecurityEvent({
       event: 'PASSWORD_CHANGED',
@@ -542,7 +567,18 @@ export const authService = {
       status: 'success',
     });
 
-    return { success: true };
+    // Return fresh user for a new token
+    const updatedUser = userRepository.findById(userId);
+    const newToken = createToken(updatedUser);
+
+    return {
+      success: true,
+      token: newToken,
+      user: formatUserPayload(updatedUser),
+      message: logoutAllDevices
+        ? 'Passwort erfolgreich geändert. Alle anderen Geräte wurden abgemeldet.'
+        : 'Passwort erfolgreich geändert.',
+    };
   },
 
   async requestPasswordReset({ email, ip, userAgent }) {
@@ -550,12 +586,11 @@ export const authService = {
     const user = userRepository.findByEmail(rawEmail);
 
     // Generic success response to avoid leaking account existence
+    const genericMsg =
+      'Wenn ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Reset-Code bereitgestellt.';
+
     if (!user) {
-      return {
-        success: true,
-        message:
-          'Falls ein Konto mit dieser E-Mail existiert, wurde ein Link zum Zurücksetzen gesendet.',
-      };
+      return { success: true, message: genericMsg };
     }
 
     const plainToken = crypto.randomBytes(32).toString('hex');
@@ -564,7 +599,9 @@ export const authService = {
 
     userRepository.setResetPasswordToken(user.id, hashedToken, expiresAt);
 
-    await sendPasswordResetEmail(user.email, plainToken);
+    sendPasswordResetEmail(user.email, plainToken, user.name).catch((err) =>
+      console.error('[Auth] Error sending reset email:', err)
+    );
 
     logSecurityEvent({
       event: 'PASSWORD_RESET_REQUESTED',
@@ -577,14 +614,16 @@ export const authService = {
 
     return {
       success: true,
-      message:
-        'Falls ein Konto mit dieser E-Mail existiert, wurde ein Link zum Zurücksetzen gesendet.',
+      message: genericMsg,
+      // Returned directly so self-hosted setups can display/copy the token if email is not configured
+      resetToken: plainToken,
+      expiresAt,
     };
   },
 
   async resetPassword({ token, newPassword, ip, userAgent }) {
     if (!token || typeof token !== 'string') {
-      return { success: false, status: 400, error: 'Ungültiger oder abgelaufener Reset-Token.' };
+      return { success: false, status: 400, error: 'Reset-Token ungültig oder bereits verwendet.' };
     }
 
     const policy = validatePasswordPolicy(newPassword);
@@ -595,11 +634,12 @@ export const authService = {
     const hashedToken = crypto.createHash('sha256').update(token.trim()).digest('hex');
     const user = userRepository.findByResetToken(hashedToken);
 
-    if (!user?.resetPasswordExpires) {
-      return { success: false, status: 400, error: 'Ungültiger oder abgelaufener Reset-Token.' };
+    if (!user?.resetPasswordExpires && !user?.passwordResetExpires) {
+      return { success: false, status: 400, error: 'Reset-Token ungültig oder bereits verwendet.' };
     }
 
-    if (new Date(user.resetPasswordExpires) < new Date()) {
+    const expiresAt = user.resetPasswordExpires || user.passwordResetExpires;
+    if (new Date(expiresAt) < new Date()) {
       userRepository.clearResetPasswordToken(user.id);
       return {
         success: false,
@@ -629,58 +669,98 @@ export const authService = {
     const user = userRepository.findById(userId);
     if (!user) return { success: false, status: 404, error: 'Benutzer nicht gefunden.' };
 
+    const issuer = 'BabyCharts';
+    const accountLabel = user.name || user.email;
     const secret = speakeasy.generateSecret({
-      name: `BabyCharts (${user.email})`,
-      issuer: 'BabyCharts',
+      name: `${issuer} (${accountLabel})`,
+      issuer,
       length: 20,
     });
 
-    const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
-    const plainRecoveryCodes = generateRecoveryCodes(8);
-    const hashedRecoveryCodes = plainRecoveryCodes.map((c) => hashRecoveryCode(c, userId));
+    const otpAuthUrl = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountLabel)}?secret=${secret.base32}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
+    const qrCodeUrl = await QRCode.toDataURL(otpAuthUrl);
 
-    const encryptedSecret = encryptTwoFactorSecret(secret.base32);
+    const tempExpires = Date.now() + 15 * 60 * 1000; // 15 min expiry
 
-    // Save secret & recovery codes (not yet enabled until verified)
-    userRepository.updateTwoFactor(userId, {
-      secret: encryptedSecret,
-      enabled: false,
-      recoveryCodes: hashedRecoveryCodes,
+    // Save temporary secret (not yet enabled until verified)
+    userRepository.update(userId, {
+      tempTwoFactorSecret: secret.base32,
+      tempTwoFactorExpires: tempExpires,
+    });
+
+    logSecurityEvent({
+      event: '2FA_SETUP_INITIATED',
+      userId,
+      email: user.email,
+      status: 'success',
     });
 
     return {
       success: true,
       secret: secret.base32,
       qrCode: qrCodeUrl,
-      recoveryCodes: plainRecoveryCodes,
+      expiresAt: new Date(tempExpires).toISOString(),
     };
   },
 
   async verifyTwoFactor({ userId, token }) {
     const user = userRepository.findById(userId);
-    if (!user?.twoFactorSecret) {
-      return { success: false, status: 400, error: '2FA ist nicht eingerichtet.' };
+    if (!user?.tempTwoFactorSecret) {
+      return { success: false, status: 400, error: 'Keine 2FA-Einrichtung aktiv.' };
     }
 
-    const plainSecret = decryptTwoFactorSecret(user.twoFactorSecret);
+    // Check if temporary 2FA setup secret has expired
+    if (user.tempTwoFactorExpires && Date.now() > user.tempTwoFactorExpires) {
+      userRepository.update(userId, {
+        tempTwoFactorSecret: null,
+        tempTwoFactorExpires: null,
+      });
+      logSecurityEvent({
+        event: '2FA_VERIFY_EXPIRED',
+        userId,
+        email: user.email,
+        status: 'failed',
+      });
+      return {
+        success: false,
+        status: 400,
+        error: 'Die 2FA-Einrichtung ist abgelaufen (Gültigkeit 15 Min). Bitte erneut starten.',
+      };
+    }
+
     const verified = speakeasy.totp.verify({
-      secret: plainSecret,
+      secret: user.tempTwoFactorSecret,
       encoding: 'base32',
-      token: token.trim(),
+      token: String(token).trim(),
       window: 2,
     });
 
     if (!verified) {
-      return { success: false, status: 400, error: 'Ungültiger 2FA-Code.' };
+      logSecurityEvent({ event: '2FA_VERIFY_FAILED', userId, email: user.email, status: 'failed' });
+      return { success: false, status: 400, error: 'Ungültiger Code. Bitte prüfen Sie Ihre App.' };
     }
 
+    // Encrypt secret permanently and generate recovery codes
+    const encryptedSecret = encryptTwoFactorSecret(user.tempTwoFactorSecret);
+    const rawRecoveryCodes = generateRecoveryCodes(8);
+    const hashedRecoveryCodes = rawRecoveryCodes.map((c) => hashRecoveryCode(c, userId));
+
     userRepository.updateTwoFactor(userId, {
-      secret: user.twoFactorSecret,
-      enabled: true,
-      recoveryCodes: user.recoveryCodes,
+      secret: encryptedSecret,
+      recoveryCodes: hashedRecoveryCodes,
+    });
+    userRepository.update(userId, {
+      tempTwoFactorSecret: null,
+      tempTwoFactorExpires: null,
     });
 
-    return { success: true, message: 'Zwei-Faktor-Authentifizierung erfolgreich aktiviert.' };
+    logSecurityEvent({ event: '2FA_ENABLED', userId, email: user.email, status: 'success' });
+
+    return {
+      success: true,
+      message: 'Zwei-Faktor-Authentifizierung erfolgreich aktiviert!',
+      recoveryCodes: rawRecoveryCodes,
+    };
   },
 
   async disableTwoFactor({ userId, password }) {
@@ -694,11 +774,38 @@ export const authService = {
 
     userRepository.updateTwoFactor(userId, {
       secret: null,
-      enabled: false,
       recoveryCodes: [],
     });
 
+    logSecurityEvent({ event: '2FA_DISABLED', userId, email: user.email, status: 'success' });
+
     return { success: true, message: 'Zwei-Faktor-Authentifizierung wurde deaktiviert.' };
+  },
+
+  updateProfile({ userId, name, avatar, language }) {
+    const user = userRepository.findById(userId);
+    if (!user) return { success: false, status: 404, error: 'Benutzer nicht gefunden.' };
+
+    const updates = {};
+
+    if (name !== undefined) {
+      const cleanName = typeof name === 'string' ? name.trim() : '';
+      if (!cleanName) {
+        return { success: false, status: 400, error: 'Name darf nicht leer sein.' };
+      }
+      updates.name = cleanName;
+    }
+
+    if (avatar !== undefined) {
+      updates.avatar = avatar; // base64 data URI or null
+    }
+
+    if (typeof language === 'string' && ['de', 'en', 'th'].includes(language.toLowerCase())) {
+      updates.language = language.toLowerCase();
+    }
+
+    const updated = userRepository.update(userId, updates);
+    return { success: true, user: formatUserPayload(updated) };
   },
 
   deleteAccount({ userId }) {

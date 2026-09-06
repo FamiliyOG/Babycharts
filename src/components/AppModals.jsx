@@ -1,13 +1,13 @@
-import { lazy, Suspense } from 'react';
 import ConfirmModal from './ConfirmModal.jsx';
-
-const ProfileModal = lazy(() => import('./ProfileModal.jsx'));
-const MeasurementForm = lazy(() => import('./MeasurementForm.jsx'));
-const ExportImportModal = lazy(() => import('./ExportImportModal.jsx'));
-const AuthModal = lazy(() => import('./AuthModal.jsx'));
-const TwoFactorModal = lazy(() => import('./TwoFactorModal.jsx'));
-const FamilyManagementModal = lazy(() => import('./FamilyManagementModal.jsx'));
-const QuickAddModal = lazy(() => import('./QuickAddModal.jsx'));
+import ProfileModal from './ProfileModal.jsx';
+import MeasurementForm from './MeasurementForm.jsx';
+import ExportImportModal from './ExportImportModal.jsx';
+import AuthModal from './AuthModal.jsx';
+import TwoFactorModal from './TwoFactorModal.jsx';
+import FamilyManagementModal from './FamilyManagementModal.jsx';
+import QuickAddModal from './QuickAddModal.jsx';
+import AdminModal from '../features/admin/AdminModal.jsx';
+import { useBodyScrollLock } from '../utils/useBodyScrollLock.js';
 
 export default function AppModals({
   activeChild,
@@ -30,6 +30,8 @@ export default function AppModals({
   handleOpenAddMeasurement,
   isExportModalOpen,
   setIsExportModalOpen,
+  isAdminModalOpen,
+  setIsAdminModalOpen,
   handleLoadDemoData,
   isAuthModalOpen,
   setIsAuthModalOpen,
@@ -43,8 +45,21 @@ export default function AppModals({
   setActiveTab,
   toastMessage,
 }) {
+  const isAnyModalOpen = Boolean(
+    isQuickAddOpen ||
+    isProfileModalOpen ||
+    isMeasurementFormOpen ||
+    isExportModalOpen ||
+    isAdminModalOpen ||
+    isAuthModalOpen ||
+    is2FaModalOpen ||
+    isFamilyModalOpen ||
+    measurementToDelete
+  );
+  useBodyScrollLock(isAnyModalOpen);
+
   return (
-    <Suspense fallback={null}>
+    <>
       {/* Quick Add Modal */}
       {isQuickAddOpen && activeChild && (
         <QuickAddModal
@@ -93,7 +108,6 @@ export default function AppModals({
         <ExportImportModal
           isOpen={isExportModalOpen}
           profiles={profiles}
-          onLoadDemoData={handleLoadDemoData}
           onImportProfiles={(imported) => {
             if (setProfiles) setProfiles(imported);
             importProfiles(imported);
@@ -116,7 +130,17 @@ export default function AppModals({
       {isFamilyModalOpen && (
         <FamilyManagementModal
           isOpen={isFamilyModalOpen}
+          profiles={profiles}
           onClose={() => setIsFamilyModalOpen(false)}
+        />
+      )}
+
+      {/* Instance Administration Modal (Issue #328) */}
+      {isAdminModalOpen && (
+        <AdminModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+          onLoadDemoData={handleLoadDemoData}
         />
       )}
 
@@ -140,6 +164,6 @@ export default function AppModals({
           <span>{toastMessage}</span>
         </div>
       )}
-    </Suspense>
+    </>
   );
 }

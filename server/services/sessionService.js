@@ -44,7 +44,16 @@ export function createSession(user, req) {
     lastActiveAt: new Date().toISOString(),
   };
 
-  user.sessions = user.sessions || [];
+  const maxLifetimeMs = 30 * 24 * 60 * 60 * 1000; // 30 days maximum session lifetime
+  const inactivityTimeoutMs = 7 * 24 * 60 * 60 * 1000; // 7 days inactivity expiration
+  const now = Date.now();
+
+  user.sessions = (user.sessions || []).filter((s) => {
+    const created = new Date(s.createdAt).getTime();
+    const lastActive = new Date(s.lastActiveAt || s.createdAt).getTime();
+    return now - created < maxLifetimeMs && now - lastActive < inactivityTimeoutMs;
+  });
+
   // Keep maximum 20 active sessions per user to avoid unbounded list growth
   if (user.sessions.length >= 20) {
     user.sessions.shift();

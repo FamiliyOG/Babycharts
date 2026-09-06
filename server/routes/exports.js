@@ -12,7 +12,8 @@ import rateLimit from 'express-rate-limit';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getSettings, readDb } from '../utils/db.js';
-import { requireAuth, getUserFamilyRole } from '../middleware/auth.js';
+import { requireAuth, requireInstanceAdmin, getUserFamilyRole } from '../middleware/auth.js';
+import { requireRecentAuth } from '../middleware/requireRecentAuth.js';
 
 const router = Router();
 
@@ -192,14 +193,8 @@ router.delete('/delete', requireAuth, async (req, res) => {
 
 // ── Database Backup & Restore API (Issues BC-098, BC-099, BC-100, BC-101, BC-102) ───────────
 
-// GET /api/exports/backups – list server SQLite backups (Admin/Dev only)
-router.get('/backups', requireAuth, async (req, res) => {
-  if (!req.user.isDev && req.user.role !== 'admin') {
-    return res
-      .status(403)
-      .json({ error: 'Zugriff verweigert: Nur Administratoren dürfen Backups einsehen.' });
-  }
-
+// GET /api/exports/backups – list server SQLite backups (Instance-Admin only, Issue #320, #322)
+router.get('/backups', requireAuth, requireInstanceAdmin, async (req, res) => {
   try {
     const backupDir = path.resolve(process.cwd(), 'server', 'data', 'backups');
     await fs.mkdir(backupDir, { recursive: true });
@@ -229,12 +224,8 @@ router.get('/backups', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/exports/backups/create – trigger manual SQLite database backup
-router.post('/backups/create', requireAuth, async (req, res) => {
-  if (!req.user.isDev && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Zugriff verweigert.' });
-  }
-
+// POST /api/exports/backups/create – trigger manual SQLite database backup (Instance-Admin only)
+router.post('/backups/create', requireAuth, requireInstanceAdmin, async (req, res) => {
   const { createDbBackup } = await import('../utils/db.js');
   const backupPath = await createDbBackup();
   if (backupPath) {
@@ -243,33 +234,33 @@ router.post('/backups/create', requireAuth, async (req, res) => {
   return res.status(500).json({ error: 'Backup-Erstellung fehlgeschlagen.' });
 });
 
-// POST /api/exports/backups/restore/:filename – restore database from an existing server backup
-router.post('/backups/restore/:filename', requireAuth, async (req, res) => {
-  if (!req.user.isDev && req.user.role !== 'admin') {
-    return res.status(403).json({
-      error: 'Zugriff verweigert: Nur Administratoren dürfen Datenbanken wiederherstellen.',
+// POST /api/exports/backups/restore/:filename – restore database from an existing server backup (Instance-Admin only, requires recent auth, Issue #333)
+router.post(
+  '/backups/restore/:filename',
+  requireAuth,
+  requireInstanceAdmin,
+  requireRecentAuth,
+  async (req, res) => {
+    const filename = path.basename(req.params.filename);
+    const backupDir = path.resolve(process.cwd(), 'server', 'data', 'backups');
+    const targetPath = path.join(backupDir, filename);
+
+    const { restoreFromBackup } = await import('../utils/db.js');
+    const result = await restoreFromBackup(targetPath);
+
+    if (!result.ok) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    return res.json({
+      ok: true,
+      message: 'Datenbank erfolgreich wiederhergestellt.',
+      preRestoreBackup: result.preRestoreBackupPath
+        ? path.basename(result.preRestoreBackupPath)
+        : null,
     });
   }
-
-  const filename = path.basename(req.params.filename);
-  const backupDir = path.resolve(process.cwd(), 'server', 'data', 'backups');
-  const targetPath = path.join(backupDir, filename);
-
-  const { restoreFromBackup } = await import('../utils/db.js');
-  const result = await restoreFromBackup(targetPath);
-
-  if (!result.ok) {
-    return res.status(400).json({ error: result.error });
-  }
-
-  return res.json({
-    ok: true,
-    message: 'Datenbank erfolgreich wiederhergestellt.',
-    preRestoreBackup: result.preRestoreBackupPath
-      ? path.basename(result.preRestoreBackupPath)
-      : null,
-  });
-});
+);
 
 // GET /api/exports/health – Automated backup & database health diagnostics (Issue #253)
 router.get('/health', requireAuth, async (req, res) => {

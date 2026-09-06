@@ -22,16 +22,23 @@ function createTooth(date, notes) {
   };
 }
 
-function createMilestone(date, notes) {
+function createMilestone(date, notes, photo = null) {
   return {
     completed: true,
     date,
     notes,
-    photo: null,
+    photo,
+    updatedAt: `${date}T12:00:00.000Z`,
   };
 }
 
 const NOAH_VACS = {
+  'rsv-prophylaxe': createVac(
+    '2025-08-16',
+    'Kinderklinik Marienhospital',
+    'RSV-0199',
+    'Nirsevimab-Prophylaxe vor Entlassung erhalten.'
+  ),
   'rotavirus-1': createVac(
     '2025-10-02',
     'Dr. med. Weber, Kinderarztpraxis',
@@ -56,6 +63,12 @@ const NOAH_VACS = {
     'PN-3310',
     'Zusammen mit 6-fach 1 verabreicht.'
   ),
+  'meningokokken-b-1': createVac(
+    '2025-10-18',
+    'Dr. med. Weber, Kinderarztpraxis',
+    'BEX-1044',
+    '1. Dosis Bexsero, leichte Schläfrigkeit.'
+  ),
   '6fach-2': createVac(
     '2025-12-18',
     'Dr. med. Weber, Kinderarztpraxis',
@@ -67,6 +80,12 @@ const NOAH_VACS = {
     'Dr. med. Weber, Kinderarztpraxis',
     'PN-3490',
     'Alles bestens.'
+  ),
+  'meningokokken-b-2': createVac(
+    '2026-01-15',
+    'Dr. med. Weber, Kinderarztpraxis',
+    'BEX-1188',
+    '2. Dosis Meningokokken B, ohne Komplikationen.'
   ),
   '6fach-3': createVac(
     '2026-07-20',
@@ -83,14 +102,17 @@ const NOAH_VACS = {
 };
 
 const NOAH_TEETH = {
-  'lr-1': createTooth('2026-03-10', 'Erster Zahn! Mittlerer Schneidezahn unten rechts.'),
-  'll-1': createTooth('2026-03-24', 'Zweiter Schneidezahn unten links folgt zwei Wochen später.'),
-  'ur-1': createTooth('2026-05-18', 'Oberer mittlerer Schneidezahn rechts.'),
-  'ul-1': createTooth('2026-05-30', 'Oberer mittlerer Schneidezahn links.'),
-  'ur-2': createTooth('2026-07-15', 'Seitlicher Schneidezahn oben rechts.'),
+  'lr-1': createTooth('2026-03-10', 'Erster Zahn! Mittlerer Schneidezahn unten rechts (81).'),
+  'll-1': createTooth(
+    '2026-03-24',
+    'Zweiter Schneidezahn unten links folgt zwei Wochen später (71).'
+  ),
+  'ur-1': createTooth('2026-05-18', 'Oberer mittlerer Schneidezahn rechts (51).'),
+  'ul-1': createTooth('2026-05-30', 'Oberer mittlerer Schneidezahn links (61).'),
+  'ur-2': createTooth('2026-07-15', 'Seitlicher Schneidezahn oben rechts (52).'),
   'ul-2': createTooth(
     '2026-08-02',
-    'Seitlicher Schneidezahn oben links kurz vor dem 1. Geburtstag!'
+    'Seitlicher Schneidezahn oben links kurz vor dem 1. Geburtstag (62)!'
   ),
 };
 
@@ -113,11 +135,42 @@ const NOAH_MILESTONES = {
   ),
   'sit-alone': createMilestone('2026-04-02', 'Sitzt frei und spielt mit seinen Holzbausteinen.'),
   crawl: createMilestone('2026-04-28', 'Krabbelt blitzschnell durchs Wohnzimmer.'),
+  'pincer-grasp': createMilestone(
+    '2026-05-12',
+    'Greift Heidelbeeren gekonnt mit Daumen und Zeigefinger.'
+  ),
   'stand-up': createMilestone('2026-06-10', 'Zieht sich an der Couch hoch in den Stand!'),
+  'first-word': createMilestone('2026-07-14', 'Erstes Wort: Ganz deutlich „Mama“ gesagt!'),
   'first-birthday': createMilestone('2026-08-15', 'Große Party mit der Familie und Bananenkuchen.'),
+  'first-steps': createMilestone('2026-08-18', 'Drei freie Wackelschritte in Papas Arme!'),
 };
 
+const NOAH_CUSTOM_MILESTONES = [
+  {
+    id: 'custom-noah-swimming',
+    category: 'motor',
+    title: 'Babyschwimmen-Diplom 🏊',
+    icon: '🌊',
+    description: 'Erster erfolgreicher 10-Wochen-Kurs im Hallenbad, liebt das warme Wasser!',
+    isCustom: true,
+  },
+  {
+    id: 'custom-noah-train',
+    category: 'social',
+    title: 'Erste Zugfahrt mit dem ICE 🚆',
+    icon: '🚄',
+    description: 'Reise zu den Großeltern – 3 Stunden begeistert aus dem Fenster geschaut.',
+    isCustom: true,
+  },
+];
+
 const MIA_VACS = {
+  'rsv-prophylaxe': createVac(
+    '2024-08-21',
+    'Klinikum Geburtshilfe',
+    'RSV-0081',
+    'Direkt nach der Geburt erhalten.'
+  ),
   'rotavirus-1': createVac(
     '2024-10-05',
     'Gemeinschaftspraxis Kinderheilkunde',
@@ -142,6 +195,12 @@ const MIA_VACS = {
     'PN-2910',
     'Einwandfrei.'
   ),
+  'meningokokken-b-1': createVac(
+    '2024-10-22',
+    'Gemeinschaftspraxis Kinderheilkunde',
+    'BEX-0922',
+    '1. Dosis Meningokokken B.'
+  ),
   '6fach-2': createVac(
     '2024-12-15',
     'Gemeinschaftspraxis Kinderheilkunde',
@@ -154,6 +213,12 @@ const MIA_VACS = {
     'PN-3012',
     'Alles gut.'
   ),
+  'meningokokken-b-2': createVac(
+    '2025-01-10',
+    'Gemeinschaftspraxis Kinderheilkunde',
+    'BEX-1011',
+    '2. Dosis Meningokokken B.'
+  ),
   '6fach-3': createVac(
     '2025-07-22',
     'Gemeinschaftspraxis Kinderheilkunde',
@@ -165,6 +230,12 @@ const MIA_VACS = {
     'Gemeinschaftspraxis Kinderheilkunde',
     'PN-3410',
     'Abschluss Pneumokokken.'
+  ),
+  'meningokokken-b-3': createVac(
+    '2025-08-28',
+    'Gemeinschaftspraxis Kinderheilkunde',
+    'BEX-1205',
+    'Abschluss Grundimmunisierung Meningokokken B.'
   ),
   'meningokokken-c': createVac(
     '2025-09-02',
@@ -183,6 +254,12 @@ const MIA_VACS = {
     'Gemeinschaftspraxis Kinderheilkunde',
     'MMRV-7901',
     '2. Dosis MMRV – Vollständiger Schutz.'
+  ),
+  'hepatitis-a': createVac(
+    '2025-09-02',
+    'Gemeinschaftspraxis Kinderheilkunde',
+    'HAV-4011',
+    'Reiseimpfung vor dem Sommerurlaub in Thailand.'
   ),
 };
 
@@ -203,6 +280,8 @@ const MIA_TEETH = {
   'ul-3': createTooth('2026-01-25', 'Eckzahn oben links (63)'),
   'lr-3': createTooth('2026-03-08', 'Eckzahn unten rechts (83)'),
   'll-3': createTooth('2026-03-20', 'Eckzahn unten links (73)'),
+  'ur-5': createTooth('2026-06-14', 'Zweiter Backenzahn oben rechts (55)'),
+  'ul-5': createTooth('2026-06-28', 'Zweiter Backenzahn oben links (65)'),
 };
 
 const MIA_MILESTONES = {
@@ -220,7 +299,28 @@ const MIA_MILESTONES = {
   'drink-cup': createMilestone('2025-10-15', 'Trinkt alleine aus der Tasse.'),
   'two-words': createMilestone('2026-04-12', '„Auto fahren“, „Mehr Buch“ und „Gute Nacht“'),
   'run-jump': createMilestone('2026-08-01', 'Rennt und hüpft begeistert durch Pfützen.'),
+  'potty-training': createMilestone('2026-08-15', 'Geht tagsüber schon ganz stolz aufs Töpfchen!'),
 };
+
+const MIA_CUSTOM_MILESTONES = [
+  {
+    id: 'custom-mia-kita',
+    category: 'social',
+    title: 'Eingewöhnung in der Kita 🎒',
+    icon: '🎨',
+    description:
+      'Erster Tag bei den „Waldwichteln“, Eingewöhnung nach Berliner Modell erfolgreich!',
+    isCustom: true,
+  },
+  {
+    id: 'custom-mia-wheel',
+    category: 'motor',
+    title: 'Laufrad fahren 🚲',
+    icon: '🛴',
+    description: 'Hält mit dem Puky-Laufrad schon das Gleichgewicht auf dem Gehweg.',
+    isCustom: true,
+  },
+];
 
 export const DEMO_PROFILES = [
   {
@@ -228,10 +328,17 @@ export const DEMO_PROFILES = [
     name: 'Noah',
     gender: 'boy',
     birthdate: '2025-08-15',
-    notes: 'Fröhlicher kleiner Entdecker. U1 bis U6 erfolgreich abgeschlossen.',
+    notes: 'Fröhlicher kleiner Entdecker. U1 bis U6 erfolgreich abgeschlossen, zahnt aktuell.',
     vaccinations: NOAH_VACS,
     teeth: NOAH_TEETH,
     milestones: NOAH_MILESTONES,
+    customMilestones: NOAH_CUSTOM_MILESTONES,
+    schedule: {
+      enabled: true,
+      frequency: 'weekly',
+      intervalDays: 7,
+      lastExportAt: '2026-08-28T09:00:00.000Z',
+    },
     healthLog: [
       {
         id: 'h-noah-1',
@@ -257,6 +364,14 @@ export const DEMO_PROFILES = [
         symptoms: [],
         notes: 'Wieder munter und fit!',
       },
+      {
+        id: 'h-noah-4',
+        dateTime: '2026-07-21T18:00',
+        temperature: 38.4,
+        medication: 'Wadenwickel & viel Tee',
+        symptoms: ['Fieber', 'Müdigkeit'],
+        notes: 'Reaktion auf 6-fach 3 & Pneumokokken 3 Auffrischung. Nach 24h komplett vorbei.',
+      },
     ],
     measurements: [
       {
@@ -266,7 +381,7 @@ export const DEMO_PROFILES = [
         length: 50.5,
         headCircumference: 35.0,
         checkup: 'U1',
-        notes: 'Geburt im Marienhospital, kerngesund!',
+        notes: 'Geburt im Marienhospital, kerngesund! APGAR 10/10.',
       },
       {
         id: 'm2',
@@ -275,7 +390,7 @@ export const DEMO_PROFILES = [
         length: 51.0,
         headCircumference: 35.2,
         checkup: 'U2',
-        notes: 'Gewichtsstabilisierung nach der Geburt.',
+        notes: 'Gewichtsstabilisierung nach der Geburt. Hörscreening beidseits unauffällig.',
       },
       {
         id: 'm3',
@@ -284,7 +399,7 @@ export const DEMO_PROFILES = [
         length: 55.0,
         headCircumference: 37.5,
         checkup: 'U3',
-        notes: 'Hüftsonographie unauffällig.',
+        notes: 'Hüftsonographie Graf Typ 1a beidseits unauffällig.',
       },
       {
         id: 'm4',
@@ -293,7 +408,7 @@ export const DEMO_PROFILES = [
         length: 62.0,
         headCircumference: 41.0,
         checkup: 'U4',
-        notes: 'Reagiert toll auf Stimmen und lächelt.',
+        notes: 'Reagiert toll auf Stimmen, hält Blickkontakt und lächelt herzlich.',
       },
       {
         id: 'm5',
@@ -302,7 +417,7 @@ export const DEMO_PROFILES = [
         length: 68.0,
         headCircumference: 43.5,
         checkup: 'U5',
-        notes: 'Dreht sich fleißig vom Rücken auf den Bauch.',
+        notes: 'Dreht sich fleißig vom Rücken auf den Bauch. Tolle Körperspannung.',
       },
       {
         id: 'm6',
@@ -311,7 +426,7 @@ export const DEMO_PROFILES = [
         length: 73.5,
         headCircumference: 45.2,
         checkup: 'U6',
-        notes: 'Zieht sich an Möbeln in den Stand!',
+        notes: 'Zieht sich an Möbeln in den Stand! Sprachverständnis altersgerecht.',
       },
       {
         id: 'm7',
@@ -329,10 +444,17 @@ export const DEMO_PROFILES = [
     name: 'Mia',
     gender: 'girl',
     birthdate: '2024-08-20',
-    notes: 'Neugierig und bewegungsfreudig. 2 Jahre alt.',
+    notes: 'Neugierig und bewegungsfreudig. 2 Jahre alt. Vollständiger U- und Impfstatus.',
     vaccinations: MIA_VACS,
     teeth: MIA_TEETH,
     milestones: MIA_MILESTONES,
+    customMilestones: MIA_CUSTOM_MILESTONES,
+    schedule: {
+      enabled: true,
+      frequency: 'monthly',
+      intervalDays: 30,
+      lastExportAt: '2026-08-20T10:00:00.000Z',
+    },
     healthLog: [
       {
         id: 'h-mia-1',
@@ -358,6 +480,14 @@ export const DEMO_PROFILES = [
         symptoms: [],
         notes: 'Ausschlag verblasst, wieder ganz die Alte.',
       },
+      {
+        id: 'h-mia-4',
+        dateTime: '2026-03-12T11:00',
+        temperature: 37.9,
+        medication: 'Kochsalz-Nasentropfen',
+        symptoms: ['Schnupfen', 'Husten'],
+        notes: 'Typischer Kita-Infekt. Appetit und Stimmung weiterhin super.',
+      },
     ],
     measurements: [
       {
@@ -367,28 +497,37 @@ export const DEMO_PROFILES = [
         length: 49.5,
         headCircumference: 34.5,
         checkup: 'U1',
-        notes: 'Geburt super verlaufen!',
+        notes: 'Geburt super verlaufen! Alles vital.',
       },
       {
         id: 'g2',
+        date: '2024-08-25',
+        weight: 3.2,
+        length: 50.0,
+        headCircumference: 34.8,
+        checkup: 'U2',
+        notes: 'Stoffwechsel-Screening unauffällig.',
+      },
+      {
+        id: 'g3',
         date: '2024-09-24',
         weight: 4.3,
         length: 54.0,
         headCircumference: 37.0,
         checkup: 'U3',
-        notes: 'Trinkt sehr gut.',
+        notes: 'Trinkt sehr gut, Hüfte normal.',
       },
       {
-        id: 'g3',
+        id: 'g4',
         date: '2024-11-25',
         weight: 6.0,
         length: 61.0,
         headCircumference: 40.2,
         checkup: 'U4',
-        notes: 'Brabbelt fröhlich vor sich hin.',
+        notes: 'Brabbelt fröhlich vor sich hin, lacht viel.',
       },
       {
-        id: 'g4',
+        id: 'g5',
         date: '2025-02-21',
         weight: 7.2,
         length: 66.5,
@@ -397,31 +536,31 @@ export const DEMO_PROFILES = [
         notes: 'Greift zielgerichtet nach Spielzeug.',
       },
       {
-        id: 'g5',
+        id: 'g6',
         date: '2025-08-20',
         weight: 9.3,
         length: 75.0,
         headCircumference: 45.5,
         checkup: 'U6',
-        notes: '1. Geburtstag – Läuft bereits frei!',
+        notes: '1. Geburtstag – Läuft bereits frei und klettert sicher!',
       },
       {
-        id: 'g6',
+        id: 'g7',
         date: '2026-02-20',
         weight: 10.8,
         length: 82.5,
         headCircumference: 46.8,
         checkup: '',
-        notes: 'Liebt Bücher und Bausteine.',
+        notes: 'Liebt Bücher, Puzzles und Bausteine.',
       },
       {
-        id: 'g7',
+        id: 'g8',
         date: '2026-08-20',
         weight: 11.9,
         length: 87.0,
         headCircumference: 47.6,
         checkup: 'U7',
-        notes: '2. Geburtstag! Spricht schon 2-Wort-Sätze.',
+        notes: '2. Geburtstag! Spricht schon 2- und 3-Wort-Sätze, malt Kreisspuren.',
       },
     ],
   },

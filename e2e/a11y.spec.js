@@ -14,27 +14,24 @@ const WCAG_TAGS = [
 ];
 
 async function scanPageA11y(page, contextName = '') {
-  const accessibilityScanResults = await new AxeBuilder({ page })
-    .withTags(WCAG_TAGS)
-    .disableRules(['color-contrast']) // Contrast tested with theme tokens
-    .analyze();
+  const accessibilityScanResults = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
 
-  const criticalViolations = accessibilityScanResults.violations.filter(
-    (v) => v.impact === 'critical' || v.impact === 'serious'
+  const blockingViolations = accessibilityScanResults.violations.filter(
+    (v) => v.impact === 'critical' || v.impact === 'serious' || v.impact === 'moderate'
   );
 
-  if (criticalViolations.length > 0) {
+  if (blockingViolations.length > 0) {
     console.error(
-      '[A11y Critical Violation]',
+      '[A11y Violation]',
       contextName,
-      criticalViolations.map((v) => ({ id: v.id, impact: v.impact, description: v.description }))
+      blockingViolations.map((v) => ({ id: v.id, impact: v.impact, description: v.description }))
     );
   }
 
-  expect(criticalViolations).toEqual([]);
+  expect(blockingViolations).toEqual([]);
 }
 
-test.describe('Automated Accessibility (WCAG 2.2 AAA) Audit (Issue #242)', () => {
+test.describe('Automated Accessibility (WCAG 2.2 AA) Audit (Issues #270, #271, #272, #273)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('#root');
@@ -61,21 +58,29 @@ test.describe('Automated Accessibility (WCAG 2.2 AAA) Audit (Issue #242)', () =>
     }
   });
 
-  test('mobile viewport (390x844) preserves clean accessibility tree', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test('320px narrow viewport reflow without horizontal scrolling or a11y regressions (#273)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 600 });
     await page.waitForTimeout(200);
-    await scanPageA11y(page, 'Mobile Viewport');
+    await scanPageA11y(page, '320px Reflow Viewport');
   });
 
-  test('light mode theme preserves clean accessibility semantics', async ({ page }) => {
-    // Trigger light mode toggle if available
-    const themeBtn = page
-      .locator('button[aria-label*="Theme"], button[aria-label*="Modus"]')
-      .first();
-    if (await themeBtn.isVisible()) {
-      await themeBtn.click();
+  test('authentication / login modal is accessible and dismissible via Escape (#271, #272)', async ({
+    page,
+  }) => {
+    // Look for login button if logged out
+    const loginBtn = page.locator('button:has-text("Anmelden"), button:has-text("Login")').first();
+    if (await loginBtn.isVisible()) {
+      await loginBtn.click();
+      await page.waitForTimeout(300);
+      await scanPageA11y(page, 'Auth Modal');
+
+      // Test Escape dismissal
+      await page.keyboard.press('Escape');
       await page.waitForTimeout(200);
+      const modal = page.locator('div[role="dialog"]');
+      expect(await modal.count()).toBe(0);
     }
-    await scanPageA11y(page, 'Light Mode');
   });
 });

@@ -28,11 +28,12 @@ describe('P3 Features & Diagnostics Test Suite (#250, #251, #252, #253)', () => 
       },
     ];
 
-    it('encrypts data object with passphrase into standard AES-256-GCM structure', () => {
+    it('encrypts data object with passphrase into standard AES-256-GCM structure (v2 scrypt)', () => {
       const encrypted = encryptBackupNode(mockBackupData, 'SuperSicherePassphrase123!');
-      expect(encrypted).toHaveProperty('version', 'babycharts-enc-v1');
+      expect(encrypted).toHaveProperty('version', 'babycharts-enc-v2');
       expect(encrypted).toHaveProperty('algorithm', 'AES-256-GCM');
-      expect(encrypted).toHaveProperty('kdf', 'PBKDF2-SHA256');
+      expect(encrypted).toHaveProperty('kdf', 'scrypt');
+      expect(encrypted).toHaveProperty('scryptParams');
       expect(encrypted).toHaveProperty('salt');
       expect(encrypted).toHaveProperty('iv');
       expect(encrypted).toHaveProperty('data');
@@ -45,6 +46,31 @@ describe('P3 Features & Diagnostics Test Suite (#250, #251, #252, #253)', () => 
       const encrypted = encryptBackupNode(mockBackupData, passphrase);
       const decrypted = decryptBackupNode(encrypted, passphrase);
 
+      expect(decrypted).toEqual(mockBackupData);
+      expect(decrypted[0].name).toBe('Mia Medizintest');
+    });
+
+    it('decrypts legacy babycharts-enc-v1 PBKDF2 backups cleanly (backwards-compatibility, Issue #266)', () => {
+      const passphrase = 'LegacyPassphrase!123';
+      const salt = crypto.randomBytes(16);
+      const iv = crypto.randomBytes(12);
+      const key = crypto.pbkdf2Sync(passphrase, salt, 100000, 32, 'sha256');
+      const plaintext = Buffer.from(JSON.stringify(mockBackupData), 'utf8');
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+      const enc = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+      const authTag = cipher.getAuthTag();
+      const legacyBackup = {
+        version: 'babycharts-enc-v1',
+        algorithm: 'AES-256-GCM',
+        kdf: 'PBKDF2-SHA256',
+        iterations: 100000,
+        salt: salt.toString('hex'),
+        iv: iv.toString('hex'),
+        data: Buffer.concat([enc, authTag]).toString('hex'),
+        createdAt: new Date().toISOString(),
+      };
+
+      const decrypted = decryptBackupNode(legacyBackup, passphrase);
       expect(decrypted).toEqual(mockBackupData);
       expect(decrypted[0].name).toBe('Mia Medizintest');
     });

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Trash2, Crown } from 'lucide-react';
+import { Trash2, Crown, Shield } from 'lucide-react';
 import { getAuthorizedMediaUrl } from '../../utils/api.js';
 
 export function getRoleBadgeClass(role) {
@@ -35,10 +35,12 @@ export default function MemberList({
   familyData,
   user,
   isAdmin,
+  canEdit = false,
   activeFamily,
   handleTransferOwnership,
   handleRoleChange,
   handleRemoveMember,
+  onManageGrants,
 }) {
   const { t } = useTranslation();
   return (
@@ -83,8 +85,8 @@ export default function MemberList({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Owner Transfer Button (Visible only to the current owner on other members, BC-044) */}
-                  {activeFamily?.isOwner && !isCurrentUser && (
+                  {/* Owner Transfer Button (Visible only to the current owner on other non-visitor members, BC-044, Issue #326) */}
+                  {activeFamily?.isOwner && !isCurrentUser && member.role !== 'viewer' && (
                     <button
                       type="button"
                       onClick={() => handleTransferOwnership(member.userId, member.name)}
@@ -112,6 +114,18 @@ export default function MemberList({
                     >
                       {getRoleLabel(member.role, t)}
                     </span>
+                  )}
+
+                  {/* Visitor Grants Manager Button (visible for editors/admins on visitor members, Issue #323) */}
+                  {(canEdit || isAdmin) && member.role === 'viewer' && onManageGrants && (
+                    <button
+                      type="button"
+                      onClick={() => onManageGrants(member)}
+                      className="p-1 rounded-lg text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/40 transition-colors cursor-pointer"
+                      title={t('visitorGrants.manageTitle', 'Besucher-Freigaben anpassen')}
+                    >
+                      <Shield className="w-3.5 h-3.5" />
+                    </button>
                   )}
 
                   {canRemove && (

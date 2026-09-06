@@ -17,6 +17,14 @@
   "[html]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "files.associations": {
+    "*.jsx": "javascriptreact",
+    "*.js": "javascript"
+  },
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false,
+  "css.lint.unknownProperties": "ignore",
   "css.lint.unknownAtRules": "ignore",
   "html.validate.scripts": false,
   "html.validate.styles": false,
@@ -64,10 +72,6 @@
   },
   "tailwindCSS.emmetCompletions": true,
   "tailwindCSS.classAttributes": ["class", "className", "classList"],
-  "tailwindCSS.experimental.classRegex": [
-    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
-    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
-  ],
 
   // ── OxC (Oxlint / Oxc Tools) Optimierungen ─────────────────────────────────
   "oxc.enable": true,
@@ -85,7 +89,7 @@
     "source.fixAll.eslint": "explicit"
   },
   "sonarlint.connectedMode.project": {
-    "connectionId": "FamilyOG_Babycharts",
+    "connectionId": "familiyog",
     "projectKey": "FamiliyOG_Babycharts"
   },
   "sonarlint.rules": {
@@ -112,13 +116,9 @@
   ],
   "microsoft-edge-tools.devtools.headless": true,
   "html.customData": [],
-  "actionlint.path": "C:/Users/s-hau/.local/bin/actionlint.exe",
-  "actionlint.executable": "C:/Users/s-hau/.local/bin/actionlint.exe",
-  "snyk.advanced.cliPath": "C:/Users/s-hau/.local/bin/snyk.exe",
-  "snyk.cliPath": "C:/Users/s-hau/.local/bin/snyk.exe",
-  "snyk.executable": "C:/Users/s-hau/.local/bin/snyk.exe",
-  "snyk.path": "C:/Users/s-hau/.local/bin/snyk.exe",
-  "snyk.manageBinariesAutomatically": false,
+  "actionlint.path": "C:/Users/SeppelTop/.local/bin/actionlint.exe",
+  "actionlint.executable": "C:/Users/SeppelTop/.local/bin/actionlint.exe",
+  "snyk.manageBinariesAutomatically": true,
   "repodeck.defaultProject": "PVT_kwHOAYo9T84BhoOl",
   "repodeck.boardField": ""
 }

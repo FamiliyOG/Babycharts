@@ -254,9 +254,14 @@ function buildChartOptions(
 
   const currentUnit = metric === 'weight' ? weightUnit : METRIC_UNITS[metric];
 
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
   return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: prefersReducedMotion ? false : { duration: 400 },
     interaction: {
       mode: 'index',
       intersect: false,

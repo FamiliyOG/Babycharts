@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -14,10 +14,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
+import { useBodyScrollLock } from '../utils/useBodyScrollLock.js';
 import { forgotPassword, resetPassword } from '../utils/api.js';
 import { calculatePasswordStrength } from '../utils/passwordStrength.js';
 
 export default function AuthModal({ isOpen, onClose }) {
+  useBodyScrollLock(isOpen);
   const { t } = useTranslation();
   const { login, register } = useAuth();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
@@ -31,9 +33,27 @@ export default function AuthModal({ isOpen, onClose }) {
   const [name, setName] = useState('');
   const [familyName, setFamilyName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
+  const [setupToken, setSetupToken] = useState('');
+  const [isSetupRequired, setIsSetupRequired] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/api/auth/setup-status')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.setupRequired) {
+          setIsSetupRequired(true);
+          setMode('register');
+        } else {
+          setIsSetupRequired(false);
+        }
+      })
+      .catch(() => {});
+  }, [isOpen]);
+
   const switchMode = (newMode) => {
     setMode(newMode);
     setError(null);
@@ -64,6 +84,7 @@ export default function AuthModal({ isOpen, onClose }) {
       password,
       familyName: familyName || undefined,
       inviteCode: inviteCode || undefined,
+      setupToken: setupToken || undefined,
     });
     if (!res.ok) {
       setError(res.error);
@@ -123,7 +144,7 @@ export default function AuthModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn overscroll-none">
       <div
         ref={dialogRef}
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[95vh] overflow-y-auto"
@@ -442,26 +463,54 @@ export default function AuthModal({ isOpen, onClose }) {
                     </div>
                   </div>
 
-                  <div>
-                    <label
-                      htmlFor="auth-invite-code-input"
-                      className="block text-xs font-semibold text-slate-300 mb-1"
-                    >
-                      {t('auth.inviteCodeLabel')}
-                    </label>
-                    <div className="relative">
-                      <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-cyan-400" />
-                      <input
-                        id="auth-invite-code-input"
-                        type="text"
-                        maxLength={10}
-                        value={inviteCode}
-                        onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                        placeholder={t('auth.inviteCodePlaceholder')}
-                        className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-cyan-300 font-mono tracking-wider placeholder-slate-600 focus:outline-none focus:border-cyan-500 uppercase"
-                      />
+                  {isSetupRequired ? (
+                    <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-700/60 space-y-2">
+                      <div className="text-[11px] text-cyan-300 font-medium">
+                        {t('auth.setupNotice')}
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="auth-setup-token-input"
+                          className="block text-xs font-semibold text-cyan-200 mb-1"
+                        >
+                          {t('auth.setupCodeLabel')} *
+                        </label>
+                        <div className="relative">
+                          <Key className="w-4 h-4 absolute left-3.5 top-3 text-cyan-400" />
+                          <input
+                            id="auth-setup-token-input"
+                            type="text"
+                            required
+                            value={setupToken}
+                            onChange={(e) => setSetupToken(e.target.value.trim())}
+                            placeholder={t('auth.setupCodePlaceholder')}
+                            className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-cyan-800 rounded-xl text-xs sm:text-sm text-cyan-200 font-mono tracking-wider placeholder-slate-600 focus:outline-none focus:border-cyan-400"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div>
+                      <label
+                        htmlFor="auth-invite-code-input"
+                        className="block text-xs font-semibold text-slate-300 mb-1"
+                      >
+                        {t('auth.inviteCodeLabel')}
+                      </label>
+                      <div className="relative">
+                        <KeyRound className="w-4 h-4 absolute left-3.5 top-3 text-cyan-400" />
+                        <input
+                          id="auth-invite-code-input"
+                          type="text"
+                          maxLength={10}
+                          value={inviteCode}
+                          onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                          placeholder={t('auth.inviteCodePlaceholder')}
+                          className="w-full pl-10 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-cyan-300 font-mono tracking-wider placeholder-slate-600 focus:outline-none focus:border-cyan-500 uppercase"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </>

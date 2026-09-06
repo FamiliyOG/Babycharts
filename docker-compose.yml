@@ -25,6 +25,14 @@ services:
       NODE_ENV: production
       DEV_EMAIL: 'admin@babycharts.local' # Beliebige Dev-Account E-Mail
 
+    security_opt:
+      - no-new-privileges:true
+
+    # Writable tmpfs mounts for temporary files & Chromium runtime
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+      - /run:rw,noexec,nosuid,size=64m
+
     # Erlaubt Chromium/Puppeteer Sandbox-Ausführung im Container
     cap_add:
       - SYS_ADMIN

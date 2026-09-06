@@ -54,7 +54,9 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild better-sqlite3
 
       - name: Code Quality & Architecture Audit (Format, Lint, Deadcode, Duplicates, Arch)
         id: scan_code

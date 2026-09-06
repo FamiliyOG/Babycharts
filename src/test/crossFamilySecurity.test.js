@@ -210,10 +210,14 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
     fam.members.push({ userId: userB.id, role: 'editor', joinedAt: new Date().toISOString() });
     writeDb(db);
 
-    // 2. Transfer ownership from User A to User B (BC-044)
+    // 2. Transfer ownership from User A to User B (BC-044, requires recent reauth #333)
+    const reauthTokenA = jwt.sign({ id: userA.id, scope: 'recent_reauth' }, JWT_SECRET, {
+      expiresIn: '5m',
+    });
     const resTransfer = await request(app)
       .post(`/api/families/${familyA.id}/transfer-ownership`)
       .set('Authorization', `Bearer ${tokenA}`)
+      .set('X-Reauth-Token', reauthTokenA)
       .send({ newOwnerId: userB.id });
     expect(resTransfer.status).toBe(200);
     expect(resTransfer.body?.family?.ownerId).toBe(userB.id);
@@ -222,6 +226,7 @@ describe('Cross-Family Security & Isolation Test Suite (BC-080)', () => {
     const resTransferFail = await request(app)
       .post(`/api/families/${familyA.id}/transfer-ownership`)
       .set('Authorization', `Bearer ${tokenA}`)
+      .set('X-Reauth-Token', reauthTokenA)
       .send({ newOwnerId: userA.id });
     expect(resTransferFail.status).toBe(403);
 

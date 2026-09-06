@@ -1,6 +1,6 @@
-import { apiClient, ApiError, setAuthToken, clearAuthToken } from '../api/client.js';
+import { apiClient, ApiError, clearAuthToken } from '../api/client.js';
 
-const BASE = '/api';
+const BASE = '/api/v1';
 
 async function safeFetch(url, options = {}) {
   const result = await apiClient(url, options);
@@ -9,19 +9,12 @@ async function safeFetch(url, options = {}) {
 
 // ── Auth Endpoints ──────────────────────────────────────────────────────────
 
-function handleAuthTokenResponse(res) {
-  if (res.ok && res.data?.token && typeof res.data.token === 'string') {
-    setAuthToken(res.data.token);
-  }
-  return res;
-}
-
 export async function loginUser(email, password, totpCode = '') {
   const res = await safeFetch(`${BASE}/auth/login`, {
     method: 'POST',
     body: JSON.stringify({ email, password, totpCode }),
   });
-  return handleAuthTokenResponse(res);
+  return res;
 }
 
 export async function setup2FA() {
@@ -66,10 +59,29 @@ export async function getAppSettings() {
   });
 }
 
+export async function fetchSettingsCatalog() {
+  return safeFetch(`${BASE}/settings/catalog`, {
+    method: 'GET',
+  });
+}
+
 export async function updateAppSettings(settings) {
   return safeFetch(`${BASE}/settings`, {
     method: 'POST',
     body: JSON.stringify(settings),
+  });
+}
+
+export async function fetchDeveloperDiagnostics() {
+  return safeFetch(`${BASE}/settings/developer-diagnostics`, {
+    method: 'GET',
+  });
+}
+
+export async function reauthenticateUser(password, code = null) {
+  return safeFetch(`${BASE}/auth/reauth`, {
+    method: 'POST',
+    body: JSON.stringify({ password, code }),
   });
 }
 
@@ -78,7 +90,7 @@ export async function changePassword(currentPassword, newPassword, logoutAllDevi
     method: 'POST',
     body: JSON.stringify({ currentPassword, newPassword, logoutAllDevices }),
   });
-  return handleAuthTokenResponse(res);
+  return res;
 }
 
 export async function deleteAccount(password) {
@@ -96,12 +108,12 @@ export async function exportMyData() {
   return safeFetch(`${BASE}/auth/export-my-data`);
 }
 
-export async function registerUser({ name, email, password, familyName, inviteCode }) {
+export async function registerUser({ name, email, password, familyName, inviteCode, setupToken }) {
   const res = await safeFetch(`${BASE}/auth/register`, {
     method: 'POST',
-    body: JSON.stringify({ name, email, password, familyName, inviteCode }),
+    body: JSON.stringify({ name, email, password, familyName, inviteCode, setupToken }),
   });
-  return handleAuthTokenResponse(res);
+  return res;
 }
 
 export async function getMe(familyId = null) {
@@ -150,11 +162,12 @@ export async function createFamilyInvite(
   familyId,
   role = 'editor',
   expiresInHours = 48,
-  maxUses = 1
+  maxUses = 1,
+  invitedEmail = null
 ) {
   return safeFetch(`${BASE}/families/${familyId}/invites`, {
     method: 'POST',
-    body: JSON.stringify({ role, expiresInHours, maxUses }),
+    body: JSON.stringify({ role, expiresInHours, maxUses, invitedEmail }),
   });
 }
 
@@ -191,15 +204,28 @@ export async function removeFamilyMember(familyId, userId) {
   });
 }
 
+export async function fetchVisitorGrants(familyId, visitorUserId) {
+  return safeFetch(`${BASE}/families/${familyId}/visitor-grants/${visitorUserId}`);
+}
+
+export async function updateVisitorGrants(familyId, visitorUserId, grants) {
+  return safeFetch(`${BASE}/families/${familyId}/visitor-grants/${visitorUserId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ grants }),
+  });
+}
+
 export async function leaveFamily(familyId) {
   return safeFetch(`${BASE}/families/${familyId}/leave`, {
     method: 'POST',
   });
 }
 
-export async function deleteFamily(familyId) {
+export async function deleteFamily(familyId, reauthToken = null) {
+  const headers = reauthToken ? { 'X-Reauth-Token': reauthToken } : {};
   return safeFetch(`${BASE}/families/${familyId}`, {
     method: 'DELETE',
+    headers,
   });
 }
 
@@ -328,16 +354,16 @@ export function sanitizeMediaUrl(url) {
 
   // Safe raw media ID
   if (/^med-[a-zA-Z0-9-]+$/.test(trimmed)) {
-    return `/api/media/${encodeURIComponent(trimmed)}`;
+    return `/api/v1/media/${encodeURIComponent(trimmed)}`;
   }
 
   // Safe root-relative API media paths
-  if (/^\/api\/media\/med-[a-zA-Z0-9-]+$/.test(trimmed)) {
+  if (/^\/api\/(?:v1\/)?media\/med-[a-zA-Z0-9-]+$/.test(trimmed)) {
     return trimmed;
   }
 
   // Safe root-relative media paths without leading slash
-  if (/^api\/media\/med-[a-zA-Z0-9-]+$/.test(trimmed)) {
+  if (/^(?:api\/(?:v1\/)?media\/med-[a-zA-Z0-9-]+)$/.test(trimmed)) {
     return `/${trimmed}`;
   }
 
@@ -357,15 +383,7 @@ export function sanitizeMediaUrl(url) {
 export function getAuthorizedMediaUrl(url) {
   const safeUrl = sanitizeMediaUrl(url);
   if (!safeUrl) return '';
-  if (safeUrl.startsWith('data:')) return safeUrl;
-
-  if (!safeUrl.startsWith('/api/media/')) return safeUrl;
-
-  const token = localStorage.getItem('babycharts_token');
-  if (!token) return safeUrl;
-
-  const separator = safeUrl.includes('?') ? '&' : '?';
-  return `${safeUrl}${separator}token=${encodeURIComponent(token)}`;
+  return safeUrl;
 }
 
 // ── Active Sessions & Audit Log (Issue #248, #249) ───────────────────────────
@@ -388,10 +406,35 @@ export async function revokeAllOtherSessionsApi() {
   return res.ok;
 }
 
-export async function fetchFamilyAuditLogs(familyId) {
-  if (!familyId) return [];
-  const res = await safeFetch(`${BASE}/families/${familyId}/audit-log`);
-  return res.ok ? res.data?.logs || [] : [];
+export async function fetchFamilyAuditLogs(familyId, limit = 50, cursor = null) {
+  if (!familyId) return { items: [], nextCursor: null, hasMore: false };
+  let url = `${BASE}/families/${familyId}/audit-log?limit=${limit}`;
+  if (cursor) {
+    url += `&cursor=${encodeURIComponent(cursor)}`;
+  }
+  const res = await safeFetch(url);
+  if (!res.ok) return { items: [], nextCursor: null, hasMore: false };
+  return {
+    items: res.data?.items || res.data?.logs || [],
+    nextCursor: res.data?.nextCursor || null,
+    hasMore: Boolean(res.data?.hasMore),
+  };
+}
+
+export async function fetchProfileMeasurementsPaginated(profileId, limit = 50, cursor = null) {
+  if (!profileId) return { items: [], nextCursor: null, hasMore: false };
+  let url = `${BASE}/profiles/${profileId}/measurements?limit=${limit}`;
+  if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
+  const res = await safeFetch(url);
+  return res.ok ? res.data : { items: [], nextCursor: null, hasMore: false };
+}
+
+export async function fetchProfileHealthLogsPaginated(profileId, limit = 50, cursor = null) {
+  if (!profileId) return { items: [], nextCursor: null, hasMore: false };
+  let url = `${BASE}/profiles/${profileId}/health-logs?limit=${limit}`;
+  if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
+  const res = await safeFetch(url);
+  return res.ok ? res.data : { items: [], nextCursor: null, hasMore: false };
 }
 
 // ── Forward Frontend Errors to Server Console ────────────────────────────────

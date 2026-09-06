@@ -108,6 +108,7 @@ export default function ActiveTabContent({
               <DoctorView
                 activeChild={activeChild}
                 activeChildMeasurements={activeChildMeasurements}
+                onExit={() => setActiveTab('today')}
               />
             );
           default:

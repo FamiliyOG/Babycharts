@@ -4,8 +4,10 @@ import { X, ShieldCheck, ShieldAlert, AlertCircle, Copy, Check } from 'lucide-re
 import { setup2FA, verify2FA, disable2FA } from '../utils/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
+import { useBodyScrollLock } from '../utils/useBodyScrollLock.js';
 
 export default function TwoFactorModal({ isOpen, onClose }) {
+  useBodyScrollLock(isOpen);
   const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
   const { dialogRef } = useModalDismissal(isOpen, onClose);
@@ -87,7 +89,7 @@ export default function TwoFactorModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn overscroll-none">
       <div
         ref={dialogRef}
         className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative animate-scaleUp overflow-hidden"

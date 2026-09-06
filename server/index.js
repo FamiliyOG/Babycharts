@@ -40,6 +40,7 @@ import authRouter from './routes/auth.js';
 import familiesRouter from './routes/families.js';
 import mediaRouter from './routes/media.js';
 import { requireAuth, getUserFamilyRole } from './middleware/auth.js';
+import { csrfProtection } from './middleware/csrf.js';
 import { globalErrorHandler } from './middleware/errorHandler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -82,6 +83,14 @@ app.use((req, res, next) => {
 });
 
 // ── HTTP Security Headers (Issues BC-035, BC-036, BC-037, BC-038) ────────────
+const sentryConnectDomains =
+  process.env.VITE_SENTRY_ENABLED === 'true' ||
+  process.env.SENTRY_ENABLED === 'true' ||
+  process.env.VITE_SENTRY_DSN ||
+  process.env.SENTRY_DSN
+    ? ['https://*.sentry.io', 'https://*.ingest.sentry.io', 'https://*.ingest.de.sentry.io']
+    : [];
+
 app.use(
   helmet({
     // BC-036: Strict Content Security Policy configured for SPA, PWA, Chart.js & fonts
@@ -89,20 +98,13 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
         workerSrc: ["'self'", 'blob:'],
         childSrc: ["'self'", 'blob:'],
         styleSrc: ["'self'", "'unsafe-inline'"],
         fontSrc: ["'self'", 'data:'],
         imgSrc: ["'self'", 'data:', 'blob:'],
-        connectSrc: [
-          "'self'",
-          'ws:',
-          'wss:',
-          'https://*.sentry.io',
-          'https://*.ingest.sentry.io',
-          'https://*.ingest.de.sentry.io',
-        ],
+        connectSrc: ["'self'", 'ws:', 'wss:', ...sentryConnectDomains],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
@@ -213,6 +215,19 @@ app.post('/api/client-logs', (req, res) => {
   return res.json({ ok: true });
 });
 
+// ── Deprecation notice for legacy unversioned /api/* routes (Issue #292) ───
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/') && !req.path.startsWith('/api/v1/')) {
+    res.setHeader('Deprecation', 'true');
+    res.setHeader('Sunset', 'Wed, 01 Jul 2027 00:00:00 GMT');
+    res.setHeader(
+      'Link',
+      `<${req.originalUrl.replace('/api/', '/api/v1/')}>; rel="successor-version"`
+    );
+  }
+  next();
+});
+
 // ── API routes (v1 & legacy aliases for backwards compatibility - BC-203, BC-202) ───
 app.get(['/api/v1/health', '/api/health'], (req, res) => {
   const dbStatus = checkDatabaseIntegrity();
@@ -225,6 +240,25 @@ app.get(['/api/v1/health', '/api/health'], (req, res) => {
   });
 });
 
+// ── Local Observability & System Metrics (BC-309) ────────────────────────────
+app.get(['/api/v1/metrics', '/api/metrics'], (req, res) => {
+  const mem = process.memoryUsage();
+  return res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime()),
+    memory: {
+      rssMb: +(mem.rss / (1024 * 1024)).toFixed(2),
+      heapTotalMb: +(mem.heapTotal / (1024 * 1024)).toFixed(2),
+      heapUsedMb: +(mem.heapUsed / (1024 * 1024)).toFixed(2),
+    },
+    nodeVersion: process.version,
+  });
+});
+
+// ── CSRF Protection for Cookie-authenticated API Requests (Issue #258) ──────
+app.use(['/api', '/api/v1'], csrfProtection);
+
 app.use(['/api/v1/auth', '/api/auth'], authRouter);
 app.use(['/api/v1/families', '/api/families'], familiesRouter);
 app.use(['/api/v1/profiles', '/api/profiles'], profilesRouter);
@@ -236,40 +270,44 @@ app.use(['/api/v1/media', '/api/media'], mediaRouter);
 app.use(['/api/v1', '/api'], globalErrorHandler);
 
 // Trigger manual PDF export for a specific child via API (requires auth & family access)
-app.post('/api/exports/trigger/:childId', requireAuth, async (req, res) => {
-  const { generatePdfForChild } = await import('./pdfGenerator.js');
-  const db = readDb();
-  const profile = db.profiles.find((p) => p.id === req.params.childId);
-  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+app.post(
+  ['/api/v1/exports/trigger/:childId', '/api/exports/trigger/:childId'],
+  requireAuth,
+  async (req, res) => {
+    const { generatePdfForChild } = await import('./pdfGenerator.js');
+    const db = readDb();
+    const profile = db.profiles.find((p) => p.id === req.params.childId);
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
-  // Verify family authorization
-  if (profile.familyId) {
-    const family = db.families.find((f) => f.id === profile.familyId);
-    const role = getUserFamilyRole(family, req.user.id);
-    if (!role) {
-      return res
-        .status(403)
-        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    // Verify family authorization
+    if (profile.familyId) {
+      const family = db.families.find((f) => f.id === profile.familyId);
+      const role = getUserFamilyRole(family, req.user.id);
+      if (!role) {
+        return res
+          .status(403)
+          .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+      }
+    }
+
+    const outputPath = await generatePdfForChild(profile, APP_URL);
+    if (outputPath) {
+      // Update lastExportAt
+      const dbAfter = readDb();
+      const idx = dbAfter.profiles.findIndex((p) => p.id === req.params.childId);
+      if (idx !== -1) {
+        dbAfter.profiles[idx].schedule = {
+          ...dbAfter.profiles[idx].schedule,
+          lastExportAt: new Date().toISOString(),
+        };
+        writeDb(dbAfter);
+      }
+      res.json({ ok: true, path: outputPath });
+    } else {
+      res.status(500).json({ error: 'PDF generation failed' });
     }
   }
-
-  const outputPath = await generatePdfForChild(profile, APP_URL);
-  if (outputPath) {
-    // Update lastExportAt
-    const dbAfter = readDb();
-    const idx = dbAfter.profiles.findIndex((p) => p.id === req.params.childId);
-    if (idx !== -1) {
-      dbAfter.profiles[idx].schedule = {
-        ...dbAfter.profiles[idx].schedule,
-        lastExportAt: new Date().toISOString(),
-      };
-      writeDb(dbAfter);
-    }
-    res.json({ ok: true, path: outputPath });
-  } else {
-    res.status(500).json({ error: 'PDF generation failed' });
-  }
-});
+);
 
 // ── Serve static Vite build with long-term caching for hashed assets ────────
 app.use(
@@ -360,6 +398,23 @@ if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
     }
     console.log(`  Port        : ${PORT} (0.0.0.0)`);
     console.log('════════════════════════════════════════════════');
+
+    // First-Run Setup Banner (Issue #259)
+    try {
+      const db = readDb();
+      if (db.users.length === 0) {
+        import('./routes/auth.js').then(({ getOrGenerateSetupToken }) => {
+          const code = getOrGenerateSetupToken(db);
+          console.log('\x1b[33m************************************************\x1b[0m');
+          console.log('\x1b[33m  FIRST-RUN SETUP CODE / ERSTEINRICHTUNGS-CODE  \x1b[0m');
+          console.log(`\x1b[32m  Setup-Token: ${code}\x1b[0m`);
+          console.log('  Verwenden Sie diesen Code bei der ersten Admin-Registrierung.');
+          console.log('\x1b[33m************************************************\x1b[0m');
+        });
+      }
+    } catch (err) {
+      console.warn('[Server] Setup banner check warning:', err.message);
+    }
 
     // Initialise scheduler after server is ready
     setAppUrl(APP_URL);

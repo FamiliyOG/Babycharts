@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Users, Trash2, KeyRound, Edit2, Camera, LogOut, History } from 'lucide-react';
+import { X, Users, KeyRound, Edit2, Camera, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
 import {
@@ -18,8 +18,14 @@ import {
 } from '../utils/api.js';
 import InviteCodeManager from './family/InviteCodeManager.jsx';
 import MemberList, { getRoleBadgeClass, getFullRoleLabel } from './family/MemberList.jsx';
+import VisitorPermissionMatrix from '../features/family/VisitorPermissionMatrix.jsx';
+import ReauthenticationDialog from '../features/auth/ReauthenticationDialog.jsx';
+import { useBodyScrollLock } from '../utils/useBodyScrollLock.js';
+import { FamilyAuditLogSection } from './family/FamilyAuditLogSection.jsx';
+import { FamilyDangerZone } from './family/FamilyDangerZone.jsx';
 
-export default function FamilyManagementModal({ isOpen, onClose }) {
+export default function FamilyManagementModal({ isOpen, profiles = [], onClose }) {
+  useBodyScrollLock(isOpen);
   const { t } = useTranslation();
   const {
     user,
@@ -36,8 +42,11 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
 
   const [familyData, setFamilyData] = useState(null);
   const [inviteRole, setInviteRole] = useState('editor');
+  const effectiveInviteRole = isAdmin ? inviteRole : 'viewer';
+
   const [inviteExpiresIn, setInviteExpiresIn] = useState('48');
   const [inviteMaxUses, setInviteMaxUses] = useState('1');
+  const [inviteEmail, setInviteEmail] = useState('');
   const [generatedInvite, setGeneratedInvite] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -48,6 +57,8 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [showAuditLogs, setShowAuditLogs] = useState(false);
+  const [selectedVisitorForGrants, setSelectedVisitorForGrants] = useState(null);
+  const [isReauthOpen, setIsReauthOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !activeFamily?.id) return;
@@ -59,9 +70,9 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
       }
     });
 
-    fetchFamilyAuditLogs(activeFamily.id).then((logs) => {
+    fetchFamilyAuditLogs(activeFamily.id).then((res) => {
       if (isMounted) {
-        setAuditLogs(logs || []);
+        setAuditLogs(res?.items || res?.logs || (Array.isArray(res) ? res : []));
       }
     });
 
@@ -140,12 +151,14 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     if (!activeFamily?.id) return;
     const res = await createFamilyInvite(
       activeFamily.id,
-      inviteRole,
+      effectiveInviteRole,
       Number.parseInt(inviteExpiresIn, 10),
-      Number.parseInt(inviteMaxUses, 10)
+      Number.parseInt(inviteMaxUses, 10),
+      inviteEmail.trim() || null
     );
     if (res.ok) {
       setGeneratedInvite(res.data);
+      setInviteEmail('');
       await loadFamily();
       setStatusMessage('Einladungscode erfolgreich generiert.');
     } else {
@@ -233,15 +246,13 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
     }
   };
 
-  const handleDeleteCurrentFamily = async () => {
-    if (
-      !activeFamily?.id ||
-      !window.confirm(
-        'Möchten Sie diese Familie wirklich unwiderruflich löschen? Alle zugehörigen Daten gehen verloren.'
-      )
-    )
-      return;
-    const res = await deleteFamily(activeFamily.id);
+  const handleDeleteCurrentFamily = () => {
+    if (!activeFamily?.id) return;
+    setIsReauthOpen(true);
+  };
+
+  const handleConfirmDeleteWithReauth = async (reauthToken) => {
+    const res = await deleteFamily(activeFamily.id, reauthToken);
     if (res.ok) {
       if (refreshUser) await refreshUser();
       onClose();
@@ -255,7 +266,7 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
   return (
     <div
       aria-labelledby="family-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn overscroll-none"
     >
       <div
         ref={dialogRef}
@@ -321,9 +332,9 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
                     onClick={handleRemoveAvatar}
                     title="Icon entfernen und Standard wiederherstellen"
                     aria-label="Icon entfernen"
-                    className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md z-10 transition-transform active:scale-95 flex items-center justify-center cursor-pointer"
+                    className="avatar-badge-btn absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md z-10 transition-transform active:scale-95 flex items-center justify-center cursor-pointer"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-2.5 h-2.5" />
                   </button>
                 )}
               </>
@@ -444,22 +455,39 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
           familyData={familyData}
           user={user}
           isAdmin={isAdmin}
+          canEdit={canEdit}
           activeFamily={activeFamily}
           handleTransferOwnership={handleTransferOwnership}
           handleRoleChange={handleRoleChange}
           handleRemoveMember={handleRemoveMember}
+          onManageGrants={(visitorMember) => setSelectedVisitorForGrants(visitorMember)}
         />
+
+        {/* Modal/Inline Granular Visitor Permissions Matrix (Issue #323) */}
+        {selectedVisitorForGrants && (
+          <div className="mb-6">
+            <VisitorPermissionMatrix
+              familyId={activeFamily.id}
+              visitorMember={selectedVisitorForGrants}
+              profiles={profiles}
+              onClose={() => setSelectedVisitorForGrants(null)}
+            />
+          </div>
+        )}
 
         {/* Invite Generator Subcomponent */}
         <InviteCodeManager
           isAdmin={isAdmin}
+          canEdit={canEdit}
           familyData={familyData}
-          inviteRole={inviteRole}
+          inviteRole={effectiveInviteRole}
           setInviteRole={setInviteRole}
           inviteExpiresIn={inviteExpiresIn}
           setInviteExpiresIn={setInviteExpiresIn}
           inviteMaxUses={inviteMaxUses}
           setInviteMaxUses={setInviteMaxUses}
+          inviteEmail={inviteEmail}
+          setInviteEmail={setInviteEmail}
           handleGenerateInvite={handleGenerateInvite}
           handleDeleteInvite={handleDeleteInvite}
           generatedInvite={generatedInvite}
@@ -493,152 +521,36 @@ export default function FamilyManagementModal({ isOpen, onClose }) {
           </form>
         </div>
 
-        {/* Family Audit Trail (Issue #248) */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xs mb-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <History className="w-4 h-4 text-cyan-400" />
-              <div>
-                <div className="text-xs font-bold text-slate-200">
-                  Aktivitäten-Protokoll (Audit-Log)
-                </div>
-                <div className="text-[10px] text-slate-400">
-                  Änderungshistorie aller Familienmitglieder
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowAuditLogs(!showAuditLogs)}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 transition-colors cursor-pointer"
-            >
-              {showAuditLogs ? 'Verbergen' : `Anzeigen (${auditLogs.length})`}
-            </button>
-          </div>
+        {/* Family Audit Trail (Issue #248, BC-297) */}
+        <FamilyAuditLogSection
+          familyId={activeFamily?.id}
+          auditLogs={auditLogs}
+          showAuditLogs={showAuditLogs}
+          onToggleShow={() => setShowAuditLogs(!showAuditLogs)}
+        />
 
-          {showAuditLogs && (
-            <div className="pt-2 border-t border-slate-800 space-y-2 max-h-56 overflow-y-auto pr-1">
-              {auditLogs.length === 0 ? (
-                <div className="text-[11px] text-slate-500 text-center py-2">
-                  Noch keine Aktivitäten protokolliert.
-                </div>
-              ) : (
-                auditLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 flex items-start justify-between gap-2"
-                  >
-                    <div>
-                      <div className="text-xs font-semibold text-slate-200">
-                        {log.details || log.action}
-                      </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">
-                        Durchgeführt von{' '}
-                        <span className="font-bold text-slate-300">{log.userName}</span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-500 shrink-0">
-                      {new Date(log.timestamp).toLocaleDateString(undefined, {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Leave Family */}
-        {!activeFamily?.isOwner && (
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs mb-3">
-            <div>
-              <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <LogOut className="w-3.5 h-3.5 text-amber-400" />
-                <span>{t('family.leaveFamily')}</span>
-              </div>
-              <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-                {t('family.leaveConfirm')}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleLeaveFamily}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>{t('family.leaveFamily')}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Delete Family */}
-        {(isAdmin || activeFamily?.isOwner) && (
-          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs mb-3">
-            <div>
-              <div className="text-xs font-bold text-rose-900 dark:text-rose-300 flex items-center gap-1.5">
-                <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                <span>{t('family.deleteFamily')}</span>
-              </div>
-              <div className="text-[11px] text-rose-700 dark:text-rose-400/90 font-medium mt-0.5">
-                {t('family.deleteConfirm')}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleDeleteCurrentFamily}
-              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>{t('family.deleteFamily')}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Delete Account (GDPR Art. 17 / BC-206) */}
-        <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-          <div>
-            <div className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-              <Trash2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>{t('auth.deleteAccount', 'Eigenes Benutzerkonto löschen')}</span>
-            </div>
-            <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-              {t(
-                'auth.deleteAccountNotice',
-                'Löscht Ihr Konto und alle persönlichen Daten unwiderruflich (DSGVO Art. 17).'
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={async () => {
-              const password = window.prompt(
-                'Möchten Sie Ihr Benutzerkonto wirklich unwiderruflich löschen?\n\nBitte geben Sie zur Bestätigung Ihr aktuelles Passwort ein:'
-              );
-              if (!password) return;
-              try {
-                const { deleteAccount } = await import('../utils/api.js');
-                const res = await deleteAccount(password);
-                if (res.ok) {
-                  window.alert('Ihr Benutzerkonto wurde erfolgreich gelöscht.');
-                  window.location.reload();
-                } else {
-                  window.alert(res.error || 'Fehler beim Löschen des Kontos.');
-                }
-              } catch (err) {
-                window.alert('Fehler: ' + err.message);
-              }
-            }}
-            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-rose-900 text-slate-300 hover:text-rose-200 border border-slate-700 hover:border-rose-700 transition-all active:scale-95 shrink-0 cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>{t('auth.deleteAccountBtn', 'Konto löschen')}</span>
-          </button>
-        </div>
+        {/* Family Danger Zone (Leave, Delete, Delete Account) */}
+        <FamilyDangerZone
+          activeFamily={activeFamily}
+          isAdmin={isAdmin}
+          onLeaveFamily={handleLeaveFamily}
+          onDeleteCurrentFamily={handleDeleteCurrentFamily}
+          t={t}
+        />
       </div>
+
+      {isReauthOpen && (
+        <ReauthenticationDialog
+          isOpen={isReauthOpen}
+          title={t('family.deleteFamily', 'Familie löschen')}
+          description={t(
+            'family.deleteFamilyReauthDesc',
+            'Das Löschen einer Familie ist unwiderruflich. Bitte bestätigen Sie Ihre Identität mit Ihrem Passwort.'
+          )}
+          onSuccess={(token) => handleConfirmDeleteWithReauth(token)}
+          onClose={() => setIsReauthOpen(false)}
+        />
+      )}
     </div>
   );
 }

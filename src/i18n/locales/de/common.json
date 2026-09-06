@@ -29,6 +29,12 @@
     "dueDesc": "Überprüfen Sie die anstehenden U-Untersuchungen und STIKO-Impfungen.",
     "notifyMe": "Erinnern"
   },
+  "search": {
+    "title": "Globale Suche",
+    "placeholder": "Messungen, Meilensteine, Notizen suchen...",
+    "noResults": "Keine Treffer in dieser Familie gefunden.",
+    "hint": "Mindestens 2 Zeichen eingeben, um Meilensteine, Messungen und Gesundheitseinträge zu durchsuchen."
+  },
   "nav": {
     "today": "Heute",
     "overview": "Übersicht",
@@ -45,7 +51,9 @@
     "shortTeeth": "Zähne",
     "shortMilestones": "Momente",
     "shortHealth": "Fieber",
-    "shortUCheckups": "U-Heft"
+    "shortUCheckups": "U-Heft",
+    "shortTimeline": "Timeline",
+    "shortDoctor": "Arzt"
   },
   "dashboard": {
     "today": "Heute",
@@ -223,7 +231,10 @@
     "pwaIosStep": "Unten auf Teilen tippen → „Zum Home-Bildschirm“.",
     "devToolsTitle": "Entwickler-Tools (Dev Account)",
     "devToolsDesc": "Demo-Datensätze (Noah & Mia) mit Beispielwerten laden",
-    "demoDataBtn": "Demo-Daten"
+    "demoDataBtn": "Demo-Daten",
+    "clinicalExportTitle": "Praxis- & Kinderarztübergabe",
+    "clinicalExportDesc": "Datensparsamer Export für den Kinderarzt (Messwerte, Impfungen, U-Vorsorgen). Schließt private Fotos und Notizen automatisch aus.",
+    "clinicalExportBtn": "Praxis-Export"
   },
   "auth": {
     "loginTitle": "Willkommen zurück",
@@ -249,6 +260,9 @@
     "familyNamePlaceholder": "z.B. Familie Schmidt",
     "inviteCodeLabel": "Einladungscode (optional)",
     "inviteCodePlaceholder": "z.B. BABY-1234",
+    "setupCodeLabel": "Administrator Setup-Code",
+    "setupCodePlaceholder": "32-stelliger Hex-Code aus Server-Logs",
+    "setupNotice": "Ersteinrichtung: Da noch kein Benutzer existiert, wird ein Administrator-Setup-Code benötigt.",
     "totpLabel": "2FA Authentifizierungscode",
     "totpPlaceholder": "6-stelliger Code aus Authenticator App",
     "forgotPasswordLink": "Passwort vergessen?",
@@ -320,6 +334,8 @@
     "inviteRoleLabel": "Rolle des Eingeladenen",
     "inviteRoleEditor": "Elternteil (Schreibrechte)",
     "inviteRoleViewer": "Besucher (Nur Leserechte)",
+    "parentVisitorInviteOnly": "Als Elternteil können Sie Einladungen für Besucher erstellen.",
+    "inviteEmailLabel": "Personengebundene E-Mail (optional)",
     "inviteValidityLabel": "Gültigkeit",
     "hours24": "24 Stunden (1 Tag)",
     "hours48": "48 Stunden (2 Tage)",
@@ -812,5 +828,39 @@
     "card6Title": "Familie & PDF-Arztberichte",
     "card6Desc": "Geteilter Familienzugriff per Einladungscode sowie strukturierte PDF- & Excel-Exporte für Kinderärzte.",
     "privacyBanner": "100 % privat, datenschutzfreundlich & selbst gehostet"
+  },
+  "visitorGrants": {
+    "title": "Besucher-Freigaben für",
+    "description": "Legen Sie genau fest, welche Daten dieses Mitglied pro Kind einsehen darf (Default-Deny).",
+    "manageTitle": "Besucher-Freigaben anpassen",
+    "growth": "Wachstum & Kurven",
+    "vaccinations": "Impfungen",
+    "uCheckups": "U-Untersuchungen",
+    "teeth": "Zähne",
+    "milestones": "Meilensteine",
+    "health": "Gesundheit & Temperatur",
+    "photos": "Fotos & Avatar",
+    "notes": "Private Notizen",
+    "loading": "Lade Berechtigungen...",
+    "noProfiles": "Keine Kinder in dieser Familie vorhanden.",
+    "grantAll": "Alle gewähren",
+    "revokeAll": "Alle entziehen",
+    "saveSuccess": "Freigaben erfolgreich gespeichert.",
+    "saveError": "Fehler beim Speichern der Freigaben."
+  },
+  "admin": {
+    "title": "Instanz-Administration",
+    "subtitle": "Globale Server-Einstellungen, aktive Sessions und Systemverwaltung.",
+    "menuTitle": "Server-Administration",
+    "settingsTab": "Einstellungen-Katalog",
+    "sessionsTab": "Aktive Sessions",
+    "saveError": "Fehler beim Speichern der Einstellungen."
+  },
+  "reauth": {
+    "title": "Identitätsbestätigung",
+    "description": "Für diese sicherheitskritische Aktion ist eine erneute Bestätigung Ihres Passworts erforderlich.",
+    "enterTotp": "Bitte geben Sie zusätzlich Ihren 2FA-Code ein.",
+    "failed": "Re-Authentifizierung fehlgeschlagen.",
+    "confirmAction": "Aktion bestätigen"
   }
 }

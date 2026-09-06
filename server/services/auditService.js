@@ -29,6 +29,8 @@ export const AUDIT_ACTIONS = {
   MEMBER_REMOVE: 'MEMBER_REMOVE',
   ROLE_CHANGE: 'ROLE_CHANGE',
   FAMILY_UPDATE: 'FAMILY_UPDATE',
+  FAMILY_BACKUP_EXPORT: 'FAMILY_BACKUP_EXPORT',
+  FAMILY_BACKUP_IMPORT: 'FAMILY_BACKUP_IMPORT',
 };
 
 /**
@@ -47,6 +49,10 @@ export function logFamilyAudit({
   try {
     const id = `audit-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const timestamp = new Date().toISOString();
+    const serializedDetails =
+      typeof details === 'object' && details !== null
+        ? JSON.stringify(details)
+        : String(details ?? '');
 
     sqlite
       .prepare(
@@ -61,8 +67,8 @@ export function logFamilyAudit({
         userId || 'system',
         userName || 'System',
         action,
-        details,
-        JSON.stringify(metadata),
+        serializedDetails,
+        JSON.stringify(metadata || {}),
         timestamp
       );
   } catch (err) {
@@ -71,16 +77,31 @@ export function logFamilyAudit({
 }
 
 /**
- * Retrieves audit logs for a specific family.
+ * Retrieves audit logs for a specific family with Keyset-Pagination (Issue #248, BC-297).
  */
-export function getFamilyAuditLogs(familyId, limit = 50) {
-  if (!familyId) return [];
+export function getFamilyAuditLogs(familyId, limit = 50, cursor = null) {
+  if (!familyId) return { items: [], nextCursor: null, hasMore: false };
   try {
-    const rows = sqlite
-      .prepare('SELECT * FROM family_audit_logs WHERE familyId = ? ORDER BY timestamp DESC LIMIT ?')
-      .all(familyId, limit);
+    const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
 
-    return rows.map((r) => {
+    let query = 'SELECT * FROM family_audit_logs WHERE familyId = ?';
+    const params = [familyId];
+
+    if (cursor) {
+      // Keyset comparison: WHERE (timestamp, id) < (cursor.sortValue, cursor.id)
+      query += ' AND (timestamp < ? OR (timestamp = ? AND id < ?))';
+      params.push(cursor.sortValue, cursor.sortValue, cursor.id);
+    }
+
+    query += ' ORDER BY timestamp DESC, id DESC LIMIT ?';
+    params.push(safeLimit + 1);
+
+    const rows = sqlite.prepare(query).all(...params);
+
+    const hasMore = rows.length > safeLimit;
+    const items = hasMore ? rows.slice(0, safeLimit) : rows;
+
+    const mapped = items.map((r) => {
       let parsedMeta = {};
       if (r.metadata) {
         try {
@@ -94,8 +115,13 @@ export function getFamilyAuditLogs(familyId, limit = 50) {
         metadata: parsedMeta,
       };
     });
+
+    return {
+      items: mapped,
+      hasMore,
+    };
   } catch (err) {
     console.error('[AuditLog] Error reading family audit logs:', err.message);
-    return [];
+    return { items: [], hasMore: false };
   }
 }

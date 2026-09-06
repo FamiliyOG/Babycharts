@@ -181,18 +181,36 @@ export default function MeasurementTable({
       {/* ── DESKTOP TABLE VIEW (>= md screens) ─────────────────────────────── */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs sm:text-sm">
+          <caption className="sr-only">
+            {t('measurements.tableTitle', 'Übersicht aller erfassten Messwerte')} für{' '}
+            {activeChild.name}
+          </caption>
           <thead>
             <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800 uppercase tracking-wider text-[11px]">
-              <th className="py-3 px-4">
+              <th scope="col" className="py-3 px-4">
                 {t('common.date')} &amp; {t('percentiles.age')}
               </th>
-              <th className="py-3 px-4">{t('nav.uCheckups')}</th>
-              <th className="py-3 px-4">{t('growth.weight')} (g)</th>
-              <th className="py-3 px-4">{t('growth.length')} (cm)</th>
-              <th className="py-3 px-4">{t('growth.headCircumference')} (cm)</th>
-              <th className="py-3 px-4">{t('growth.bmi')}</th>
-              <th className="py-3 px-4">{t('common.notes')}</th>
-              <th className="py-3 px-4 text-right">{t('common.actions')}</th>
+              <th scope="col" className="py-3 px-4">
+                {t('nav.uCheckups')}
+              </th>
+              <th scope="col" className="py-3 px-4">
+                {t('growth.weight')} (g)
+              </th>
+              <th scope="col" className="py-3 px-4">
+                {t('growth.length')} (cm)
+              </th>
+              <th scope="col" className="py-3 px-4">
+                {t('growth.headCircumference')} (cm)
+              </th>
+              <th scope="col" className="py-3 px-4">
+                {t('growth.bmi')}
+              </th>
+              <th scope="col" className="py-3 px-4">
+                {t('common.notes')}
+              </th>
+              <th scope="col" className="py-3 px-4 text-right">
+                {t('common.actions')}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60 text-slate-200">

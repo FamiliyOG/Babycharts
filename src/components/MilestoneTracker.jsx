@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fireConfetti } from '../utils/confetti.js';
-import { Sparkles, Check, Calendar, Camera, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Sparkles, Plus } from 'lucide-react';
 import { STANDARD_MILESTONES } from '../data/milestones.js';
 import PhotoLightbox from './PhotoLightbox.jsx';
-import { uploadEncryptedMedia, getAuthorizedMediaUrl, sanitizeMediaUrl } from '../utils/api.js';
+import { uploadEncryptedMedia } from '../utils/api.js';
 import { readMediaAsDataUrl } from '../utils/imageCompressor.js';
-import { calculateAge } from '../utils/percentileCalc.js';
-
-function sanitizePhotoUrl(url) {
-  return sanitizeMediaUrl(url);
-}
+import {
+  MilestoneCategoryFilter,
+  MilestoneCard,
+  MilestoneDetailModal,
+  CustomMilestoneModal,
+} from '../features/milestones/index.js';
 
 export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }) {
   const { t } = useTranslation();
@@ -61,46 +62,17 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
     setSelectedMilestone(milestone);
     setMilestoneDate(existing.date || new Date().toISOString().split('T')[0]);
     setMilestoneNotes(existing.notes || '');
-    setMilestonePhoto(sanitizePhotoUrl(existing.photo) || null);
+    setMilestonePhoto(existing.photo || null);
     setPhotoError(null);
-  };
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setPhotoError(null);
-    setIsUploadingPhoto(true);
-
-    readMediaAsDataUrl(file, 1200, 0.82)
-      .then((mediaDataUrl) => {
-        setMilestonePhoto(mediaDataUrl);
-        setPhotoError(null);
-        uploadEncryptedMedia(mediaDataUrl, activeChild.familyId, file.name).catch(() => {});
-      })
-      .catch((err) => {
-        setPhotoError(err.message || 'Fehler beim Verarbeiten der Mediendatei.');
-      })
-      .finally(() => {
-        setIsUploadingPhoto(false);
-      });
-
-    e.target.value = '';
   };
 
   const handleSaveMilestone = (e) => {
     e.preventDefault();
     if (!selectedMilestone || !canEdit) return;
 
-    // Trigger celebration confetti
-    fireConfetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.7 },
-      colors: ['#f59e0b', '#ec4899', '#06b6d4', '#10b981'],
-    });
+    const wasAlreadyCompleted = milestonesData[selectedMilestone.id]?.completed;
 
-    const updated = {
+    const updatedData = {
       ...milestonesData,
       [selectedMilestone.id]: {
         completed: true,
@@ -113,39 +85,76 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
 
     onUpdateChild({
       ...activeChild,
-      milestones: updated,
+      milestones: updatedData,
     });
+
+    if (!wasAlreadyCompleted) {
+      fireConfetti();
+    }
 
     setSelectedMilestone(null);
   };
 
   const handleRemoveMilestone = (milestoneId) => {
     if (!canEdit) return;
-    const updated = { ...milestonesData };
-    delete updated[milestoneId];
+    const updatedData = { ...milestonesData };
+    delete updatedData[milestoneId];
 
     onUpdateChild({
       ...activeChild,
-      milestones: updated,
+      milestones: updatedData,
     });
 
     setSelectedMilestone(null);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoError(null);
+    setIsUploadingPhoto(true);
+
+    try {
+      if (file.size > 25 * 1024 * 1024) {
+        throw new Error('Datei ist zu groß (maximal 25 MB erlaubt).');
+      }
+
+      const mediaUrl = await uploadEncryptedMedia(file, activeChild.familyId);
+      if (mediaUrl) {
+        setMilestonePhoto(mediaUrl);
+      } else {
+        const compressedDataUrl = await readMediaAsDataUrl(file);
+        setMilestonePhoto(compressedDataUrl);
+      }
+    } catch (err) {
+      console.error('Milestone photo processing error:', err);
+      setPhotoError(err.message || 'Fehler beim Verarbeiten des Fotos.');
+      try {
+        const compressedDataUrl = await readMediaAsDataUrl(file);
+        setMilestonePhoto(compressedDataUrl);
+      } catch (fallbackErr) {
+        console.error('Milestone photo fallback error:', fallbackErr);
+      }
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
   const handleCreateCustomMilestone = (e) => {
     e.preventDefault();
     if (!customTitle.trim() || !canEdit) return;
 
-    const newMilestone = {
-      id: `custom-${Date.now()}`,
-      category: customCategory || 'custom',
+    const newCustomMilestone = {
+      id: `custom_${Date.now()}`,
       title: customTitle.trim(),
-      icon: customIcon || '⭐',
       description: customDesc.trim(),
+      category: customCategory,
+      icon: customIcon || '⭐',
       isCustom: true,
     };
 
-    const updatedCustom = [...customMilestones, newMilestone];
+    const updatedCustom = [...customMilestones, newCustomMilestone];
     onUpdateChild({
       ...activeChild,
       customMilestones: updatedCustom,
@@ -206,471 +215,78 @@ export default function MilestoneTracker({ activeChild, onUpdateChild, canEdit }
       </div>
 
       {/* Category Filter Bar (BC-241) */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-5 p-1 bg-slate-950/80 rounded-2xl border border-slate-800 shadow-inner">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              selectedCategory === cat.id
-                ? 'bg-amber-600 text-white shadow-md shadow-amber-950/60'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
+      <div className="mb-5">
+        <MilestoneCategoryFilter
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          allMilestones={allMilestones}
+          milestonesData={milestonesData}
+          canEdit={canEdit}
+          onOpenCustomModal={() => setIsCustomModalOpen(true)}
+          t={t}
+        />
       </div>
 
       {/* Milestone Timeline Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredMilestones.map((m) => {
           const entry = milestonesData[m.id];
-          const isDone = entry?.completed;
+          const isDone = Boolean(entry?.completed);
 
           return (
-            <div
+            <MilestoneCard
               key={m.id}
-              className={`p-4 rounded-3xl border transition-all flex flex-col justify-between ${
-                isDone
-                  ? 'bg-amber-950/15 border-amber-700/40 shadow-xs'
-                  : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
-              }`}
-            >
-              <div>
-                {/* Header with Icon & Check status */}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-2xl p-2 rounded-2xl bg-slate-900 border border-slate-800 shrink-0">
-                      {m.icon || '⭐'}
-                    </span>
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-200">
-                        {t(`milestones.items.${m.id}.title`) !== `milestones.items.${m.id}.title`
-                          ? t(`milestones.items.${m.id}.title`)
-                          : m.title}
-                      </h4>
-                      {m.avgAgeMonths && !isDone && (
-                        <span className="text-[10px] text-slate-500 font-medium">
-                          {t('milestones.typical') || 'Typisch'}: ca. {m.avgAgeMonths}{' '}
-                          {t('growth.monthsUnit') || 'M.'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {isDone && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-950/90 text-amber-300 border border-amber-800/60 shrink-0">
-                      <Check className="w-3 h-3" /> {t('milestones.completed')}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
-                  {t(`milestones.items.${m.id}.desc`) !== `milestones.items.${m.id}.desc`
-                    ? t(`milestones.items.${m.id}.desc`)
-                    : m.description || t('milestones.subtitle')}
-                </p>
-
-                {/* Achieved Card Content (Photo, Date, Notes) */}
-                {isDone && (
-                  <div className="mb-3 space-y-2">
-                    {sanitizePhotoUrl(entry.photo) && (
-                      <div className="w-full">
-                        {failedImageUrls[entry.photo] ? (
-                          <div className="w-full rounded-2xl border border-dashed border-slate-700 bg-slate-900/80 p-4 text-center space-y-2">
-                            <Camera className="w-6 h-6 text-slate-500 mx-auto" />
-                            <p className="text-xs text-slate-400">{t('milestones.photoUpload')}</p>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() => openEditModal(m)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                              >
-                                <Camera className="w-3.5 h-3.5" />
-                                <span>{t('profileModal.photoLabel')}</span>
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setLightboxData({
-                                photo: sanitizePhotoUrl(entry.photo),
-                                title: m.title,
-                                date: entry.date,
-                                notes: entry.notes,
-                              })
-                            }
-                            title={t('common.search') || 'Foto vergrößern'}
-                            className="w-full rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950 block group cursor-pointer relative"
-                          >
-                            {entry.photo.startsWith('data:video/') ||
-                            entry.photo.includes('.mp4') ||
-                            entry.photo.includes('.webm') ? (
-                              <span className="w-full h-full flex items-center justify-center bg-black/80">
-                                <span className="text-3xl">🎬</span>
-                              </span>
-                            ) : (
-                              <img
-                                src={getAuthorizedMediaUrl(sanitizePhotoUrl(entry.photo))}
-                                alt={m.title}
-                                onError={() =>
-                                  setFailedImageUrls((prev) => ({ ...prev, [entry.photo]: true }))
-                                }
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            )}
-                            <span className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
-                              ▶️ {t('milestones.playMedia', 'Abspielen / Anzeigen')}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="text-[11px] bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 text-slate-300 space-y-1">
-                      <div className="flex items-center justify-between gap-1.5 font-semibold text-amber-300">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>{new Date(entry.date).toLocaleDateString(undefined)}</span>
-                        </span>
-                        {activeChild.birthdate && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-950/80 text-amber-400 border border-amber-800/40 font-medium">
-                            {calculateAge(activeChild.birthdate, entry.date, t).text}
-                          </span>
-                        )}
-                      </div>
-                      {entry.notes && (
-                        <p className="text-[11px] text-slate-300 italic pt-0.5">„{entry.notes}“</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              {canEdit && (
-                <div className="pt-2.5 border-t border-slate-800/60 flex items-center justify-between">
-                  {m.isCustom ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCustomMilestone(m.id)}
-                      className="p-1 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-                      title={t('common.delete')}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  ) : (
-                    <div />
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(m)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                      isDone
-                        ? 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-                        : 'bg-amber-600 hover:bg-amber-500 text-white shadow-xs'
-                    }`}
-                  >
-                    {isDone ? (
-                      <>
-                        <Edit2 className="w-3 h-3" />
-                        <span>{t('common.edit')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-3 h-3" />
-                        <span>{t('milestones.recordBtn') || 'Festhalten'}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
+              milestone={m}
+              isDone={isDone}
+              entry={entry}
+              activeChild={activeChild}
+              canEdit={canEdit}
+              failedImageUrls={failedImageUrls}
+              setFailedImageUrls={setFailedImageUrls}
+              onOpenEditModal={openEditModal}
+              onDeleteCustomMilestone={handleDeleteCustomMilestone}
+              onOpenLightbox={setLightboxData}
+              t={t}
+            />
           );
         })}
       </div>
 
       {/* Record/Edit Milestone Modal */}
-      {selectedMilestone && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-slate-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center gap-2.5 mb-2">
-              <span className="text-2xl">{selectedMilestone.icon}</span>
-              <h3 className="text-base font-bold">{selectedMilestone.title}</h3>
-            </div>
-            <p className="text-xs text-slate-400 mb-4">{selectedMilestone.description}</p>
-
-            <form onSubmit={handleSaveMilestone} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="milestone-date"
-                  className="block text-xs font-semibold text-slate-300 mb-1"
-                >
-                  {t('milestones.achievedOn', 'Erreicht am *')}
-                </label>
-                <input
-                  id="milestone-date"
-                  type="date"
-                  required
-                  value={milestoneDate}
-                  onChange={(e) => setMilestoneDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              {/* Photo Upload Section */}
-              <div>
-                <span className="block text-xs font-semibold text-slate-300 mb-1">
-                  {t('milestones.photoMemory', 'Erinnerungsfoto (optional)')}
-                </span>
-                {milestonePhoto ? (
-                  <div className="space-y-2">
-                    <div className="relative group rounded-2xl overflow-hidden border border-slate-700 h-44 bg-slate-950">
-                      <img
-                        src={getAuthorizedMediaUrl(sanitizePhotoUrl(milestonePhoto))}
-                        alt="Vorschau"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setMilestonePhoto(null)}
-                        className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md z-10"
-                        title={t('common.delete', 'Foto entfernen')}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <label
-                      htmlFor="milestone-photo-input"
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition-colors ${
-                        isUploadingPhoto ? 'opacity-50 pointer-events-none' : ''
-                      }`}
-                    >
-                      <Camera className="w-3.5 h-3.5 text-amber-400" />
-                      <span>
-                        {isUploadingPhoto
-                          ? t('milestones.uploadingPhoto', 'Verschlüssele & speichere...')
-                          : t('milestones.changePhoto', 'Anderes Foto wählen')}
-                      </span>
-                      <input
-                        id="milestone-photo-input"
-                        type="file"
-                        accept="image/*,video/mp4,video/webm,video/quicktime"
-                        disabled={isUploadingPhoto}
-                        onChange={handlePhotoUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                ) : (
-                  <label
-                    htmlFor="milestone-photo-input"
-                    className={`flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-2xl cursor-pointer hover:border-amber-500 hover:bg-slate-950/60 transition-all text-slate-400 hover:text-slate-200 ${
-                      isUploadingPhoto ? 'opacity-50 pointer-events-none' : ''
-                    }`}
-                  >
-                    <Camera className="w-6 h-6 mb-1 text-amber-400" />
-                    <span className="text-xs font-medium">
-                      {isUploadingPhoto
-                        ? t('milestones.uploadingPhoto', 'Verschlüssele & lade hoch...')
-                        : t('milestones.uploadPhoto', 'Foto oder Video hochladen (verschlüsselt)')}
-                    </span>
-                    <input
-                      id="milestone-photo-input"
-                      type="file"
-                      accept="image/*,video/mp4,video/webm,video/quicktime"
-                      disabled={isUploadingPhoto}
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-                {photoError && (
-                  <div className="mt-2 p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
-                    <span>⚠️</span>
-                    <span>{photoError}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="milestone-notes"
-                  className="block text-xs font-semibold text-slate-300 mb-1"
-                >
-                  {t('growth.notesLabel', 'Notizen')}
-                </label>
-                <textarea
-                  id="milestone-notes"
-                  rows={3}
-                  placeholder={t('growth.notesPlaceholder', 'z. B. Heute im Park...')}
-                  value={milestoneNotes}
-                  onChange={(e) => setMilestoneNotes(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-between border-t border-slate-800">
-                {milestonesData[selectedMilestone.id] ? (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveMilestone(selectedMilestone.id)}
-                    className="px-3 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/50 text-xs font-semibold"
-                  >
-                    {t('common.delete', 'Eintrag löschen')}
-                  </button>
-                ) : (
-                  <div />
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMilestone(null)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
-                  >
-                    {t('common.cancel', 'Abbrechen')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-950"
-                  >
-                    {t('common.save', 'Speichern')}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <MilestoneDetailModal
+        selectedMilestone={selectedMilestone}
+        onClose={() => setSelectedMilestone(null)}
+        milestonesData={milestonesData}
+        milestoneDate={milestoneDate}
+        setMilestoneDate={setMilestoneDate}
+        milestonePhoto={milestonePhoto}
+        setMilestonePhoto={setMilestonePhoto}
+        isUploadingPhoto={isUploadingPhoto}
+        handlePhotoUpload={handlePhotoUpload}
+        photoError={photoError}
+        milestoneNotes={milestoneNotes}
+        setMilestoneNotes={setMilestoneNotes}
+        onSaveMilestone={handleSaveMilestone}
+        onRemoveMilestone={handleRemoveMilestone}
+        t={t}
+      />
 
       {/* Create Custom Milestone Modal */}
-      {isCustomModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-slate-100">
-            <h3 className="text-base font-bold mb-1 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" />
-              <span>{t('milestones.createCustomTitle', 'Eigenen Meilenstein anlegen')}</span>
-            </h3>
-            <p className="text-xs text-slate-400 mb-4">
-              {t(
-                'milestones.createCustomSubtitle',
-                'Erstelle einen individuellen Entwicklungsschritt für dein Kind.'
-              )}
-            </p>
-
-            <form onSubmit={handleCreateCustomMilestone} className="space-y-4">
-              <div className="flex gap-3">
-                <div className="w-24">
-                  <label
-                    htmlFor="custom-icon"
-                    className="block text-xs font-semibold text-slate-300 mb-1"
-                  >
-                    {t('milestones.customIconLabel', 'Icon')}
-                  </label>
-                  <input
-                    id="custom-icon"
-                    type="text"
-                    required
-                    value={customIcon}
-                    onChange={(e) => setCustomIcon(e.target.value)}
-                    className="w-full text-center text-lg py-1.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-amber-500"
-                  />
-                  <div className="flex gap-1 mt-1.5 justify-center">
-                    {['⭐', '🎉', '🚲', '🎨', '🏊‍♂️'].map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => setCustomIcon(emoji)}
-                        className="text-xs p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex-1">
-                  <label
-                    htmlFor="custom-title"
-                    className="block text-xs font-semibold text-slate-300 mb-1"
-                  >
-                    {t('milestones.customTitleLabel', 'Titel des Meilensteins *')}
-                  </label>
-                  <input
-                    id="custom-title"
-                    type="text"
-                    required
-                    placeholder="z. B. Erstes Mal Laufrad gefahren"
-                    value={customTitle}
-                    onChange={(e) => setCustomTitle(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="custom-category"
-                  className="block text-xs font-semibold text-slate-300 mb-1"
-                >
-                  {t('milestones.customCategoryLabel', 'Kategorie')}
-                </label>
-                <select
-                  id="custom-category"
-                  value={customCategory}
-                  onChange={(e) => setCustomCategory(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
-                >
-                  <option value="custom">{t('milestones.filterCustom', 'Eigene')}</option>
-                  <option value="motor">{t('milestones.filterMotor', 'Motorik')}</option>
-                  <option value="language">{t('milestones.filterLanguage', 'Sprache')}</option>
-                  <option value="social">{t('milestones.filterSocial', 'Sozial')}</option>
-                  <option value="nutrition">{t('milestones.filterNutrition', 'Ernährung')}</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="custom-desc"
-                  className="block text-xs font-semibold text-slate-300 mb-1"
-                >
-                  {t('milestones.customDescLabel', 'Beschreibung (optional)')}
-                </label>
-                <textarea
-                  id="custom-desc"
-                  rows={2}
-                  placeholder="z. B. Hält das Gleichgewicht..."
-                  value={customDesc}
-                  onChange={(e) => setCustomDesc(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="pt-3 flex justify-end gap-2 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsCustomModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
-                >
-                  {t('common.cancel', 'Abbrechen')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-950"
-                >
-                  {t('milestones.addCustom', 'Meilenstein erstellen')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CustomMilestoneModal
+        isOpen={isCustomModalOpen}
+        onClose={() => setIsCustomModalOpen(false)}
+        customIcon={customIcon}
+        setCustomIcon={setCustomIcon}
+        customTitle={customTitle}
+        setCustomTitle={setCustomTitle}
+        customCategory={customCategory}
+        setCustomCategory={setCustomCategory}
+        customDesc={customDesc}
+        setCustomDesc={setCustomDesc}
+        onCreateCustomMilestone={handleCreateCustomMilestone}
+        t={t}
+      />
 
       {/* Fullscreen Photo Lightbox */}
       {lightboxData && (

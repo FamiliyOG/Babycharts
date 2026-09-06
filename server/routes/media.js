@@ -14,6 +14,12 @@ import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'node:url';
 import { readDb, sqlite } from '../utils/db.js';
 import { requireAuth, getUserFamilyRole, JWT_SECRET } from '../middleware/auth.js';
+import { getMediaMasterKey } from '../security/keys.js';
+import {
+  getDecryptedDerivative,
+  deleteMediaDerivatives,
+  ALLOWED_VARIANTS,
+} from '../services/mediaDerivativeService.js';
 
 const router = Router();
 
@@ -28,6 +34,13 @@ try {
 }
 
 function requireMediaAuth(req, res, next) {
+  // BC-257: Strictly forbid passing authentication or session tokens in URL query strings
+  if (req.query?.token || req.query?.jwt) {
+    return res.status(400).json({
+      error: 'Authentifizierungs-Tokens in URL-Query-Parametern sind nicht zulässig.',
+    });
+  }
+
   let token = null;
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {
@@ -46,8 +59,9 @@ function requireMediaAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const db = readDb();
-    const user = db.users.find((u) => u.id === decoded.id);
+    const user = sqlite
+      .prepare('SELECT id, email, name, role, isDev, tokenVersion FROM users WHERE id = ?')
+      .get(decoded.id);
     if (!user) {
       return res.status(401).json({ error: 'Benutzerkonto nicht gefunden.' });
     }
@@ -62,45 +76,20 @@ function requireMediaAuth(req, res, next) {
       });
     }
 
-    req.user = { id: user.id, email: user.email, name: user.name };
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isDev: Boolean(user.isDev),
+    };
     next();
   } catch {
     return res.status(401).json({ error: 'Ungültiges oder abgelaufenes Token.' });
   }
 }
 
-/**
- * Resolves or dynamically generates and persists a cryptographically secure 32-byte Master Encryption Key
- * Checks:
- * 1. process.env.MEDIA_ENCRYPTION_KEY (Environment override)
- * 2. SQLite settings table ('media_master_key')
- * 3. Cryptographically random 32-byte key persisted to SQLite settings
- */
-function getOrCreateMediaMasterKey() {
-  if (process.env.MEDIA_ENCRYPTION_KEY && process.env.MEDIA_ENCRYPTION_KEY.trim().length > 0) {
-    return crypto.createHash('sha256').update(process.env.MEDIA_ENCRYPTION_KEY.trim()).digest();
-  }
-
-  try {
-    const row = sqlite.prepare('SELECT value FROM settings WHERE key = ?').get('media_master_key');
-    if (row?.value) {
-      return Buffer.from(row.value, 'hex');
-    }
-
-    const randomBytes = crypto.randomBytes(32);
-    sqlite
-      .prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
-      .run('media_master_key', randomBytes.toString('hex'));
-    return randomBytes;
-  } catch (err) {
-    console.error('[FATAL] Failed to initialize Media Master Encryption Key:', err.message);
-    throw new Error(
-      'Media Master Encryption Key initialization failed. Server starting in fail-closed state.'
-    );
-  }
-}
-
-const MEDIA_MASTER_KEY = getOrCreateMediaMasterKey();
+const MEDIA_MASTER_KEY = getMediaMasterKey();
 
 function getEncryptionKey() {
   return MEDIA_MASTER_KEY;
@@ -157,6 +146,26 @@ function parseAndValidateMediaPayload(dataUrl) {
     const limitText = isVideo ? '25 MB für Videos' : '15 MB für Bilder';
     return {
       error: `Datei zu groß. Maximal ${limitText} erlaubt.`,
+    };
+  }
+
+  // Magic bytes inspection to prevent file extension / MIME spoofing (Issue #265)
+  const isPng =
+    buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+  const isJpg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  const isGif = buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46;
+  const isWebp =
+    buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP';
+  const isMp4 =
+    buffer.subarray(4, 8).toString() === 'ftyp' ||
+    buffer.subarray(4, 12).toString().includes('mp4');
+  const isWebm =
+    buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+
+  const validMagic = isPng || isJpg || isGif || isWebp || isMp4 || isWebm;
+  if (!validMagic) {
+    return {
+      error: 'Dateiinhalte entsprechen keinem gültigen Bild- oder Videoformat.',
     };
   }
 
@@ -296,6 +305,20 @@ router.get('/:id', requireMediaAuth, (req, res) => {
         .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
     }
 
+    // BC-296: Check if a resized thumbnail derivative was requested (size=sm|md|lg)
+    const sizeVariant = req.query.size;
+    if (sizeVariant && ALLOWED_VARIANTS.includes(sizeVariant)) {
+      const derivative = getDecryptedDerivative(meta.id, sizeVariant);
+      if (derivative) {
+        res.setHeader('Content-Type', derivative.mimeType);
+        res.setHeader('Content-Length', derivative.buffer.length);
+        res.setHeader('Content-Disposition', 'inline');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Cache-Control', 'private, max-age=86400');
+        return res.end(derivative.buffer);
+      }
+    }
+
     const filePath = path.join(UPLOADS_DIR, `${meta.id}.enc`);
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Datei auf dem Speicher nicht gefunden.' });
@@ -323,13 +346,44 @@ router.get('/:id', requireMediaAuth, (req, res) => {
       ? meta.mimeType
       : 'application/octet-stream';
 
-    // Send decrypted buffer with strict security and caching headers
+    // BC-296: HTTP 206 Partial Content (Range Request) support for video streaming
+    const totalSize = decrypted.length;
+    const range = req.headers.range;
+
+    res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', safeMime);
-    res.setHeader('Content-Length', decrypted.length);
     res.setHeader('Content-Disposition', 'inline');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Download-Options', 'noopen');
     res.setHeader('Cache-Control', 'private, max-age=86400'); // Cache for 24h in client session
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = Number.parseInt(parts[0], 10);
+      const end = parts[1] ? Number.parseInt(parts[1], 10) : totalSize - 1;
+
+      if (
+        Number.isNaN(start) ||
+        Number.isNaN(end) ||
+        start >= totalSize ||
+        end >= totalSize ||
+        start > end
+      ) {
+        res.setHeader('Content-Range', `bytes */${totalSize}`);
+        return res.status(416).json({ error: 'Requested Range Not Satisfiable' });
+      }
+
+      const chunkSize = end - start + 1;
+      const partialBuffer = decrypted.subarray(start, end + 1);
+
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${totalSize}`);
+      res.setHeader('Content-Length', chunkSize);
+      return res.end(partialBuffer);
+    }
+
+    // Full file response
+    res.setHeader('Content-Length', totalSize);
     return res.end(decrypted);
   } catch (err) {
     console.error('[MEDIA] Decrypt error:', err);
@@ -372,6 +426,9 @@ router.delete('/:id', requireAuth, (req, res) => {
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
+
+    // Clean up all thumbnails and derived files
+    deleteMediaDerivatives(id);
 
     sqlite.prepare('DELETE FROM media_files WHERE id = ?').run(id);
 

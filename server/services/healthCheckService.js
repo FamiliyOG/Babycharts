@@ -40,13 +40,14 @@ export function checkDatabaseAndBackupHealth() {
     issues.push(`Foreign Key Check Fehler: ${err.message}`);
   }
 
-  // 3. Schema & Row Counts
   let stats = {
     users: 0,
     families: 0,
     profiles: 0,
     measurements: 0,
     auditLogs: 0,
+    mediaFiles: 0,
+    invites: 0,
     backupCount: 0,
     latestBackup: null,
   };
@@ -58,6 +59,16 @@ export function checkDatabaseAndBackupHealth() {
       sqlite.prepare('SELECT COUNT(*) as c FROM profiles WHERE deletedAt IS NULL').get()?.c || 0;
     stats.measurements = sqlite.prepare('SELECT COUNT(*) as c FROM measurements').get()?.c || 0;
     stats.auditLogs = sqlite.prepare('SELECT COUNT(*) as c FROM family_audit_logs').get()?.c || 0;
+    try {
+      stats.mediaFiles = sqlite.prepare('SELECT COUNT(*) as c FROM media_files').get()?.c || 0;
+    } catch {
+      stats.mediaFiles = 0;
+    }
+    try {
+      stats.invites = sqlite.prepare('SELECT COUNT(*) as c FROM invites').get()?.c || 0;
+    } catch {
+      stats.invites = 0;
+    }
   } catch (err) {
     issues.push(`Fehler beim Zählen der Datenbanktabellen: ${err.message}`);
   }

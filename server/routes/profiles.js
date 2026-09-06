@@ -6,12 +6,21 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import { readDb, writeDb, getProfileById, restoreProfile, softDeleteProfile } from '../utils/db.js';
+import {
+  readDb,
+  writeDb,
+  getProfileById,
+  restoreProfile,
+  softDeleteProfile,
+  sqlite,
+} from '../utils/db.js';
 import { rescheduleAll } from '../scheduler.js';
 import { requireAuth, getUserFamilyRole, JWT_SECRET } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { ProfileInputSchema } from '../validators/schemas.js';
 import { logFamilyAudit, AUDIT_ACTIONS } from '../services/auditService.js';
+import { filterProfileForVisitor } from '../security/visitorPermissions.js';
+import { decodeCursor, encodeCursor } from '../utils/cursor.js';
 
 const router = Router();
 
@@ -43,11 +52,179 @@ router.get('/', requireAuth, (req, res) => {
         .status(403)
         .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
     }
-    return res.json(db.profiles.filter((p) => p.familyId === familyId));
+    const filtered = db.profiles
+      .filter((p) => p.familyId === familyId)
+      .map((p) => {
+        const fam = db.families.find((f) => f.id === p.familyId);
+        const r = getUserFamilyRole(fam, req.user.id);
+        const grants = (db.visitorGrants || []).filter((g) => g.visitorUserId === req.user.id);
+        return filterProfileForVisitor(p, grants, r);
+      });
+    return res.json(filtered);
   }
 
   // Return profiles across all authorized families for the user
-  return res.json(db.profiles.filter((p) => p.familyId && userFamilyIds.has(p.familyId)));
+  const allFiltered = db.profiles
+    .filter((p) => p.familyId && userFamilyIds.has(p.familyId))
+    .map((p) => {
+      const fam = db.families.find((f) => f.id === p.familyId);
+      const r = getUserFamilyRole(fam, req.user.id);
+      const grants = (db.visitorGrants || []).filter((g) => g.visitorUserId === req.user.id);
+      return filterProfileForVisitor(p, grants, r);
+    });
+  return res.json(allFiltered);
+});
+
+function matchMeasurementItems(p, lowerQuery) {
+  const items = [];
+  if (!Array.isArray(p.measurements)) return items;
+
+  for (const m of p.measurements) {
+    if (
+      m.notes?.toLowerCase().includes(lowerQuery) ||
+      m.checkup?.toLowerCase().includes(lowerQuery)
+    ) {
+      items.push({
+        type: 'measurement',
+        profileId: p.id,
+        childName: p.name,
+        title: `Messung ${m.checkup || m.date}`,
+        snippet: m.notes || `Gewicht: ${m.weight || '-'} kg, Länge: ${m.length || '-'} cm`,
+        date: m.date,
+      });
+    }
+  }
+  return items;
+}
+
+function matchHealthLogItems(p, lowerQuery) {
+  const items = [];
+  if (!Array.isArray(p.healthLog)) return items;
+
+  for (const h of p.healthLog) {
+    const symptomsStr = Array.isArray(h.symptoms) ? h.symptoms.join(', ') : '';
+    if (
+      h.notes?.toLowerCase().includes(lowerQuery) ||
+      h.medication?.toLowerCase().includes(lowerQuery) ||
+      symptomsStr.toLowerCase().includes(lowerQuery)
+    ) {
+      items.push({
+        type: 'health_log',
+        profileId: p.id,
+        childName: p.name,
+        title: `Gesundheitseintrag (${h.dateTime ? h.dateTime.split('T')[0] : 'Datum'})`,
+        snippet: [h.medication, symptomsStr, h.notes].filter(Boolean).join(' • '),
+        date: h.dateTime,
+      });
+    }
+  }
+  return items;
+}
+
+function matchMilestoneItems(p, lowerQuery) {
+  const items = [];
+  if (!p.customMilestones) return items;
+
+  const cms = Array.isArray(p.customMilestones)
+    ? p.customMilestones
+    : Object.values(p.customMilestones);
+
+  for (const cm of cms) {
+    if (
+      cm?.title?.toLowerCase().includes(lowerQuery) ||
+      cm?.notes?.toLowerCase().includes(lowerQuery)
+    ) {
+      items.push({
+        type: 'milestone',
+        profileId: p.id,
+        childName: p.name,
+        title: cm?.title || 'Meilenstein',
+        snippet: cm?.notes || 'Individueller Meilenstein',
+        date: cm?.date,
+      });
+    }
+  }
+  return items;
+}
+
+function matchProfileItems(p, lowerQuery) {
+  const results = [];
+
+  // 1. Profile name / notes match
+  if (p.name?.toLowerCase().includes(lowerQuery) || p.notes?.toLowerCase().includes(lowerQuery)) {
+    results.push({
+      type: 'profile',
+      profileId: p.id,
+      childName: p.name,
+      title: p.name,
+      snippet: p.notes || `Profil für ${p.name}`,
+      date: p.birthdate,
+    });
+  }
+
+  // 2. Measurements, Health logs & Milestones
+  results.push(
+    ...matchMeasurementItems(p, lowerQuery),
+    ...matchHealthLogItems(p, lowerQuery),
+    ...matchMilestoneItems(p, lowerQuery)
+  );
+
+  return results;
+}
+
+// GET /api/v1/profiles/search – Family-isolated global search (BC-316)
+router.get('/search', requireAuth, (req, res) => {
+  const { q, familyId, profileId } = req.query;
+  const rawTerm = typeof q === 'string' ? q.trim() : '';
+  if (!rawTerm || rawTerm.length < 2) {
+    return res.json({ results: [], count: 0 });
+  }
+
+  const db = readDb();
+  // Find all families user belongs to
+  const userFamilies = db.families.filter(
+    (f) => f.ownerId === req.user.id || f.members?.some((m) => m.userId === req.user.id)
+  );
+  const userFamilyIds = new Set(userFamilies.map((f) => f.id));
+
+  // Determine authorized target families
+  let targetFamilyIds = [...userFamilyIds];
+  if (familyId) {
+    if (!userFamilyIds.has(familyId)) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
+    targetFamilyIds = [familyId];
+  }
+
+  if (targetFamilyIds.length === 0) {
+    return res.json({ results: [], count: 0 });
+  }
+
+  // Filter accessible profiles
+  let accessibleProfiles = db.profiles.filter(
+    (p) => !p.deletedAt && targetFamilyIds.includes(p.familyId)
+  );
+
+  if (profileId) {
+    accessibleProfiles = accessibleProfiles.filter((p) => p.id === profileId);
+  }
+
+  if (accessibleProfiles.length === 0) {
+    return res.json({ results: [], count: 0 });
+  }
+
+  const lowerQuery = rawTerm.toLowerCase();
+  const results = [];
+
+  for (const p of accessibleProfiles) {
+    results.push(...matchProfileItems(p, lowerQuery));
+  }
+
+  // Safe cap at 50 results
+  const trimmedResults = results.slice(0, 50);
+  return res.json({ results: trimmedResults, count: trimmedResults.length });
 });
 
 // GET single profile (strictly restricted to authorized family members)
@@ -57,9 +234,10 @@ router.get('/:id', requireAuth, (req, res) => {
   if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
   // If profile belongs to a family, verify user's access
+  let role = null;
   if (profile.familyId) {
     const family = db.families.find((f) => f.id === profile.familyId);
-    const role = getUserFamilyRole(family, req.user.id);
+    role = getUserFamilyRole(family, req.user.id);
     if (!role) {
       return res
         .status(403)
@@ -72,7 +250,133 @@ router.get('/:id', requireAuth, (req, res) => {
       .json({ error: 'Zugriff verweigert: Profil ist keiner Familie zugewiesen.' });
   }
 
-  return res.json(profile);
+  const userGrants = (db.visitorGrants || []).filter((g) => g.visitorUserId === req.user.id);
+  return res.json(filterProfileForVisitor(profile, userGrants, role));
+});
+
+// GET /api/profiles/:id/measurements – Keyset cursor-paginated measurements (BC-297)
+router.get('/:id/measurements', requireAuth, (req, res) => {
+  const db = readDb();
+  const profile = db.profiles.find((p) => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  if (profile.familyId) {
+    const family = db.families.find((f) => f.id === profile.familyId);
+    const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
+  }
+
+  const requestedLimit = req.query.limit ? Number(req.query.limit) : 50;
+  const safeLimit = Math.min(Math.max(requestedLimit, 1), 100);
+
+  let cursor = null;
+  if (req.query.cursor) {
+    try {
+      cursor = decodeCursor(String(req.query.cursor), `profile:${profile.id}:measurements`);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  let query = 'SELECT * FROM measurements WHERE profileId = ?';
+  const params = [profile.id];
+
+  if (cursor) {
+    query += ' AND (date < ? OR (date = ? AND id < ?))';
+    params.push(cursor.sortValue, cursor.sortValue, cursor.id);
+  }
+
+  query += ' ORDER BY date DESC, id DESC LIMIT ?';
+  params.push(safeLimit + 1);
+
+  const rows = sqlite.prepare(query).all(...params);
+  const hasMore = rows.length > safeLimit;
+  const items = hasMore ? rows.slice(0, safeLimit) : rows;
+
+  let nextCursor = null;
+  if (hasMore && items.length > 0) {
+    const last = items[items.length - 1];
+    nextCursor = encodeCursor({
+      id: last.id,
+      sortValue: last.date,
+      scope: `profile:${profile.id}:measurements`,
+    });
+  }
+
+  return res.json({
+    items,
+    nextCursor,
+    hasMore,
+    limit: safeLimit,
+  });
+});
+
+// GET /api/profiles/:id/health-logs – Keyset cursor-paginated health entries (BC-297)
+router.get('/:id/health-logs', requireAuth, (req, res) => {
+  const db = readDb();
+  const profile = db.profiles.find((p) => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+  if (profile.familyId) {
+    const family = db.families.find((f) => f.id === profile.familyId);
+    const role = getUserFamilyRole(family, req.user.id);
+    if (!role) {
+      return res
+        .status(403)
+        .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
+    }
+  }
+
+  const requestedLimit = req.query.limit ? Number(req.query.limit) : 50;
+  const safeLimit = Math.min(Math.max(requestedLimit, 1), 100);
+
+  let cursor = null;
+  if (req.query.cursor) {
+    try {
+      cursor = decodeCursor(String(req.query.cursor), `profile:${profile.id}:health-logs`);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  let query = 'SELECT * FROM health_logs WHERE profileId = ?';
+  const params = [profile.id];
+
+  if (cursor) {
+    query += ' AND (dateTime < ? OR (dateTime = ? AND id < ?))';
+    params.push(cursor.sortValue, cursor.sortValue, cursor.id);
+  }
+
+  query += ' ORDER BY dateTime DESC, id DESC LIMIT ?';
+  params.push(safeLimit + 1);
+
+  const rows = sqlite.prepare(query).all(...params);
+  const hasMore = rows.length > safeLimit;
+  const items = (hasMore ? rows.slice(0, safeLimit) : rows).map((h) => ({
+    ...h,
+    symptoms: h.symptoms ? JSON.parse(h.symptoms) : [],
+  }));
+
+  let nextCursor = null;
+  if (hasMore && items.length > 0) {
+    const last = items[items.length - 1];
+    nextCursor = encodeCursor({
+      id: last.id,
+      sortValue: last.dateTime,
+      scope: `profile:${profile.id}:health-logs`,
+    });
+  }
+
+  return res.json({
+    items,
+    nextCursor,
+    hasMore,
+    limit: safeLimit,
+  });
 });
 
 // GET /api/profiles/share/doctor-view – Dedicated temporary read-only doctor viewer (BC-231, Issue #176)
@@ -234,14 +538,18 @@ router.post('/import', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'familyId ist erforderlich für den Import.' });
   }
 
-  const permError = checkFamilyWritePermission(
-    targetFamilyId,
-    req.user.id,
-    db,
-    'keine Profile importieren'
-  );
-  if (permError) {
-    return res.status(permError.status).json({ error: permError.error });
+  const family = db.families.find((f) => f.id === targetFamilyId);
+  if (!family) {
+    return res.status(404).json({ error: 'Familie nicht gefunden.' });
+  }
+
+  const userRole = getUserFamilyRole(family, req.user.id);
+  // Issue #327: Only family owner (or family admin) can import full backups into this family
+  if (!userRole || (family.ownerId !== req.user.id && userRole !== 'admin')) {
+    return res.status(403).json({
+      error:
+        'Zugriff verweigert: Nur der Familiengründer darf ein vollständiges Backup in diese Familie importieren.',
+    });
   }
 
   const importedMap = new Map();
@@ -250,7 +558,9 @@ router.post('/import', requireAuth, (req, res) => {
     importedMap.set(p.id, {
       ...p,
       familyId: targetFamilyId,
-      schedule: p.schedule ?? defaultSchedule(),
+      gender: p.gender || 'unknown',
+      birthdate: p.birthdate || new Date().toISOString().split('T')[0],
+      schedule: p.schedule || {},
     });
   }
 
@@ -263,6 +573,15 @@ router.post('/import', requireAuth, (req, res) => {
 
   writeDb(db);
   rescheduleAll();
+
+  logFamilyAudit({
+    familyId: targetFamilyId,
+    userId: req.user.id,
+    userName: req.user.name,
+    action: AUDIT_ACTIONS.FAMILY_BACKUP_IMPORT,
+    details: `Backup-Import von ${importedMap.size} Profilen durchgeführt`,
+  });
+
   return res.json({ ok: true, count: importedMap.size });
 });
 

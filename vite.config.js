@@ -1,7 +1,25 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { visualizer } from 'rollup-plugin-visualizer';
+
+// Custom Vite plugin to inject build timestamp/hash into sw.js for automatic cache versioning (BC-298)
+function serviceWorkerVersionPlugin() {
+  return {
+    name: 'service-worker-version',
+    closeBundle() {
+      const distSwPath = path.resolve(process.cwd(), 'dist/sw.js');
+      if (fs.existsSync(distSwPath)) {
+        const content = fs.readFileSync(distSwPath, 'utf8');
+        const version = Date.now().toString(36);
+        const updated = content.replace('__SW_CACHE_VERSION__', version);
+        fs.writeFileSync(distSwPath, updated, 'utf8');
+      }
+    },
+  };
+}
 
 // Custom Vite plugin to strip non-standard CSS properties from Tailwind v4 CSS reset to prevent Firefox console warnings
 function stripNonStandardCssPlugin() {
@@ -37,6 +55,7 @@ function stripNonStandardCssPlugin() {
 export default defineConfig(({ mode }) => ({
   plugins: [
     stripNonStandardCssPlugin(),
+    serviceWorkerVersionPlugin(),
     react(),
     tailwindcss(),
     mode === 'analyze' &&
@@ -56,9 +75,15 @@ export default defineConfig(({ mode }) => ({
     exclude: ['e2e/**', '**/node_modules/**', '**/dist/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov', 'json'],
+      reporter: ['text', 'lcov', 'json', 'html'],
       reportsDirectory: './coverage',
-      exclude: ['e2e/**', 'src/test/**', '**/node_modules/**', '**/dist/**'],
+      thresholds: {
+        lines: 60,
+        statements: 60,
+        functions: 60,
+        branches: 50,
+      },
+      exclude: ['e2e/**', 'src/test/**', '**/node_modules/**', '**/dist/**', 'reports/**'],
     },
   },
   build: {

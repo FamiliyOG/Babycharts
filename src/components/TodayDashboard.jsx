@@ -450,6 +450,34 @@ export default function TodayDashboard({
         </div>
       </div>
 
+      {/* Quick Action Shortcuts (Familiencockpit #278) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full text-xs font-semibold">
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('timeline')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500/50 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+        >
+          <Calendar className="w-3.5 h-3.5 text-purple-400" />
+          <span>{t('timeline.title', 'Timeline')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('growth')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+        >
+          <Scale className="w-3.5 h-3.5 text-cyan-400" />
+          <span>{t('nav.growth', 'Wachstum')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('doctor')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
+        >
+          <HeartPulse className="w-3.5 h-3.5 text-emerald-400" />
+          <span>{t('doctorView.title', 'Kinderarzt')}</span>
+        </button>
+      </div>
+
       {/* Grid of Key Insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <NextCheckupCard nextCheckup={nextCheckup} onNavigateTab={onNavigateTab} t={t} />

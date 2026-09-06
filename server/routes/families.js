@@ -6,9 +6,19 @@
 import crypto from 'node:crypto';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { readDb, writeDb } from '../utils/db.js';
-import { requireAuth, getUserFamilyRole } from '../middleware/auth.js';
-import { getFamilyAuditLogs } from '../services/auditService.js';
+import {
+  readDb,
+  writeDb,
+  getVisitorGrants,
+  setVisitorGrants,
+  getActiveEmergencyAccess,
+  grantEmergencyAccess,
+  logSecurityEvent,
+} from '../utils/db.js';
+import { requireAuth, getUserFamilyRole, requireInstanceAdmin } from '../middleware/auth.js';
+import { requireRecentAuth } from '../middleware/requireRecentAuth.js';
+import { getFamilyAuditLogs, logFamilyAudit } from '../services/auditService.js';
+import { decodeCursor, encodeCursor } from '../utils/cursor.js';
 
 const router = express.Router();
 
@@ -63,7 +73,17 @@ export function getFamilyAndCheckAccess(db, familyId, userId, minRole = null) {
   if (!family) {
     return { error: 'Familie nicht gefunden.', status: 404 };
   }
-  const userRole = getUserFamilyRole(family, userId);
+  let userRole = getUserFamilyRole(family, userId);
+
+  // Superadmin Privacy Isolation & Break-Glass Access (Issue #332):
+  // Superadmins have NO silent bypass. Only if an active, audited emergency grant exists, admin access is granted.
+  if (!userRole) {
+    const activeEmergency = getActiveEmergencyAccess(familyId, userId);
+    if (activeEmergency) {
+      userRole = 'admin';
+    }
+  }
+
   if (!userRole) {
     return { error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.', status: 403 };
   }
@@ -141,9 +161,15 @@ router.get('/:familyId', requireAuth, (req, res) => {
     };
   });
 
-  // Include active invites for this family if admin or editor
-  const familyInvites =
-    role !== 'viewer' ? db.invites.filter((inv) => inv.familyId === familyId) : [];
+  // Include active invites for this family (admins see all, parents see visitor invites or own invites, Issue #325)
+  let familyInvites = [];
+  if (role === 'admin') {
+    familyInvites = db.invites.filter((inv) => inv.familyId === familyId);
+  } else if (role === 'editor') {
+    familyInvites = db.invites.filter(
+      (inv) => inv.familyId === familyId && (inv.role === 'viewer' || inv.createdBy === req.user.id)
+    );
+  }
 
   return res.json({
     id: family.id,
@@ -194,7 +220,7 @@ router.post('/', requireAuth, (req, res) => {
  * POST /api/families/:familyId/transfer-ownership
  * Transfers family ownership to another member (owner only, BC-044)
  */
-router.post('/:familyId/transfer-ownership', requireAuth, (req, res) => {
+router.post('/:familyId/transfer-ownership', requireAuth, requireRecentAuth, (req, res) => {
   const { familyId } = req.params;
   const { newOwnerId } = req.body || {};
 
@@ -227,6 +253,13 @@ router.post('/:familyId/transfer-ownership', requireAuth, (req, res) => {
       .json({ error: 'Der neue Inhaber muss bereits Mitglied dieser Familie sein.' });
   }
 
+  // Issue #326: Target member must be parent/admin, cannot be visitor
+  if (targetMember.role === 'viewer') {
+    return res.status(400).json({
+      error: 'Inhaberschaft kann nur an ein Elternteil übertragen werden, nicht an einen Besucher.',
+    });
+  }
+
   const previousOwnerId = family.ownerId;
   family.ownerId = newOwnerId;
   targetMember.role = 'admin'; // New owner is guaranteed admin
@@ -245,16 +278,13 @@ router.post('/:familyId/transfer-ownership', requireAuth, (req, res) => {
 
   writeDb(db);
 
-  console.log(
-    '[OWNER TRANSFER]',
-    new Date().toISOString(),
-    'Family ID:',
-    String(family.id).replace(/[\r\n]/g, ''),
-    'ownership transferred from:',
-    String(previousOwnerId).replace(/[\r\n]/g, ''),
-    'to:',
-    String(newOwnerId).replace(/[\r\n]/g, '')
-  );
+  logFamilyAudit({
+    familyId,
+    userId: req.user.id,
+    userName: req.user.name,
+    action: 'FAMILY_OWNERSHIP_TRANSFER',
+    details: `Inhaberschaft von ${previousOwnerId} an ${newOwnerId} übertragen`,
+  });
 
   return res.json({
     message: 'Inhaberschaft der Familie erfolgreich übertragen.',
@@ -265,20 +295,27 @@ router.post('/:familyId/transfer-ownership', requireAuth, (req, res) => {
 /**
  * POST /api/families/:familyId/invites
  * Creates an invite code for members with configurable expiration time & max uses (BC-045, BC-046, BC-047)
- * Supports:
- * - expiresInHours: 1, 24, 48, 168 (7 days), 720 (30 days), defaults to 48 hours.
- * - maxUses: 1 (single-use), 3, 5, 10, or 0 (unlimited within expiry), defaults to 1.
+ * Parents (editor) can delegate visitor invites (Issue #325).
+ * Only owners/admins can invite parents or other admins.
  */
 router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) => {
   const { familyId } = req.params;
-  const { role = 'editor', expiresInHours = 48, maxUses = 1 } = req.body;
+  const { role = 'editor', expiresInHours = 48, maxUses = 1, invitedEmail = null } = req.body;
 
   const db = readDb();
   const access = getFamilyAndCheckAccess(db, familyId, req.user.id, 'editor');
   if (access.error) {
     return res.status(access.status).json({ error: access.error });
   }
-  const { family } = access;
+  const { family, userRole } = access;
+
+  // Issue #325: Parents can only create visitor invites (role: viewer)
+  if (userRole !== 'admin' && role !== 'viewer') {
+    return res.status(403).json({
+      error:
+        'Elternteile dürfen nur Besuchereinladungen erstellen. Für Elterneinladungen ist der Familiengründer erforderlich.',
+    });
+  }
 
   // Validate and constrain expiration time (minimum 1 hour, maximum 720 hours = 30 days)
   const parsedHours = Number.parseInt(expiresInHours, 10);
@@ -291,6 +328,24 @@ router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) =
   const validMaxUses =
     !Number.isNaN(parsedUses) && parsedUses >= 0 && parsedUses <= 50 ? parsedUses : 1;
 
+  // Issue #324: Validate email binding if provided
+  let normalizedInvitedEmail = null;
+  if (invitedEmail && typeof invitedEmail === 'string' && invitedEmail.trim()) {
+    const trimmed = invitedEmail.trim().toLowerCase();
+    // Check email format without super-linear backtracking
+    const atIndex = trimmed.indexOf('@');
+    const dotIndex = trimmed.lastIndexOf('.');
+    if (
+      atIndex <= 0 ||
+      dotIndex <= atIndex + 1 ||
+      dotIndex >= trimmed.length - 1 ||
+      trimmed.includes(' ')
+    ) {
+      return res.status(400).json({ error: 'Ungültige E-Mail-Adresse für Einladung.' });
+    }
+    normalizedInvitedEmail = trimmed;
+  }
+
   const inviteCode = generateInviteCode(db.invites);
   const newInvite = {
     code: inviteCode,
@@ -299,6 +354,7 @@ router.post('/:familyId/invites', requireAuth, inviteCreateLimiter, (req, res) =
     createdBy: req.user.id,
     createdByName: req.user.name,
     role: role === 'viewer' ? 'viewer' : 'editor',
+    invitedEmail: normalizedInvitedEmail,
     createdAt: new Date().toISOString(),
     expiresAt,
     maxUses: validMaxUses,
@@ -323,17 +379,25 @@ router.delete('/:familyId/invites/:code', requireAuth, (req, res) => {
     return res.status(access.status).json({ error: access.error });
   }
 
-  const initialCount = db.invites.length;
+  const invite = (db.invites || []).find(
+    (inv) => inv.familyId === familyId && inv.code === code.toUpperCase()
+  );
+  if (!invite) {
+    return res.status(404).json({ error: 'Einladungscode nicht gefunden.' });
+  }
+
+  // Issue #325: Parents can revoke visitor invites or invites they created themselves
+  if (access.userRole !== 'admin' && invite.createdBy !== req.user.id && invite.role !== 'viewer') {
+    return res.status(403).json({
+      error: 'Sie dürfen nur selbst erstellte oder Besucher-Einladungen widerrufen.',
+    });
+  }
+
   db.invites = db.invites.filter(
     (inv) => !(inv.familyId === familyId && inv.code === code.toUpperCase())
   );
-
-  if (db.invites.length < initialCount) {
-    writeDb(db);
-    return res.json({ ok: true, message: 'Einladungscode widerrufen.' });
-  }
-
-  return res.status(404).json({ error: 'Einladungscode nicht gefunden.' });
+  writeDb(db);
+  return res.json({ ok: true, message: 'Einladungscode widerrufen.' });
 });
 
 /**
@@ -378,6 +442,13 @@ router.post('/join', requireAuth, inviteJoinLimiter, (req, res) => {
   const family = db.families.find((f) => f.id === invite.familyId);
   if (!family) {
     return res.status(404).json({ error: 'Die zugehörige Familie existiert nicht mehr.' });
+  }
+
+  // Issue #324: Enforce email binding if invite was created for a specific email
+  if (invite.invitedEmail && invite.invitedEmail !== req.user.email?.toLowerCase()) {
+    return res.status(403).json({
+      error: `Dieser Einladungscode ist personengebunden und kann nur von ${invite.invitedEmail} eingelöst werden.`,
+    });
   }
 
   family.members = family.members || [];
@@ -627,9 +698,9 @@ router.delete('/:familyId/members/:userId', requireAuth, (req, res) => {
 
 /**
  * DELETE /api/families/:familyId
- * Deletes a family, all its child profiles and associated records (owner/admin only)
+ * Deletes a family, all its child profiles and associated records (owner/admin only, requires recent auth, Issue #333)
  */
-router.delete('/:familyId', requireAuth, (req, res) => {
+router.delete('/:familyId', requireAuth, requireRecentAuth, (req, res) => {
   const { familyId } = req.params;
   const db = readDb();
   const familyIndex = db.families.findIndex((f) => f.id === familyId);
@@ -639,13 +710,16 @@ router.delete('/:familyId', requireAuth, (req, res) => {
   }
 
   const family = db.families[familyIndex];
-  const userRole = getUserFamilyRole(family, req.user.id);
   const isOwner = family.ownerId === req.user.id;
+  const isEmergencyAdmin = Boolean(
+    req.user.isDev && getActiveEmergencyAccess(familyId, req.user.id)
+  );
 
-  if (!isOwner && userRole !== 'admin') {
+  // Issue #326: Only the family owner (or audited break-glass emergency admin) can delete a family
+  if (!isOwner && !isEmergencyAdmin) {
     return res
       .status(403)
-      .json({ error: 'Nur der Inhaber oder ein Administrator darf die Familie löschen.' });
+      .json({ error: 'Nur der Familiengründer (Owner) darf die Familie löschen.' });
   }
 
   // Remove family
@@ -692,8 +766,276 @@ router.get('/:familyId/audit-log', requireAuth, (req, res) => {
       .json({ error: 'Zugriff verweigert: Sie gehören nicht zu dieser Familie.' });
   }
 
-  const logs = getFamilyAuditLogs(familyId, 100);
-  return res.json({ logs });
+  const requestedLimit = req.query.limit ? Number(req.query.limit) : 50;
+  const safeLimit = Math.min(Math.max(requestedLimit, 1), 100);
+
+  let cursor = null;
+  if (req.query.cursor) {
+    try {
+      cursor = decodeCursor(String(req.query.cursor), `family:${familyId}`);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  const result = getFamilyAuditLogs(familyId, safeLimit, cursor);
+
+  let nextCursor = null;
+  if (result.hasMore && result.items.length > 0) {
+    const last = result.items[result.items.length - 1];
+    nextCursor = encodeCursor({
+      id: last.id,
+      sortValue: last.timestamp,
+      scope: `family:${familyId}`,
+    });
+  }
+
+  return res.json({
+    logs: result.items,
+    items: result.items,
+    nextCursor,
+    hasMore: result.hasMore,
+    limit: safeLimit,
+  });
+});
+
+/**
+ * GET /api/families/:familyId/visitor-grants/:visitorUserId
+ * Retrieves granular category grants for a specific visitor (Issue #323)
+ */
+router.get('/:familyId/visitor-grants/:visitorUserId', requireAuth, (req, res) => {
+  const { familyId, visitorUserId } = req.params;
+  const db = readDb();
+  const access = getFamilyAndCheckAccess(db, familyId, req.user.id, 'visitor');
+  if (access.error) {
+    return res.status(access.status).json({ error: access.error });
+  }
+
+  // Non-parent/owner can only read their own grants
+  if (access.userRole === 'viewer' && req.user.id !== visitorUserId) {
+    return res.status(403).json({ error: 'Zugriff verweigert.' });
+  }
+
+  const grants = getVisitorGrants(familyId, visitorUserId);
+  return res.json({ grants });
+});
+
+/**
+ * PUT /api/families/:familyId/visitor-grants/:visitorUserId
+ * Updates category grants for a visitor (strictly requires editor/parent or owner role, Issue #323)
+ */
+router.put('/:familyId/visitor-grants/:visitorUserId', requireAuth, (req, res) => {
+  const { familyId, visitorUserId } = req.params;
+  const { grants } = req.body;
+
+  if (!Array.isArray(grants)) {
+    return res.status(400).json({ error: 'Ungültiges Format: grants Array erwartet.' });
+  }
+
+  const db = readDb();
+  const access = getFamilyAndCheckAccess(db, familyId, req.user.id, 'editor');
+  if (access.error) {
+    return res.status(access.status).json({ error: access.error });
+  }
+
+  setVisitorGrants(familyId, visitorUserId, grants);
+
+  logFamilyAudit({
+    familyId,
+    userId: req.user.id,
+    userName: req.user.name,
+    action: 'VISITOR_GRANTS_UPDATE',
+    details: `Besucher-Freigaben für Benutzer ${visitorUserId} aktualisiert`,
+  });
+
+  return res.json({ ok: true, count: grants.length });
+});
+
+/**
+ * POST /api/families/:familyId/emergency-access
+ * Audited, time-limited Break-Glass emergency access for Instance Superadmins (Issue #332).
+ * Strictly requires superadmin role, recent password re-authentication, and a justified reason.
+ */
+router.post(
+  '/:familyId/emergency-access',
+  requireAuth,
+  requireInstanceAdmin,
+  requireRecentAuth,
+  (req, res) => {
+    const { familyId } = req.params;
+    const { reason, durationMinutes } = req.body || {};
+
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 10) {
+      return res.status(400).json({
+        error:
+          'Ein ausführlicher Grund (mindestens 10 Zeichen) für den Notfallzugriff ist erforderlich.',
+      });
+    }
+
+    const db = readDb();
+    const family = db.families.find((f) => f.id === familyId);
+    if (!family) {
+      return res.status(404).json({ error: 'Familie nicht gefunden.' });
+    }
+
+    // Default 60 minutes, capped between 5 and 240 minutes
+    const requestedMins = Number(durationMinutes);
+    const validDurationMins =
+      !Number.isNaN(requestedMins) && requestedMins >= 5 && requestedMins <= 240
+        ? requestedMins
+        : 60;
+    const durationMs = validDurationMins * 60 * 1000;
+
+    const grant = grantEmergencyAccess(familyId, req.user.id, reason.trim(), durationMs);
+
+    // Record immutable audit trails in both security audit and family audit logs
+    logSecurityEvent({
+      event: 'SUPERADMIN_BREAK_GLASS_ACCESS',
+      userId: req.user.id,
+      email: req.user.email,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      status: 'success',
+      details: {
+        familyId,
+        familyName: family.name,
+        reason: reason.trim(),
+        expiresAt: grant.expiresAt,
+      },
+    });
+
+    logFamilyAudit({
+      familyId,
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'EMERGENCY_BREAK_GLASS_ACCESS',
+      details: `Notfall-Zugriff aktiviert durch Superadmin: ${reason.trim()}`,
+    });
+
+    return res.status(201).json({
+      ok: true,
+      message: 'Notfallzugriff erfolgreich gewährt.',
+      grant: {
+        id: grant.id,
+        familyId: grant.familyId,
+        expiresAt: grant.expiresAt,
+        reason: grant.reason,
+      },
+    });
+  }
+);
+
+/**
+ * GET /api/families/:familyId/backup
+ * Exports a complete, isolated family backup (family owner only, Issue #327)
+ */
+router.get('/:familyId/backup', requireAuth, (req, res) => {
+  const { familyId } = req.params;
+  const db = readDb();
+  const access = getFamilyAndCheckAccess(db, familyId, req.user.id, 'admin');
+  if (access.error) {
+    return res.status(access.status).json({ error: access.error });
+  }
+
+  const { family } = access;
+  if (family.ownerId !== req.user.id && access.userRole !== 'admin') {
+    return res.status(403).json({
+      error:
+        'Zugriff verweigert: Nur der Familiengründer darf ein vollständiges Familien-Backup exportieren.',
+    });
+  }
+
+  const familyProfiles = (db.profiles || []).filter((p) => p.familyId === familyId);
+  const grants = (db.visitorGrants || []).filter((g) => g.familyId === familyId);
+
+  const backupData = {
+    version: 'babycharts-family-backup-v1',
+    family: {
+      id: family.id,
+      name: family.name,
+      createdAt: family.createdAt,
+    },
+    exportedAt: new Date().toISOString(),
+    profiles: familyProfiles,
+    visitorGrants: grants,
+  };
+
+  logFamilyAudit({
+    familyId,
+    userId: req.user.id,
+    userName: req.user.name,
+    action: 'FAMILY_BACKUP_EXPORT',
+    details: `Vollständiges Familien-Backup exportiert (${familyProfiles.length} Profile)`,
+  });
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="family-backup-${familyId}.json"`);
+  return res.json(backupData);
+});
+
+/**
+ * POST /api/families/:familyId/backup/dry-run
+ * Validates a family backup without applying changes (Issue #327)
+ */
+router.post('/:familyId/backup/dry-run', requireAuth, (req, res) => {
+  const { familyId } = req.params;
+  const db = readDb();
+  const access = getFamilyAndCheckAccess(db, familyId, req.user.id, 'admin');
+  if (access.error) {
+    return res.status(access.status).json({ error: access.error });
+  }
+
+  const { family } = access;
+  if (family.ownerId !== req.user.id && access.userRole !== 'admin') {
+    return res.status(403).json({
+      error: 'Zugriff verweigert: Nur der Familiengründer darf Backups validieren.',
+    });
+  }
+
+  const { backup } = req.body || {};
+  if (!backup || typeof backup !== 'object') {
+    return res.status(400).json({ error: 'Ungültiges Backup-Format: JSON-Objekt erwartet.' });
+  }
+
+  let profiles = null;
+  if (Array.isArray(backup.profiles)) {
+    profiles = backup.profiles;
+  } else if (Array.isArray(backup)) {
+    profiles = backup;
+  }
+  if (!profiles) {
+    return res
+      .status(400)
+      .json({ error: 'Ungültiges Backup-Format: Keine Profil-Daten gefunden.' });
+  }
+
+  const existingProfileIds = new Set(
+    (db.profiles || []).filter((p) => p.familyId === familyId).map((p) => p.id)
+  );
+  const conflicts = [];
+  let validProfileCount = 0;
+  let measurementCount = 0;
+
+  for (const p of profiles) {
+    if (!p?.id || !p?.name) continue;
+    validProfileCount++;
+    if (existingProfileIds.has(p.id)) {
+      conflicts.push({ id: p.id, name: p.name, type: 'overwrite' });
+    }
+    if (Array.isArray(p.measurements)) {
+      measurementCount += p.measurements.length;
+    }
+  }
+
+  return res.json({
+    ok: true,
+    valid: true,
+    preview: {
+      profileCount: validProfileCount,
+      measurementCount,
+      conflicts,
+    },
+  });
 });
 
 export default router;

@@ -4,7 +4,8 @@
  * Uses native Web Crypto API (SubtleCrypto) with PBKDF2 key derivation.
  */
 
-const PBKDF2_ITERATIONS = 100000;
+const PBKDF2_ITERATIONS_V2 = 600000;
+const PBKDF2_ITERATIONS_LEGACY = 100000;
 const KEY_LENGTH_BITS = 256;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
@@ -23,7 +24,7 @@ function hex2buf(hexString) {
   return bytes.buffer;
 }
 
-async function deriveKey(passphrase, saltBuffer) {
+async function deriveKey(passphrase, saltBuffer, iterations = PBKDF2_ITERATIONS_V2) {
   const enc = new TextEncoder();
   const keyMaterial = await window.crypto.subtle.importKey(
     'raw',
@@ -37,7 +38,7 @@ async function deriveKey(passphrase, saltBuffer) {
     {
       name: 'PBKDF2',
       salt: saltBuffer,
-      iterations: PBKDF2_ITERATIONS,
+      iterations,
       hash: 'SHA-256',
     },
     keyMaterial,
@@ -75,10 +76,10 @@ export async function encryptBackup(data, passphrase) {
   );
 
   return {
-    version: 'babycharts-enc-v1',
+    version: 'babycharts-enc-v2',
     algorithm: 'AES-256-GCM',
     kdf: 'PBKDF2-SHA256',
-    iterations: PBKDF2_ITERATIONS,
+    iterations: PBKDF2_ITERATIONS_V2,
     salt: buf2hex(salt),
     iv: buf2hex(iv),
     data: buf2hex(ciphertext),
@@ -105,8 +106,9 @@ export async function decryptBackup(encryptedObj, passphrase) {
     const salt = hex2buf(encryptedObj.salt);
     const iv = hex2buf(encryptedObj.iv);
     const ciphertext = hex2buf(encryptedObj.data);
+    const iterations = Number(encryptedObj.iterations) || PBKDF2_ITERATIONS_LEGACY;
 
-    const key = await deriveKey(passphrase, salt);
+    const key = await deriveKey(passphrase, salt, iterations);
 
     const decrypted = await window.crypto.subtle.decrypt(
       {
@@ -131,7 +133,7 @@ export function isEncryptedBackup(obj) {
   return Boolean(
     obj &&
     typeof obj === 'object' &&
-    obj.version === 'babycharts-enc-v1' &&
+    (obj.version === 'babycharts-enc-v1' || obj.version === 'babycharts-enc-v2') &&
     obj.algorithm === 'AES-256-GCM' &&
     typeof obj.salt === 'string' &&
     typeof obj.iv === 'string' &&

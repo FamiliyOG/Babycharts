@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fireConfetti } from './utils/confetti.js';
 import Header from './components/Header.jsx';
@@ -8,6 +9,7 @@ import PwaPrompts from './components/pwa/PwaPrompts.jsx';
 import AppModals from './components/AppModals.jsx';
 import AppContent from './components/AppContent.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { useToast } from './context/ToastContext.jsx';
 import { useProfiles, useProfileMutations } from './utils/useProfilesQuery.js';
 import { logClientError } from './utils/api.js';
 import { getAppSettings, saveAppSettings } from './utils/storage.js';
@@ -17,8 +19,25 @@ import { generateChildICalendar } from './utils/calendarGenerator.js';
 import { exportChildToCSV } from './utils/csvExporter.js';
 import { generateUuid } from './utils/uuid.js';
 
+const VALID_TABS = new Set([
+  'today',
+  'timeline',
+  'growth',
+  'ucheckups',
+  'vaccines',
+  'teeth',
+  'milestones',
+  'health',
+  'doctor',
+]);
+
+const ROUTE_REGEX = /^\/c\/([^/]+)(?:\/([^/]+))?/;
+
 function MainApp() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { addToast, showSuccess, showError } = useToast();
   const {
     user,
     activeFamily,
@@ -35,7 +54,6 @@ function MainApp() {
   } = useAuth();
 
   const familyId = activeFamily?.id || null;
-  const [activeChildId, setActiveChildId] = useState(null);
 
   const { data: profiles = [], isLoading: isProfilesLoading } = useProfiles(familyId, {
     enabled: !!user,
@@ -46,24 +64,59 @@ function MainApp() {
 
   const isLoading = isAuthLoading || (!!user && isProfilesLoading);
 
-  const handleSelectChild = (childId) => {
-    setActiveChildId(childId);
-  };
+  const effectiveProfiles = useMemo(
+    () => (Array.isArray(profiles) && user ? profiles : []),
+    [profiles, user]
+  );
 
-  const [activeTab, setActiveTab] = useState(() => {
+  // Derive route params directly from location (Issue #277)
+  const routeMatch = ROUTE_REGEX.exec(location.pathname || '/');
+  const routeChildId = routeMatch ? routeMatch[1] : null;
+  const routeTab = routeMatch && VALID_TABS.has(routeMatch[2]) ? routeMatch[2] : null;
+
+  const [selectedChildId, setSelectedChildId] = useState(null);
+  const [selectedTab, setSelectedTab] = useState(() => {
     const saved = getAppSettings();
     return saved.lastTab || 'today';
   });
 
+  const activeChildId =
+    routeChildId && effectiveProfiles.some((p) => p.id === routeChildId)
+      ? routeChildId
+      : selectedChildId;
+
+  const activeChild =
+    effectiveProfiles.find((p) => p.id === activeChildId) || effectiveProfiles[0] || null;
+
+  const activeTab = routeTab || selectedTab;
+
+  const setActiveTab = (tab) => {
+    setSelectedTab(tab);
+    saveAppSettings({ lastTab: tab });
+    if (activeChild?.id) {
+      navigate(`/c/${activeChild.id}/${tab}`, { replace: true });
+    }
+  };
+
+  const handleSelectChild = (childId) => {
+    setSelectedChildId(childId);
+    if (childId) {
+      navigate(`/c/${childId}/${activeTab}`, { replace: true });
+    }
+  };
+
   useEffect(() => {
-    saveAppSettings({ lastTab: activeTab });
-  }, [activeTab]);
+    if (activeChild?.id && location.pathname === '/') {
+      navigate(`/c/${activeChild.id}/${activeTab}`, { replace: true });
+    }
+  }, [activeChild?.id, activeTab, location.pathname, navigate]);
 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [isMeasurementFormOpen, setIsMeasurementFormOpen] = useState(false);
   const [editingMeasurement, setEditingMeasurement] = useState(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [measurementToDelete, setMeasurementToDelete] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
@@ -72,10 +125,6 @@ function MainApp() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
-
-  const effectiveProfiles = user ? profiles : [];
-  const activeChild =
-    effectiveProfiles.find((p) => p.id === activeChildId) || effectiveProfiles[0] || null;
 
   const birthdate = activeChild?.birthdate;
   const ageInfo = useMemo(() => {
@@ -105,7 +154,7 @@ function MainApp() {
           measurements: profileData.measurements || [],
         };
         const serverProfile = await createMutation.mutateAsync(payload);
-        setActiveChildId(serverProfile.id);
+        setSelectedChildId(serverProfile.id);
         showToast(`Profil "${serverProfile.name}" erfolgreich erstellt! 🎉`);
         fireConfetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
       } else {
@@ -132,7 +181,7 @@ function MainApp() {
 
     try {
       await deleteMutation.mutateAsync(childId);
-      setActiveChildId((prev) => (prev === childId ? null : prev));
+      setSelectedChildId((prev) => (prev === childId ? null : prev));
       showToast('Profil gelöscht.');
     } catch (err) {
       console.error(err);
@@ -182,17 +231,39 @@ function MainApp() {
   const handleExecuteDeleteMeasurement = async (measId) => {
     if (!activeChild || !canEdit || !measId) return;
 
+    const deletedMeas = (activeChild.measurements || []).find((m) => m.id === measId);
+    if (!deletedMeas) return;
+
     try {
       const updatedList = (activeChild.measurements || []).filter((m) => m.id !== measId);
       await handleSaveProfile({
         ...activeChild,
         measurements: updatedList,
       });
-      showToast('Messwert gelöscht.');
+
+      // Issue #284: Provide Undo action via toast
+      addToast({
+        message: 'Messwert gelöscht.',
+        type: 'info',
+        duration: 7000,
+        action: 'Rückgängig',
+        onAction: async () => {
+          try {
+            await handleSaveProfile({
+              ...activeChild,
+              measurements: [...(activeChild.measurements || []), deletedMeas],
+            });
+            showSuccess('Messwert wiederhergestellt! ↩️');
+          } catch (undoErr) {
+            console.error('Undo failed:', undoErr);
+            showError('Wiederherstellung fehlgeschlagen.');
+          }
+        },
+      });
     } catch (err) {
       console.error(err);
       logClientError('Messwert-Löschfehler', err);
-      showToast('Fehler beim Löschen.');
+      showError('Fehler beim Löschen.');
     }
   };
 
@@ -303,6 +374,7 @@ function MainApp() {
         onDeleteProfile={handleDeleteProfile}
         onOpenAddMeasurement={handleOpenAddMeasurement}
         onOpenExportModal={() => setIsExportModalOpen(true)}
+        onOpenAdminModal={() => setIsAdminModalOpen(true)}
         onManualPdfExport={handleManualPdfExport}
         onExportCalendar={handleExportCalendar}
         onExportCsv={handleExportCsv}
@@ -374,6 +446,8 @@ function MainApp() {
         handleOpenAddMeasurement={handleOpenAddMeasurement}
         isExportModalOpen={isExportModalOpen}
         setIsExportModalOpen={setIsExportModalOpen}
+        isAdminModalOpen={isAdminModalOpen}
+        setIsAdminModalOpen={setIsAdminModalOpen}
         handleLoadDemoData={handleLoadDemoData}
         isAuthModalOpen={isAuthModalOpen}
         setIsAuthModalOpen={setIsAuthModalOpen}

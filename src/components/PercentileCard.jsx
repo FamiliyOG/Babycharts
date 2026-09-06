@@ -268,10 +268,18 @@ export default function PercentileCard({ activeChild, ageInfo }) {
   });
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {cards.map((card) => (
-        <MetricCardItem key={card.title} card={card} />
-      ))}
+    <div className="space-y-2 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map((card) => (
+          <MetricCardItem key={card.title} card={card} />
+        ))}
+      </div>
+      <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center px-2">
+        {t(
+          'app.medicalDisclaimer',
+          'Hinweis: BabyCharts dient ausschließlich der persönlichen Dokumentation und Orientierung anhand der WHO-Standards und ersetzt keine ärztliche Beratung, Diagnose oder Behandlung.'
+        )}
+      </p>
     </div>
   );
 }

@@ -4,6 +4,8 @@
  * Handles authentication headers, request sanitization, response parsing, and standard error handling.
  */
 
+import { getCsrfToken } from '../utils/csrf.js';
+
 export class ApiError extends Error {
   constructor(message, status = 500, code = 'API_ERROR', details = null) {
     super(message);
@@ -15,23 +17,17 @@ export class ApiError extends Error {
 }
 
 export function getAuthToken() {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('babycharts_token');
-}
-
-export function setAuthToken(token) {
-  if (typeof window === 'undefined') return;
-  if (!token) {
-    localStorage.removeItem('babycharts_token');
-    return;
-  }
-  const cleanToken = String(token).replace(/[^a-zA-Z0-9._-]/g, '');
-  localStorage.setItem('babycharts_token', cleanToken);
+  return null;
 }
 
 export function clearAuthToken() {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem('babycharts_token');
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('babycharts_token');
+  }
+}
+
+export function setAuthToken() {
+  clearAuthToken();
 }
 
 /**
@@ -125,11 +121,14 @@ async function parseResponseBody(response) {
 export async function apiClient(endpoint, options = {}) {
   try {
     const safeUrl = buildApiUrl(endpoint, options.params);
-    const token = getAuthToken();
+    const method = (options.method || 'GET').toUpperCase();
+    const csrfToken = getCsrfToken();
 
     const headers = {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(csrfToken && !['GET', 'HEAD', 'OPTIONS'].includes(method)
+        ? { 'X-CSRF-Token': csrfToken }
+        : {}),
       ...options.headers,
     };
 

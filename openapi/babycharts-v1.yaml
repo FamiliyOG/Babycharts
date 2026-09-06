@@ -1,0 +1,642 @@
+openapi: 3.1.0
+info:
+  title: BabyCharts API
+  description: Privacy-first self-hosted child growth, milestone and health tracking REST API.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Current API v1 endpoint
+paths:
+  /health:
+    get:
+      summary: Health check and SQLite integrity status
+      responses:
+        '200':
+          description: Service health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  version:
+                    type: string
+                    example: v1
+                  database:
+                    type: object
+
+  /auth/setup-status:
+    get:
+      summary: Check if instance requires first-run setup
+      responses:
+        '200':
+          description: Setup status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  setupRequired:
+                    type: boolean
+
+  /auth/register:
+    post:
+      summary: Register a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 10
+                  maxLength: 128
+                familyName:
+                  type: string
+                inviteCode:
+                  type: string
+                setupToken:
+                  type: string
+      responses:
+        '200':
+          description: Registration successful
+        '400':
+          description: Validation error
+        '403':
+          description: Registration forbidden
+
+  /auth/login:
+    post:
+      summary: Authenticate user credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                totpCode:
+                  type: string
+      responses:
+        '200':
+          description: Authentication successful or 2FA required
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      summary: Invalidate current user session
+      responses:
+        '200':
+          description: Successfully logged out
+
+  /auth/me:
+    get:
+      summary: Get currently authenticated user profile
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Current user profile
+        '401':
+          description: Unauthorized
+    put:
+      summary: Update profile preferences or details
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Profile updated
+
+  /auth/sessions:
+    get:
+      summary: List all active sessions for current user
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Session list
+    delete:
+      summary: Revoke all other sessions
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Sessions revoked
+
+  /auth/sessions/{sessionId}:
+    delete:
+      summary: Revoke specific session
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session revoked
+
+  /auth/2fa/setup:
+    post:
+      summary: Initiate 2FA TOTP setup
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: 2FA secret and QR code generated
+
+  /auth/2fa/verify:
+    post:
+      summary: Verify TOTP token and activate 2FA
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [totpCode]
+              properties:
+                totpCode:
+                  type: string
+      responses:
+        '200':
+          description: 2FA activated successfully
+
+  /auth/2fa/disable:
+    post:
+      summary: Disable 2FA with password verification
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: 2FA disabled
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Password reset email queued
+
+  /auth/reset-password:
+    post:
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password successfully reset
+
+  /auth/change-password:
+    post:
+      summary: Change password for authenticated user
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password changed successfully
+
+  /auth/account:
+    delete:
+      summary: Delete own user account and all personal associations
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Account deleted
+
+  /auth/export-my-data:
+    get:
+      summary: Export all personal GDPR data for authenticated user
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Complete user data package
+
+  /auth/reauth:
+    post:
+      summary: Confirm current credentials for critical operations
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Re-authentication verified
+
+  /families:
+    get:
+      summary: List families for authenticated user
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Family list
+    post:
+      summary: Create a new family
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Family created
+
+  /families/{familyId}:
+    get:
+      summary: Get details of a specific family
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Family details
+    put:
+      summary: Update family name or avatar
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Family updated
+    delete:
+      summary: Delete family and all child profiles
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Family deleted
+
+  /families/{familyId}/invites:
+    post:
+      summary: Create family invitation code
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invite code generated
+
+  /families/{familyId}/invites/{code}:
+    delete:
+      summary: Revoke invite code
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invite revoked
+
+  /families/join:
+    post:
+      summary: Join a family using an invite code
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Successfully joined family
+
+  /families/{familyId}/transfer-ownership:
+    post:
+      summary: Transfer family ownership to another member
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ownership transferred
+
+  /families/{familyId}/audit-log:
+    get:
+      summary: Retrieve family audit trail
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audit log entries
+
+  /families/{familyId}/backup:
+    get:
+      summary: Export complete encrypted or plaintext family backup
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: familyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Backup package
+
+  /profiles:
+    get:
+      summary: List active child profiles for authenticated user
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Profile list
+    post:
+      summary: Create new child profile or import profiles
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Profile created
+
+  /profiles/{id}:
+    get:
+      summary: Get details of a single child profile
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile details
+    put:
+      summary: Update child profile details, milestones or measurements
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile updated
+    delete:
+      summary: Soft delete child profile
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile deleted
+
+  /settings:
+    get:
+      summary: Get instance configuration settings
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Instance settings
+    post:
+      summary: Update instance configuration settings (admin only)
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Settings updated
+
+  /exports/health:
+    get:
+      summary: Export subsystem health and storage statistics
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Export service health
+
+  /exports/trigger/{childId}:
+    post:
+      summary: Trigger automated scheduled or manual PDF export
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: childId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: PDF export completed
+
+  /media/upload:
+    post:
+      summary: Upload encrypted media file
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Media uploaded
+
+  /media/{id}:
+    get:
+      summary: Download and decrypt media file
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Decrypted media file stream
+    delete:
+      summary: Delete media file
+      security:
+        - BearerAuth: []
+        - SessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Media deleted
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: babycharts_session

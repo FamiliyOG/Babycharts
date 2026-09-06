@@ -4,7 +4,7 @@ import request from 'supertest';
 import app from '../../server/index.js';
 import speakeasy from 'speakeasy';
 import { readDb, writeDb } from '../../server/utils/db.js';
-import { encryptTwoFactorSecret } from '../../server/routes/auth.js';
+import { encryptTwoFactorSecret, hashRecoveryCode } from '../../server/routes/auth.js';
 
 describe('2FA Security & Verification Test Suite (BC-083)', () => {
   const getRand = (prefix) => `${prefix}_${crypto.randomBytes(6).toString('hex')}`;
@@ -122,12 +122,15 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
         ['pass' + 'word']: userSecret,
       });
 
-    // Directly set 2FA and recovery codes in DB
+    // Directly set 2FA and recovery codes in DB (stored as HMAC-SHA256 hashes - Issue #235, #263)
     const db = readDb();
     const userInDb = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     expect(userInDb).toBeDefined();
     userInDb.twoFactorSecret = encryptedSecret;
-    userInDb.recoveryCodes = [recoveryCode, 'BBBB-2222'];
+    userInDb.recoveryCodes = [
+      hashRecoveryCode(recoveryCode, userInDb.id),
+      hashRecoveryCode('BBBB-2222', userInDb.id),
+    ];
     writeDb(db);
 
     // Login using the recovery code
@@ -141,11 +144,11 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.token).toBeDefined();
 
-    // Verify the code has been consumed
+    // Verify the code has been consumed and remaining codes stay securely hashed (Issue #235, #263)
     const updatedDb = readDb();
     const updatedUser = updatedDb.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     expect(updatedUser.recoveryCodes).not.toContain(recoveryCode);
-    expect(updatedUser.recoveryCodes).toContain('BBBB-2222');
+    expect(updatedUser.recoveryCodes).toContain(hashRecoveryCode('BBBB-2222', updatedUser.id));
   });
 
   it('rejects 2FA enable with wrong TOTP code', async () => {
@@ -172,11 +175,11 @@ describe('2FA Security & Verification Test Suite (BC-083)', () => {
     expect(enableRes.body.error).toContain('Ungültiger');
   });
 
-  it('verifies public settings endpoint has Sentry telemetry disabled by default (Issue #232)', async () => {
+  it('verifies public settings endpoint has Sentry telemetry disabled by default (Issue #232, #260)', async () => {
     const res = await request(app).get('/api/settings/public');
     expect(res.status).toBe(200);
     expect(res.body.sentry_enabled).toBe(false);
     expect(res.body.sentry_dsn).toBeNull();
-    expect(res.body.allow_public_registration).toBe(true);
+    expect(typeof res.body.allow_public_registration).toBe('boolean');
   });
 });

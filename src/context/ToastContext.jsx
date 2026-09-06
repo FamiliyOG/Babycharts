@@ -13,10 +13,10 @@ export function ToastProvider({ children }) {
   }, []);
 
   const addToast = useCallback(
-    ({ message, type = 'info', duration = 4000 }) => {
+    ({ message, type = 'info', duration = 4000, action = null, onAction = null }) => {
       toastCounter += 1;
       const id = `toast-${Date.now()}-${toastCounter}`;
-      setToasts((prev) => [...prev, { id, message, type }]);
+      setToasts((prev) => [...prev, { id, message, type, action, onAction }]);
 
       if (duration > 0) {
         setTimeout(() => {
@@ -79,14 +79,28 @@ export function ToastProvider({ children }) {
                 <Icon className="w-5 h-5 shrink-0 opacity-90" />
                 <p className="text-xs font-medium truncate">{toast.message}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => removeToast(toast.id)}
-                className="text-white/60 hover:text-white transition p-1 rounded-lg hover:bg-white/10 shrink-0"
-                aria-label="Schließen"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {toast.action && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toast.onAction?.();
+                      removeToast(toast.id);
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+                  >
+                    {toast.action}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeToast(toast.id)}
+                  className="text-white/60 hover:text-white transition p-1 rounded-lg hover:bg-white/10 shrink-0 cursor-pointer"
+                  aria-label="Schließen"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           );
         })}

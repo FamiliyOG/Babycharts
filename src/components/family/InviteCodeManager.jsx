@@ -3,6 +3,7 @@ import { KeyRound, Copy, Check, Clock, UserPlus, Trash2 } from 'lucide-react';
 
 export default function InviteCodeManager({
   isAdmin,
+  canEdit = false,
   familyData,
   inviteRole,
   setInviteRole,
@@ -10,6 +11,8 @@ export default function InviteCodeManager({
   setInviteExpiresIn,
   inviteMaxUses,
   setInviteMaxUses,
+  inviteEmail,
+  setInviteEmail,
   handleGenerateInvite,
   handleDeleteInvite,
   generatedInvite,
@@ -17,10 +20,12 @@ export default function InviteCodeManager({
   setCopied,
 }) {
   const { t } = useTranslation();
+  const canCreateInvites = Boolean(isAdmin || canEdit);
+
   return (
     <div>
-      {/* Invite Code Generator (Admin only) */}
-      {isAdmin && (
+      {/* Invite Code Generator (Admin or Parent delegated, Issue #325) */}
+      {canCreateInvites && (
         <div className="mb-6 p-4 rounded-2xl bg-cyan-950/20 border border-cyan-900/40">
           <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
             <KeyRound className="w-4 h-4" />
@@ -40,15 +45,26 @@ export default function InviteCodeManager({
                   id="invite-role-select"
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-cyan-500"
+                  disabled={!isAdmin}
+                  className="w-full px-3 py-1.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-cyan-500 disabled:opacity-75 disabled:cursor-not-allowed"
                 >
-                  <option value="editor">
-                    {t('family.inviteRoleEditor', 'Elternteil (Schreibrechte)')}
-                  </option>
+                  {isAdmin && (
+                    <option value="editor">
+                      {t('family.inviteRoleEditor', 'Elternteil (Schreibrechte)')}
+                    </option>
+                  )}
                   <option value="viewer">
                     {t('family.inviteRoleViewer', 'Besucher (Nur Leserechte)')}
                   </option>
                 </select>
+                {!isAdmin && (
+                  <p className="text-[10px] text-cyan-400/80 mt-1">
+                    {t(
+                      'family.parentVisitorInviteOnly',
+                      'Als Elternteil können Sie Einladungen für Besucher erstellen.'
+                    )}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -90,6 +106,23 @@ export default function InviteCodeManager({
                   <option value="0">{t('family.unlimited', 'Unbegrenzt')}</option>
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="invite-email-input"
+                className="block text-[11px] font-medium text-slate-400 mb-1"
+              >
+                {t('family.inviteEmailLabel', 'Personengebundene E-Mail (optional)')}
+              </label>
+              <input
+                id="invite-email-input"
+                type="email"
+                value={inviteEmail || ''}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="z.B. oma@beispiel.de"
+                className="w-full px-3 py-1.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              />
             </div>
 
             <button
@@ -149,6 +182,11 @@ export default function InviteCodeManager({
                           ? t('roles.editor', 'Elternteil')
                           : t('roles.viewer', 'Besucher')}
                       </span>
+                      {inv.invitedEmail && (
+                        <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-300 font-mono">
+                          ✉️ {inv.invitedEmail}
+                        </span>
+                      )}
                       <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
                         <Clock className="w-2.5 h-2.5" />
                         <span>

@@ -68,21 +68,31 @@ export function AuthProvider({ children }) {
     return { ok: false, error: res.error || 'Anmeldung fehlgeschlagen.' };
   }, []);
 
-  const register = useCallback(async ({ name, email, password, familyName, inviteCode }) => {
-    const res = await registerUser({ name, email, password, familyName, inviteCode });
-    if (res.ok && res.data?.user) {
-      setUser(res.data.user);
-      setActiveFamily(res.data.family);
-      setFamilies(res.data.families || []);
-      setIsAuthModalOpen(false);
-      return { ok: true };
-    }
-    return { ok: false, error: res.error || 'Registrierung fehlgeschlagen.' };
-  }, []);
+  const register = useCallback(
+    async ({ name, email, password, familyName, inviteCode, setupToken }) => {
+      const res = await registerUser({ name, email, password, familyName, inviteCode, setupToken });
+      if (res.ok && res.data?.user) {
+        setUser(res.data.user);
+        setActiveFamily(res.data.family);
+        setFamilies(res.data.families || []);
+        setIsAuthModalOpen(false);
+        return { ok: true };
+      }
+      return { ok: false, error: res.error || 'Registrierung fehlgeschlagen.' };
+    },
+    []
+  );
 
   const logout = useCallback(() => {
     logoutUser();
     clearFamilyStoredData();
+    if (
+      typeof window !== 'undefined' &&
+      'serviceWorker' in navigator &&
+      navigator.serviceWorker.controller
+    ) {
+      navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_USER_DATA' });
+    }
     setUser(null);
     setActiveFamily(null);
     setFamilies([]);

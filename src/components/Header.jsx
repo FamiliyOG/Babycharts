@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Baby, Plus, Settings, Users, Sun, Moon, LogIn } from 'lucide-react';
+import { Baby, Plus, Settings, Users, Sun, Moon, LogIn, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
 import LanguageSwitcherDropdown from './header/LanguageSwitcherDropdown.jsx';
@@ -8,6 +8,7 @@ import { ProfilePillList } from './header/ProfilePillList.jsx';
 import PdfExportDropdown from './header/PdfExportDropdown.jsx';
 import UserMenuDropdown from './header/UserMenuDropdown.jsx';
 import MobileHeaderControls from './header/MobileHeaderControls.jsx';
+import GlobalSearchModal from './header/GlobalSearchModal.jsx';
 
 export default function Header({
   profiles,
@@ -18,6 +19,7 @@ export default function Header({
   onDeleteProfile,
   onOpenAddMeasurement,
   onOpenExportModal,
+  onOpenAdminModal,
   onManualPdfExport,
   onExportCalendar,
   onExportCsv,
@@ -37,6 +39,7 @@ export default function Header({
   const { isDark, setTheme } = useTheme();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPdfMenuOpen, setIsPdfMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const isGirl = activeChild?.gender === 'girl';
 
   return (
@@ -93,6 +96,7 @@ export default function Header({
               onOpenFamilyModal={() => setIsFamilyModalOpen(true)}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
               onOpen2FaModal={() => setIs2FaModalOpen(true)}
+              onOpenAdminModal={onOpenAdminModal}
               onLogout={logout}
               onUpdateProfile={updateUserProfile}
               isPdfMenuOpen={isPdfMenuOpen}
@@ -101,6 +105,7 @@ export default function Header({
               onExportCalendar={onExportCalendar}
               onExportCsv={onExportCsv}
               onOpenExportModal={onOpenExportModal}
+              onOpenSearch={() => setIsSearchOpen(true)}
             />
           </div>
           <div className="flex flex-wrap items-center justify-between md:justify-end gap-2.5 w-full md:w-auto">
@@ -152,6 +157,7 @@ export default function Header({
                     onToggle={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     onOpenFamilyModal={() => setIsFamilyModalOpen(true)}
                     onOpen2FaModal={() => setIs2FaModalOpen(true)}
+                    onOpenAdminModal={onOpenAdminModal}
                     onLogout={logout}
                     onUpdateProfile={updateUserProfile}
                   />
@@ -174,6 +180,17 @@ export default function Header({
                     ) : (
                       <Moon className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                     )}
+                  </button>
+
+                  {/* Global Search Button (Desktop) (BC-316) */}
+                  <button
+                    type="button"
+                    onClick={() => setIsSearchOpen(true)}
+                    title="Familienweite Suche"
+                    aria-label="Familienweite Suche öffnen"
+                    className="hidden md:block p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700/60 transition-colors cursor-pointer"
+                  >
+                    <Search className="w-4 h-4" />
                   </button>
 
                   {/* Settings / Export Import (Desktop) */}
@@ -221,6 +238,20 @@ export default function Header({
           </div>
         </div>
       </div>
+
+      {/* Global Search Modal (BC-316) */}
+      {isSearchOpen && (
+        <GlobalSearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          activeFamily={activeFamily}
+          onSelectResult={(item) => {
+            if (item.profileId && onSelectChild) {
+              onSelectChild(item.profileId);
+            }
+          }}
+        />
+      )}
     </header>
   );
 }

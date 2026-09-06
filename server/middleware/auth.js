@@ -1,36 +1,8 @@
-import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import { readDb, sqlite } from '../utils/db.js';
+import { getJwtSecret } from '../security/keys.js';
 
-/**
- * Resolve or dynamically generate a secure JWT Secret
- * Checks:
- * 1. process.env.JWT_SECRET (Environment override)
- * 2. SQLite settings table ('jwt_secret')
- * 3. Dynamically generated 64-byte random hex string persisted in SQLite
- */
-function getOrCreateJwtSecret() {
-  if (process.env.JWT_SECRET && process.env.JWT_SECRET.trim().length > 0) {
-    return process.env.JWT_SECRET.trim();
-  }
-
-  try {
-    const row = sqlite.prepare('SELECT value FROM settings WHERE key = ?').get('jwt_secret');
-    if (row?.value) {
-      return row.value;
-    }
-
-    const generated = crypto.randomBytes(64).toString('hex');
-    sqlite
-      .prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
-      .run('jwt_secret', generated);
-    return generated;
-  } catch {
-    return crypto.randomBytes(64).toString('hex');
-  }
-}
-
-export const JWT_SECRET = getOrCreateJwtSecret();
+export const JWT_SECRET = getJwtSecret();
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
 
 function extractTokenFromRequest(req) {
@@ -62,25 +34,68 @@ export function requireAuth(req, res, next) {
   }
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const db = readDb();
-    const user = db.users.find((u) => u.id === decoded.id);
+    const userRow = sqlite.prepare('SELECT * FROM users WHERE id = ?').get(decoded.id);
 
-    if (!user) {
+    if (!userRow) {
       return res.status(401).json({ error: 'Benutzerkonto nicht gefunden.' });
     }
 
-    // Invalidate sessions if specific session was revoked (Issue #249)
-    if (decoded.sessionId && Array.isArray(user.sessions)) {
-      const activeSession = user.sessions.find((s) => s.id === decoded.sessionId);
+    let sessions = [];
+    if (userRow.sessions) {
+      try {
+        sessions = JSON.parse(userRow.sessions);
+      } catch {
+        sessions = [];
+      }
+    }
+
+    // Invalidate sessions if specific session was revoked or expired (Issue #249, #262)
+    if (decoded.sessionId && Array.isArray(sessions)) {
+      const activeSession = sessions.find((s) => s.id === decoded.sessionId);
       if (!activeSession) {
         return res.status(401).json({
           error: 'Diese Sitzung wurde abgemeldet. Bitte erneut anmelden.',
         });
       }
+
+      const maxLifetimeMs = 30 * 24 * 60 * 60 * 1000;
+      const inactivityTimeoutMs = 7 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const created = new Date(activeSession.createdAt).getTime();
+      const lastActive = new Date(activeSession.lastActiveAt || activeSession.createdAt).getTime();
+
+      if (now - created > maxLifetimeMs || now - lastActive > inactivityTimeoutMs) {
+        // Expire session
+        const updatedSessions = sessions.filter((s) => s.id !== decoded.sessionId);
+        sqlite
+          .prepare('UPDATE users SET sessions = ? WHERE id = ?')
+          .run(JSON.stringify(updatedSessions), userRow.id);
+        return res.status(401).json({
+          error: 'Diese Sitzung ist durch Inaktivität abgelaufen. Bitte erneut anmelden.',
+        });
+      }
+
       activeSession.lastActiveAt = new Date().toISOString();
+      sqlite
+        .prepare('UPDATE users SET sessions = ? WHERE id = ?')
+        .run(JSON.stringify(sessions), userRow.id);
     }
 
-    req.user = { id: user.id, email: user.email, name: user.name, sessionId: decoded.sessionId };
+    const isDev = Boolean(
+      userRow.isDev ||
+      userRow.role === 'superadmin' ||
+      (process.env.DEV_EMAIL &&
+        userRow.email?.toLowerCase() === process.env.DEV_EMAIL.toLowerCase())
+    );
+
+    req.user = {
+      id: userRow.id,
+      email: userRow.email,
+      name: userRow.name,
+      role: userRow.role || (isDev ? 'superadmin' : 'user'),
+      isDev,
+      sessionId: decoded.sessionId,
+    };
     next();
   } catch (err) {
     const timestamp = new Date().toISOString();
@@ -150,7 +165,10 @@ export function requireInstanceAdmin(req, res, next) {
 
   const db = readDb();
   const user = db.users.find((u) => u.id === req.user.id);
-  if (!user || (user.role !== 'admin' && !user.isDev)) {
+  const isInstAdmin = Boolean(
+    user && (user.role === 'admin' || user.role === 'superadmin' || user.isDev)
+  );
+  if (!isInstAdmin) {
     return res.status(403).json({
       error:
         'Zugriff verweigert: Nur Instanz-Administratoren dürfen Server-Einstellungen verwalten.',

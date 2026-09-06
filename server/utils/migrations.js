@@ -281,6 +281,100 @@ export const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 5,
+    name: 'visitor_grants',
+    up: (sqlite) => {
+      sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS visitor_grants (
+          id TEXT PRIMARY KEY,
+          familyId TEXT NOT NULL,
+          visitorUserId TEXT NOT NULL,
+          profileId TEXT NOT NULL,
+          category TEXT NOT NULL,
+          createdAt TEXT NOT NULL,
+          FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE,
+          FOREIGN KEY (visitorUserId) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (profileId) REFERENCES profiles(id) ON DELETE CASCADE,
+          UNIQUE (visitorUserId, profileId, category)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_visitor_grants_lookup ON visitor_grants(visitorUserId, profileId);
+        CREATE INDEX IF NOT EXISTS idx_visitor_grants_family ON visitor_grants(familyId);
+      `);
+    },
+  },
+  {
+    version: 6,
+    name: 'email_bound_invites',
+    up: (sqlite) => {
+      const inviteCols = sqlite.prepare('PRAGMA table_info(invites)').all();
+      if (!inviteCols.some((c) => c.name === 'invitedEmail')) {
+        sqlite.exec('ALTER TABLE invites ADD COLUMN invitedEmail TEXT');
+      }
+    },
+  },
+  {
+    version: 7,
+    name: 'emergency_access_grants',
+    up: (sqlite) => {
+      sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS emergency_access (
+          id TEXT PRIMARY KEY,
+          familyId TEXT NOT NULL,
+          userId TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          grantedAt TEXT NOT NULL,
+          expiresAt TEXT NOT NULL,
+          revokedAt TEXT,
+          FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE,
+          FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_emergency_access_lookup ON emergency_access(familyId, userId, expiresAt);
+      `);
+    },
+  },
+  {
+    version: 8,
+    name: 'domain_indexes_and_integrity_audit',
+    up: (sqlite) => {
+      // 1. Composite indexes for high-frequency queries and soft-deletion filters (Issue #291)
+      sqlite.exec(`
+        CREATE INDEX IF NOT EXISTS idx_profiles_family_active ON profiles(familyId, deletedAt);
+        CREATE INDEX IF NOT EXISTS idx_measurements_profile_active ON measurements(profileId, deletedAt, date);
+        CREATE INDEX IF NOT EXISTS idx_health_logs_profile_active ON health_logs(profileId, deletedAt, dateTime);
+        CREATE INDEX IF NOT EXISTS idx_media_files_user ON media_files(userId);
+        CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(userId, timestamp);
+      `);
+
+      // 2. Ensure foreign keys and data integrity
+      sqlite.pragma('foreign_keys = ON');
+    },
+  },
+  {
+    version: 9,
+    name: 'media_derivatives_table',
+    up: (sqlite) => {
+      // Create encrypted media derivatives table for thumbnails and transcoded formats (BC-296)
+      sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS media_derivatives (
+          id TEXT PRIMARY KEY,
+          mediaId TEXT NOT NULL,
+          sizeVariant TEXT NOT NULL,
+          mimeType TEXT NOT NULL,
+          width INTEGER,
+          height INTEGER,
+          sizeBytes INTEGER NOT NULL,
+          iv TEXT NOT NULL,
+          authTag TEXT NOT NULL,
+          createdAt TEXT NOT NULL,
+          FOREIGN KEY (mediaId) REFERENCES media_files(id) ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_media_derivatives_unique ON media_derivatives(mediaId, sizeVariant);
+      `);
+    },
+  },
 ];
 
 /**

@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { X, Calendar, ZoomIn, ZoomOut, RotateCw, RotateCcw } from 'lucide-react';
 import { useModalDismissal } from '../utils/useModalDismissal.js';
-import { getAuthorizedMediaUrl } from '../utils/api.js';
+import { useBodyScrollLock } from '../utils/useBodyScrollLock.js';
+import { useProtectedMedia } from '../hooks/useProtectedMedia.js';
 
 export default function PhotoLightbox({ photo, title, date, notes, onClose }) {
-  const { dialogRef } = useModalDismissal(Boolean(photo), onClose);
+  const isOpen = Boolean(photo);
+  useBodyScrollLock(isOpen);
+  const { dialogRef } = useModalDismissal(isOpen, onClose);
+  const { src: mediaSrc } = useProtectedMedia(photo, 'lg');
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
 
@@ -22,7 +26,7 @@ export default function PhotoLightbox({ photo, title, date, notes, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl animate-fadeIn overscroll-none">
       <div
         ref={dialogRef}
         className="relative max-w-3xl w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl animate-scaleUp"
@@ -83,7 +87,7 @@ export default function PhotoLightbox({ photo, title, date, notes, onClose }) {
         <div className="bg-black/60 flex items-center justify-center min-h-75 max-h-[70vh] overflow-hidden relative select-none">
           {isVideo ? (
             <video
-              src={getAuthorizedMediaUrl(photo)}
+              src={mediaSrc || photo}
               controls
               autoPlay
               className="w-full h-auto max-h-[70vh] object-contain"
@@ -98,7 +102,7 @@ export default function PhotoLightbox({ photo, title, date, notes, onClose }) {
               }}
             >
               <img
-                src={getAuthorizedMediaUrl(photo)}
+                src={mediaSrc || photo}
                 alt={title}
                 className="w-full h-auto max-h-[70vh] object-contain select-none pointer-events-none"
               />

@@ -1,4 +1,4 @@
-import { Settings, Sun, Moon, LogIn } from 'lucide-react';
+import { Settings, Sun, Moon, LogIn, Search } from 'lucide-react';
 import LanguageSwitcherDropdown from './LanguageSwitcherDropdown.jsx';
 import UserMenuDropdown from './UserMenuDropdown.jsx';
 import PdfExportDropdown from './PdfExportDropdown.jsx';
@@ -14,6 +14,7 @@ export default function MobileHeaderControls({
   onOpenFamilyModal,
   onOpenAuthModal,
   onOpen2FaModal,
+  onOpenAdminModal,
   onLogout,
   onUpdateProfile,
   isPdfMenuOpen,
@@ -22,6 +23,7 @@ export default function MobileHeaderControls({
   onExportCalendar,
   onExportCsv,
   onOpenExportModal,
+  onOpenSearch,
 }) {
   return (
     <div className="flex items-center gap-1.5 md:hidden">
@@ -53,6 +55,7 @@ export default function MobileHeaderControls({
           onToggle={onToggleUserMenu}
           onOpenFamilyModal={onOpenFamilyModal}
           onOpen2FaModal={onOpen2FaModal}
+          onOpenAdminModal={onOpenAdminModal}
           onLogout={onLogout}
           onUpdateProfile={onUpdateProfile}
           isMobile={true}
@@ -79,6 +82,16 @@ export default function MobileHeaderControls({
             onExportCsv={onExportCsv}
             isMobile={true}
           />
+
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            title="Suchen"
+            aria-label="Familienweite Suche öffnen"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 active:scale-95 cursor-pointer"
+          >
+            <Search className="w-4 h-4" />
+          </button>
 
           <button
             type="button"

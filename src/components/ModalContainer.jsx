@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useBodyScrollLock } from '../utils/useBodyScrollLock.js';
 
 /**
  * Accessible Modal Container using HTML5 <dialog> element.
@@ -14,6 +15,7 @@ export default function ModalContainer({
   maxWidth = 'max-w-lg',
   showCloseButton = true,
 }) {
+  useBodyScrollLock(isOpen);
   const dialogRef = useRef(null);
 
   useEffect(() => {

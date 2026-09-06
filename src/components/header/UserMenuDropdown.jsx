@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Camera, Trash2, Users, ShieldCheck, LogOut } from 'lucide-react';
+import { User, Camera, Trash2, Users, ShieldCheck, LogOut, Server } from 'lucide-react';
 import { useModalDismissal } from '../../utils/useModalDismissal.js';
 import { compressImage } from '../../utils/imageCompressor.js';
 import { getAuthorizedMediaUrl } from '../../utils/api.js';
@@ -36,6 +36,7 @@ export default function UserMenuDropdown({
   userRole,
   onOpenFamilyModal,
   onOpen2FaModal,
+  onOpenAdminModal,
   onLogout,
   onUpdateProfile,
   isMobile = false,
@@ -152,7 +153,7 @@ export default function UserMenuDropdown({
                   <Camera className="w-4 h-4" />
                 </div>
                 <div
-                  className={`absolute -bottom-1 -right-1 p-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md transition-transform active:scale-95 flex items-center justify-center z-10 ${
+                  className={`avatar-badge-btn absolute -bottom-1 -right-1 w-5 h-5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-md transition-transform active:scale-95 flex items-center justify-center z-10 ${
                     isUploading ? 'opacity-50' : ''
                   }`}
                 >
@@ -171,7 +172,7 @@ export default function UserMenuDropdown({
                   }}
                   title={t('header.removeAvatar', 'Profilbild entfernen')}
                   aria-label={t('header.removeAvatar', 'Profilbild entfernen')}
-                  className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center z-20"
+                  className="avatar-badge-btn absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md cursor-pointer transition-transform active:scale-95 flex items-center justify-center z-20"
                 >
                   <Trash2 className="w-2.5 h-2.5" />
                 </button>
@@ -240,6 +241,24 @@ export default function UserMenuDropdown({
                 </span>
               )}
             </button>
+
+            {/* Dedicated Instance Admin Button (visible to superadmin / isDev, Issue #328) */}
+            {(user?.role === 'superadmin' || user?.isDev) && onOpenAdminModal && (
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggle();
+                  onOpenAdminModal();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 transition-colors text-left font-semibold cursor-pointer"
+              >
+                <Server className="w-4 h-4" />
+                <span>{t('admin.menuTitle', 'Server-Administration')}</span>
+              </button>
+            )}
 
             <div className="my-1 border-t border-slate-200 dark:border-slate-800/80" />
 

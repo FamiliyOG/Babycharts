@@ -174,9 +174,9 @@ function ProfileModalDialog({ isOpen, onClose, onSaveProfile, onDeleteProfile, i
                   onClick={handleRemoveAvatar}
                   title={t('header.removeAvatar', 'Foto entfernen')}
                   aria-label={t('header.removeAvatar', 'Foto entfernen')}
-                  className="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md transition-all active:scale-95 z-10"
+                  className="avatar-badge-btn absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 hover:bg-rose-500 text-white rounded-full shadow-md transition-all active:scale-95 flex items-center justify-center z-10"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-2.5 h-2.5" />
                 </button>
               )}
               <label

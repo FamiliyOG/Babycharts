@@ -176,21 +176,24 @@ function insertFamilies(families = []) {
       updatedAt: f.updatedAt || null,
     });
 
+    const checkUserExists = sqlite.prepare('SELECT 1 FROM users WHERE id = ?');
     for (const m of f.members || []) {
-      insertMember.run({
-        familyId: f.id,
-        userId: m.userId,
-        role: m.role || 'editor',
-        joinedAt: m.joinedAt || new Date().toISOString(),
-      });
+      if (m?.userId && checkUserExists.get(m.userId)) {
+        insertMember.run({
+          familyId: f.id,
+          userId: m.userId,
+          role: m.role || 'editor',
+          joinedAt: m.joinedAt || new Date().toISOString(),
+        });
+      }
     }
   }
 }
 
 function insertInvites(invites = [], usedInvites = []) {
   const insertInvite = sqlite.prepare(`
-    INSERT OR REPLACE INTO invites (code, familyId, role, createdBy, createdAt, expiresAt, maxUses, usesCount)
-    VALUES (@code, @familyId, @role, @createdBy, @createdAt, @expiresAt, @maxUses, @usesCount)
+    INSERT OR REPLACE INTO invites (code, familyId, role, createdBy, createdAt, expiresAt, maxUses, usesCount, invitedEmail)
+    VALUES (@code, @familyId, @role, @createdBy, @createdAt, @expiresAt, @maxUses, @usesCount, @invitedEmail)
   `);
   for (const inv of invites) {
     insertInvite.run({
@@ -202,6 +205,7 @@ function insertInvites(invites = [], usedInvites = []) {
       expiresAt: inv.expiresAt || null,
       maxUses: inv.maxUses !== undefined ? inv.maxUses : 1,
       usesCount: inv.usesCount !== undefined ? inv.usesCount : 0,
+      invitedEmail: inv.invitedEmail || null,
     });
   }
 
@@ -441,6 +445,13 @@ export function readDb() {
     exportLog[el.profileId] = el.lastExportAt;
   }
 
+  let visitorGrants = [];
+  try {
+    visitorGrants = sqlite.prepare('SELECT * FROM visitor_grants').all();
+  } catch {
+    // table might not be migrated yet in isolated mocks
+  }
+
   return {
     users,
     families,
@@ -449,28 +460,35 @@ export function readDb() {
     profiles,
     settings,
     exportLog,
+    visitorGrants,
   };
 }
 
-const ALLOWED_PRUNE_TABLES = new Set([
-  'users',
-  'families',
-  'family_members',
-  'invitations',
-  'profiles',
-  'settings',
-]);
+const PRUNE_STATEMENTS = Object.freeze({
+  users: {
+    selectIds: sqlite.prepare('SELECT id FROM users'),
+    deleteById: sqlite.prepare('DELETE FROM users WHERE id = ?'),
+  },
+  families: {
+    selectIds: sqlite.prepare('SELECT id FROM families'),
+    deleteById: sqlite.prepare('DELETE FROM families WHERE id = ?'),
+  },
+  profiles: {
+    selectIds: sqlite.prepare('SELECT id FROM profiles'),
+    deleteById: sqlite.prepare('DELETE FROM profiles WHERE id = ?'),
+  },
+});
 
 function pruneStaleRows(tableName, validItems = []) {
-  if (!ALLOWED_PRUNE_TABLES.has(tableName)) {
+  const tableStmts = PRUNE_STATEMENTS[tableName];
+  if (!tableStmts) {
     throw new Error(`Invalid table name for prune: ${tableName}`);
   }
   const existingIds = new Set(validItems.map((item) => item.id));
-  const currentDbRows = sqlite.prepare(`SELECT id FROM ${tableName}`).all();
-  const deleteStmt = sqlite.prepare(`DELETE FROM ${tableName} WHERE id = ?`);
+  const currentDbRows = tableStmts.selectIds.all();
   for (const row of currentDbRows) {
     if (!existingIds.has(row.id)) {
-      deleteStmt.run(row.id);
+      tableStmts.deleteById.run(row.id);
     }
   }
 }
@@ -658,11 +676,12 @@ export async function validateBackupFile(filePath) {
       }
 
       const userCount = testDb.prepare('SELECT COUNT(*) as c FROM users').get().c;
+      const familyCount = testDb.prepare('SELECT COUNT(*) as c FROM families').get().c;
       const profileCount = testDb.prepare('SELECT COUNT(*) as c FROM profiles').get().c;
 
       return {
         ok: true,
-        counts: { users: userCount, profiles: profileCount },
+        counts: { users: userCount, families: familyCount, profiles: profileCount },
       };
     } finally {
       testDb.close();
@@ -895,6 +914,80 @@ export function restoreProfile(id) {
 
 export function getSettings() {
   return readDb().settings;
+}
+
+/**
+ * Gets all visitor grants for a specific user and family (Issue #323)
+ */
+export function getVisitorGrants(familyId, visitorUserId) {
+  try {
+    return sqlite
+      .prepare('SELECT * FROM visitor_grants WHERE familyId = ? AND visitorUserId = ?')
+      .all(familyId, visitorUserId);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Updates all visitor grants for a specific visitor user in a family atomically (Issue #323)
+ */
+export function setVisitorGrants(familyId, visitorUserId, grants = []) {
+  return sqlite.transaction(() => {
+    sqlite
+      .prepare('DELETE FROM visitor_grants WHERE familyId = ? AND visitorUserId = ?')
+      .run(familyId, visitorUserId);
+
+    const insertStmt = sqlite.prepare(`
+      INSERT INTO visitor_grants (id, familyId, visitorUserId, profileId, category, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const g of grants) {
+      if (!g.profileId || !g.category) continue;
+      const id = g.id || crypto.randomUUID();
+      const createdAt = g.createdAt || new Date().toISOString();
+      insertStmt.run(id, familyId, visitorUserId, g.profileId, g.category, createdAt);
+    }
+    return true;
+  })();
+}
+
+/**
+ * Checks if user has an active emergency break-glass grant for a family (Issue #332)
+ */
+export function getActiveEmergencyAccess(familyId, userId) {
+  try {
+    const now = new Date().toISOString();
+    return (
+      sqlite
+        .prepare(
+          `SELECT * FROM emergency_access
+           WHERE familyId = ? AND userId = ? AND expiresAt > ? AND revokedAt IS NULL`
+        )
+        .get(familyId, userId, now) || null
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Creates an emergency break-glass grant for a family (Issue #332)
+ */
+export function grantEmergencyAccess(familyId, userId, reason, durationMs = 60 * 60 * 1000) {
+  const id = `emg-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+  const grantedAt = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + durationMs).toISOString();
+
+  sqlite
+    .prepare(
+      `INSERT INTO emergency_access (id, familyId, userId, reason, grantedAt, expiresAt)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .run(id, familyId, userId, reason, grantedAt, expiresAt);
+
+  return { id, familyId, userId, reason, grantedAt, expiresAt };
 }
 
 /**

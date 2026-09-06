@@ -29,6 +29,12 @@
     "dueDesc": "Check your child's upcoming checkups and vaccinations.",
     "notifyMe": "Remind Me"
   },
+  "search": {
+    "title": "Global Search",
+    "placeholder": "Search measurements, milestones, notes...",
+    "noResults": "No matching entries found in this family.",
+    "hint": "Enter at least 2 characters to search milestones, measurements, and health logs."
+  },
   "nav": {
     "today": "Today",
     "overview": "Overview",
@@ -45,7 +51,9 @@
     "shortTeeth": "Teeth",
     "shortMilestones": "Moments",
     "shortHealth": "Fever",
-    "shortUCheckups": "Checkups"
+    "shortUCheckups": "Checkups",
+    "shortTimeline": "Timeline",
+    "shortDoctor": "Doctor"
   },
   "dashboard": {
     "today": "Today",
@@ -223,7 +231,10 @@
     "pwaIosStep": "Tap Share at the bottom → 'Add to Home Screen'.",
     "devToolsTitle": "Developer Tools (Dev Account)",
     "devToolsDesc": "Load demo datasets (Noah & Mia) with example entries",
-    "demoDataBtn": "Demo Data"
+    "demoDataBtn": "Demo Data",
+    "clinicalExportTitle": "Clinical & Physician Export",
+    "clinicalExportDesc": "Privacy-preserving export for the pediatrician (measurements, vaccines, checkups). Excludes private photos and personal notes.",
+    "clinicalExportBtn": "Clinical Export"
   },
   "auth": {
     "loginTitle": "Welcome back",
@@ -249,6 +260,9 @@
     "familyNamePlaceholder": "e.g. Smith Family",
     "inviteCodeLabel": "Invite Code (optional)",
     "inviteCodePlaceholder": "e.g. BABY-1234",
+    "setupCodeLabel": "Administrator Setup Code",
+    "setupCodePlaceholder": "32-character hex code from server logs",
+    "setupNotice": "First-run setup: As no users exist yet, an administrator setup code is required.",
     "totpLabel": "2FA Authentication Code",
     "totpPlaceholder": "6-digit code from authenticator app",
     "forgotPasswordLink": "Forgot password?",
@@ -318,8 +332,10 @@
     "deleteConfirm": "Are you sure you want to permanently delete this family? All data will be lost.",
     "createInviteTitle": "Create New Invite Code",
     "inviteRoleLabel": "Invited Role",
-    "inviteRoleEditor": "Parent (Edit permissions)",
-    "inviteRoleViewer": "Visitor (View only)",
+    "inviteRoleEditor": "Parent (Write permissions)",
+    "inviteRoleViewer": "Visitor (Read-only)",
+    "parentVisitorInviteOnly": "As a parent, you can create invitations for visitors.",
+    "inviteEmailLabel": "Person-specific Email (optional)",
     "inviteValidityLabel": "Validity",
     "hours24": "24 Hours (1 Day)",
     "hours48": "48 Hours (2 Days)",
@@ -812,5 +828,39 @@
     "card6Title": "Family & Doctor PDF Exports",
     "card6Desc": "Shared family access via invite codes as well as structured PDF & Excel exports for pediatricians.",
     "privacyBanner": "100% private, privacy-first & self-hosted"
+  },
+  "visitorGrants": {
+    "title": "Visitor Permissions for",
+    "description": "Specify exactly which data categories this member is allowed to view per child (Default-Deny).",
+    "manageTitle": "Customize visitor permissions",
+    "growth": "Growth & Charts",
+    "vaccinations": "Vaccinations",
+    "uCheckups": "U-Checkups",
+    "teeth": "Teeth",
+    "milestones": "Milestones",
+    "health": "Health & Temperature",
+    "photos": "Photos & Avatar",
+    "notes": "Private Notes",
+    "loading": "Loading permissions...",
+    "noProfiles": "No children in this family yet.",
+    "grantAll": "Grant All",
+    "revokeAll": "Revoke All",
+    "saveSuccess": "Permissions saved successfully.",
+    "saveError": "Failed to save permissions."
+  },
+  "admin": {
+    "title": "Instance Administration",
+    "subtitle": "Global server configuration, active sessions, and system management.",
+    "menuTitle": "Server Administration",
+    "settingsTab": "Settings Catalog",
+    "sessionsTab": "Active Sessions",
+    "saveError": "Failed to save instance settings."
+  },
+  "reauth": {
+    "title": "Identity Verification",
+    "description": "This security-critical action requires you to re-authenticate with your password.",
+    "enterTotp": "Please also enter your 2FA authenticator code.",
+    "failed": "Re-authentication failed.",
+    "confirmAction": "Confirm Action"
   }
 }

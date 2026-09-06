@@ -10,6 +10,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
   html,
   body {
     background-color: #f8fafc;
@@ -37,6 +41,20 @@
     transition:
       background-color 0.25s ease,
       color 0.25s ease;
+  }
+
+  /* Prevent background scrolling and scroll-chaining when a modal is active */
+  html.modal-open,
+  body.modal-open {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    height: 100% !important;
+    touch-action: none;
+  }
+
+  dialog,
+  [role='dialog'] {
+    overscroll-behavior: contain;
   }
 
   html.dark,
@@ -224,11 +242,11 @@ html.light .text-slate-300 {
 }
 
 html.light .text-slate-400 {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html.light .text-slate-500 {
-  color: #94a3b8 !important;
+  color: #64748b !important;
 }
 
 /* Modal Overlay & Modal Dialog in Light Mode */
@@ -350,13 +368,41 @@ html.light [class*='bg-linear'] * {
 
 /* Accessibility & Mobile UX: Touch targets minimum 44x44px (BC-147) */
 @media (pointer: coarse) {
-  button,
-  a,
+  button:not(.avatar-badge-btn),
+  a:not(.avatar-badge-btn),
   input[type='button'],
   input[type='submit'],
   input[type='checkbox'],
   input[type='radio'] {
     min-height: 44px;
     min-width: 44px;
+  }
+}
+
+/* Accessibility: Windows High Contrast / Forced Colors mode support (#275) */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight !important;
+    outline-offset: 3px !important;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    border: 1px solid ButtonBorder !important;
+  }
+}
+
+/* Accessibility: 320px Viewport reflow without horizontal scrolling (#273) */
+@media (max-width: 360px) {
+  .overflow-x-auto {
+    overscroll-behavior-x: contain;
+  }
+  /* Ensure critical action buttons and text wrap gracefully */
+  button,
+  .btn {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }

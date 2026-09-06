@@ -349,6 +349,12 @@ function MainApp() {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-white pb-16 md:pb-0 transition-colors duration-200 overflow-x-hidden w-full max-w-full">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-cyan-600 focus:text-white focus:rounded-xl focus:shadow-lg focus:outline-none"
+      >
+        Zum Hauptinhalt springen
+      </a>
       <OfflineBanner />
 
       <Header
@@ -388,7 +394,10 @@ function MainApp() {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col safe-area-x pb-28 md:pb-8">
+      <main
+        id="main-content"
+        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col safe-area-x pb-28 md:pb-8"
+      >
         <AppContent
           isLoading={isLoading}
           user={user}

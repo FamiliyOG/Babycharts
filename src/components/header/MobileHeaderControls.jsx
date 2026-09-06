@@ -65,6 +65,7 @@ export default function MobileHeaderControls({
           type="button"
           onClick={onOpenAuthModal}
           title="Anmelden"
+          aria-label="Anmelden"
           className="p-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white active:scale-95 cursor-pointer"
         >
           <LogIn className="w-4 h-4" />

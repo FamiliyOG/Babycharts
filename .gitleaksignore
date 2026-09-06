@@ -1,0 +1,3 @@
+# Gitleaks ignore file
+# False-positive in historical commit 2449478 (dummy mock string in unit test):
+24494785fae95ffc1b287736f9ed4bbab336575f:src/test/services.test.js:generic-api-key:158

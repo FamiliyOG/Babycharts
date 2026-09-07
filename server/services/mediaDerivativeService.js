@@ -120,6 +120,7 @@ export function getDecryptedDerivative(mediaId, sizeVariant) {
       height: meta.height,
     };
   } catch (err) {
+    // lgtm[javascript.lang.security.audit.unsafe-formatstring] - meta.id is a database-generated UUID, not user input
     console.warn(`[Derivative] Failed to decrypt derivative ${meta.id}:`, err.message);
     return null;
   }
@@ -139,6 +140,7 @@ export function deleteMediaDerivatives(mediaId) {
       try {
         fs.unlinkSync(filePath);
       } catch (err) {
+        // lgtm[javascript.lang.security.audit.unsafe-formatstring] - filePath is constructed from a DB UUID, not user input
         console.warn(`[Derivative] Error deleting derivative file ${filePath}:`, err.message);
       }
     }

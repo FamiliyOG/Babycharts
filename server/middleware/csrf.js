@@ -66,8 +66,9 @@ export function csrfProtection(req, res, next) {
   const clientToken = req.headers['x-csrf-token'];
   if (!clientToken || clientToken !== csrfCookie) {
     const timestamp = new Date().toISOString();
+    const safeUrlPath = urlPath.replace(/[\r\n]/g, '');
     console.warn(
-      `[CSRF ${timestamp}] Blocked mutating request to ${urlPath}: Invalid or missing X-CSRF-Token`
+      `[CSRF ${timestamp}] Blocked mutating request to ${safeUrlPath}: Invalid or missing X-CSRF-Token`
     );
     return res.status(403).json({
       error: 'Ungültiges oder fehlendes CSRF-Token. Bitte aktualisieren Sie die Seite.',

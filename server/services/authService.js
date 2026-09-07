@@ -302,6 +302,7 @@ function verifyUserTwoFactor({ user, code, recoveryCode, ip, userAgent }) {
   }
 
   let is2faValid = false;
+  // lgtm[js/user-controlled-bypass] - Intentional: TOTP token must come from the user to be verified
   if (providedTotp && decryptedSecret) {
     is2faValid = speakeasy.totp.verify({
       secret: decryptedSecret,

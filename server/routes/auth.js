@@ -227,6 +227,7 @@ router.post('/logout', (req, res) => {
   const cookieHeader = req.headers.cookie;
   if (typeof cookieHeader === 'string') {
     const match = /(?:^|;\s*)(?:babycharts_token|babycharts_session)=([^;]+)/.exec(cookieHeader);
+    // lgtm[js/user-controlled-bypass] - Intentional: we read the cookie token to revoke the session on logout
     if (match?.[1]) {
       try {
         const decoded = jwt.verify(decodeURIComponent(match[1]), JWT_SECRET);
@@ -370,6 +371,7 @@ router.post('/2fa/setup', requireAuth, async (req, res) => {
 router.post('/2fa/verify', requireAuth, twoFactorLimiter, async (req, res) => {
   try {
     const code = req.body?.totpCode;
+    // lgtm[js/user-controlled-bypass] - Intentional: code must be present to verify 2FA activation
     if (typeof code !== 'string' || code.trim().length === 0) {
       return res.status(400).json({ error: 'Code ist erforderlich.' });
     }
@@ -678,6 +680,7 @@ router.get('/export-my-data', requireAuth, (req, res) => {
 router.post('/reauth', requireAuth, async (req, res) => {
   try {
     const { password, code } = req.body || {};
+    // lgtm[js/user-controlled-bypass] - Intentional: password is required input for re-authentication
     if (!password) {
       return res.status(400).json({ error: 'Passwort erforderlich zur Re-Authentifizierung.' });
     }
@@ -695,6 +698,7 @@ router.post('/reauth', requireAuth, async (req, res) => {
 
     // If 2FA enabled, enforce TOTP code verification
     if (user.twoFactorSecret) {
+      // lgtm[js/user-controlled-bypass] - Intentional: 2FA code is required when 2FA is enabled
       if (!code) {
         return res.status(400).json({
           requires2FA: true,

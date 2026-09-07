@@ -94,6 +94,7 @@ router.post('/', requireAuth, requireInstanceAdmin, async (req, res) => {
     if (result.error) {
       errors.push(result.error);
     } else {
+      // lgtm[js/remote-property-injection] - key validated against SETTINGS_REGISTRY allowlist above
       updates[key] = result.value;
     }
   }

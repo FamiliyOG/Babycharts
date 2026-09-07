@@ -15,6 +15,7 @@ function serviceWorkerVersionPlugin() {
         const content = fs.readFileSync(distSwPath, 'utf8');
         const version = Date.now().toString(36);
         const updated = content.replace('__SW_CACHE_VERSION__', version);
+        // lgtm[js/file-system-race] - Build-time plugin only; no concurrent access in this context
         fs.writeFileSync(distSwPath, updated, 'utf8');
       }
     },

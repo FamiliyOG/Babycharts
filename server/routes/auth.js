@@ -13,27 +13,24 @@ import { requireAuth, JWT_SECRET, getUserFamilyRole } from '../middleware/auth.j
 import { revokeSession, revokeAllOtherSessions } from '../services/sessionService.js';
 import {
   authService,
-  encryptTwoFactorSecret,
   decryptTwoFactorSecret,
-  generateRecoveryCodes,
-  hashRecoveryCode,
-  validatePasswordPolicy,
-  getOrGenerateSetupToken,
   isFirstRunSetupRequired,
   formatUserPayload,
 } from '../services/authService.js';
 import { userRepository, familyRepository } from '../repositories/index.js';
 
 export {
-  encryptTwoFactorSecret,
+  authService,
   decryptTwoFactorSecret,
+  isFirstRunSetupRequired,
+} from '../services/authService.js';
+export {
+  encryptTwoFactorSecret,
   generateRecoveryCodes,
   hashRecoveryCode,
   validatePasswordPolicy,
   getOrGenerateSetupToken,
-  isFirstRunSetupRequired,
-  authService,
-};
+} from '../services/authService.js';
 
 const router = express.Router();
 
@@ -518,6 +515,26 @@ router.post('/change-password', requireAuth, async (req, res) => {
  * POST /api/auth/delete-account
  * Completely deletes the authenticated user's account (DSGVO / GDPR Art. 17 / BC-206).
  */
+function assertNotLastSuperadmin(user) {
+  if (user.role === 'superadmin' || user.isDev) {
+    const count = userRepository.countByRole('superadmin');
+    if (count <= 1) {
+      return 'Der letzte Administrator/Superadmin der Instanz kann nicht gelöscht werden.';
+    }
+  }
+  return null;
+}
+
+function assertNoOwnedFamilyWithMembers(user, ownedFamilies) {
+  for (const fam of ownedFamilies) {
+    const others = (fam.members || []).filter((m) => m.userId !== user.id);
+    if (others.length > 0) {
+      return `Sie sind Inhaber der Familie "${fam.name}" mit weiteren Mitgliedern. Bitte übertragen Sie zuerst die Inhaberschaft auf ein anderes Mitglied, bevor Sie Ihr Konto löschen.`;
+    }
+  }
+  return null;
+}
+
 async function handleDeleteAccount(req, res) {
   try {
     const { password } = req.body || {};
@@ -538,43 +555,29 @@ async function handleDeleteAccount(req, res) {
       return res.status(400).json({ error: 'Das angegebene Passwort ist nicht korrekt.' });
     }
 
-    // Check for sole superadmin
-    if (user.role === 'superadmin' || user.isDev) {
-      const superadminCount = userRepository.countByRole('superadmin');
-      if (superadminCount <= 1) {
-        return res.status(400).json({
-          error: 'Der letzte Administrator/Superadmin der Instanz kann nicht gelöscht werden.',
-        });
-      }
+    const superadminError = assertNotLastSuperadmin(user);
+    if (superadminError) {
+      return res.status(400).json({ error: superadminError });
     }
 
-    // Check families where user is owner with other members
     const ownedFamilies = familyRepository
       .findByUserId(user.id)
       .filter((f) => f.ownerId === user.id);
-    for (const fam of ownedFamilies) {
-      const otherMembers = (fam.members || []).filter((m) => m.userId !== user.id);
-      if (otherMembers.length > 0) {
-        return res.status(400).json({
-          error: `Sie sind Inhaber der Familie "${fam.name}" mit weiteren Mitgliedern. Bitte übertragen Sie zuerst die Inhaberschaft auf ein anderes Mitglied, bevor Sie Ihr Konto löschen.`,
-        });
-      }
+
+    const familyBlockError = assertNoOwnedFamilyWithMembers(user, ownedFamilies);
+    if (familyBlockError) {
+      return res.status(400).json({ error: familyBlockError });
     }
 
-    // Delete solo-owned families and their profiles (via CASCADE in SQLite schema)
+    // Delete solo-owned families (profiles cascade via SQLite FK)
     for (const fam of ownedFamilies) {
-      const otherMembers = (fam.members || []).filter((m) => m.userId !== user.id);
-      if (otherMembers.length === 0) {
-        familyRepository.delete(fam.id);
-      }
+      const others = (fam.members || []).filter((m) => m.userId !== user.id);
+      if (others.length === 0) familyRepository.delete(fam.id);
     }
 
     // Remove from other families' member lists
-    const allUserFamilies = familyRepository.findByUserId(user.id);
-    for (const fam of allUserFamilies) {
-      if (fam.ownerId !== user.id) {
-        familyRepository.removeMember(fam.id, user.id);
-      }
+    for (const fam of familyRepository.findByUserId(user.id)) {
+      if (fam.ownerId !== user.id) familyRepository.removeMember(fam.id, user.id);
     }
 
     userRepository.delete(user.id);

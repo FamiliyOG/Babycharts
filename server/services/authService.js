@@ -261,6 +261,32 @@ function handleRegistrationFamily({
   return { targetFamily };
 }
 
+function consumeRecoveryCode(user, candidates, ip, userAgent) {
+  for (const candidate of candidates) {
+    const hashedAttempt = hashRecoveryCode(candidate, user.id);
+    const codeIndex = user.recoveryCodes.findIndex((c) => c === hashedAttempt || c === candidate);
+    if (codeIndex !== -1) {
+      const updatedCodes = [...user.recoveryCodes];
+      updatedCodes.splice(codeIndex, 1);
+      userRepository.updateTwoFactor(user.id, {
+        secret: user.twoFactorSecret,
+        recoveryCodes: updatedCodes,
+      });
+      logSecurityEvent({
+        event: '2FA_RECOVERY_CODE_USED',
+        userId: user.id,
+        email: user.email,
+        ip,
+        userAgent,
+        status: 'success',
+        details: { remainingCodes: updatedCodes.length },
+      });
+      return true;
+    }
+  }
+  return false;
+}
+
 function verifyUserTwoFactor({ user, code, recoveryCode, ip, userAgent }) {
   const decryptedSecret = decryptTwoFactorSecret(user.twoFactorSecret);
   const providedTotp = typeof code === 'string' ? code.trim() : null;
@@ -285,37 +311,14 @@ function verifyUserTwoFactor({ user, code, recoveryCode, ip, userAgent }) {
     });
   }
 
-  // Check recovery codes — try both the dedicated recoveryCode field and the totpCode field
-  // (backwards compatible: tests and older clients may send recovery codes via the totpCode field)
+  // Check recovery codes — try both dedicated recoveryCode and totpCode fields
+  // (backwards compatible: older clients may send recovery codes via totpCode)
   if (!is2faValid && Array.isArray(user.recoveryCodes)) {
     const candidates = [
       providedRecovery,
       providedTotp ? providedTotp.trim().toUpperCase() : null,
     ].filter(Boolean);
-
-    for (const candidate of candidates) {
-      const hashedAttempt = hashRecoveryCode(candidate, user.id);
-      const codeIndex = user.recoveryCodes.findIndex((c) => c === hashedAttempt || c === candidate);
-      if (codeIndex !== -1) {
-        is2faValid = true;
-        const updatedCodes = [...user.recoveryCodes];
-        updatedCodes.splice(codeIndex, 1);
-        userRepository.updateTwoFactor(user.id, {
-          secret: user.twoFactorSecret,
-          recoveryCodes: updatedCodes,
-        });
-        logSecurityEvent({
-          event: '2FA_RECOVERY_CODE_USED',
-          userId: user.id,
-          email: user.email,
-          ip,
-          userAgent,
-          status: 'success',
-          details: { remainingCodes: updatedCodes.length },
-        });
-        break;
-      }
-    }
+    is2faValid = consumeRecoveryCode(user, candidates, ip, userAgent);
   }
 
   if (!is2faValid) {
